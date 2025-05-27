@@ -1,3 +1,5 @@
+import { calculateCollapsibleContentHeight, expandSection, collapseSection } from '../js/collapsible.js';
+
 /**
  * MaintenanceManager - Handles maintenance events for assets and sub-assets
  * Manages the creation, editing, and deletion of maintenance events
@@ -117,8 +119,7 @@ export class MaintenanceManager {
         if (eventElement) {
             eventElement.remove();
         }
-
-        // Recalculate the collapsible section height
+        // Always recalculate the collapsible section height after removal
         this.recalculateCollapsibleHeight(type);
     }
 
@@ -165,11 +166,6 @@ export class MaintenanceManager {
         // Clear existing events
         container.innerHTML = '';
 
-        // If there are events to show, expand the section
-        if (events && events.length > 0) {
-            this.expandMaintenanceSection(type);
-        }
-
         // Add each event
         events.forEach(event => {
             const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -204,9 +200,11 @@ export class MaintenanceManager {
             }
         });
 
-        // Recalculate the collapsible section height after all events are added
+        // If there are events to show, expand the section
         if (events && events.length > 0) {
-            this.recalculateCollapsibleHeight(type);
+            this.expandMaintenanceSection(type);
+        } else {
+            this.collapseMaintenanceSection(type);
         }
     }
 
@@ -243,19 +241,14 @@ export class MaintenanceManager {
      * @param {string} type - 'asset' or 'subAsset'
      */
     expandMaintenanceSection(type) {
-        const sectionId = type === 'asset' ? 'assetMaintenanceSection' : 'subAssetMaintenanceSection';
-        const section = document.getElementById(sectionId);
-        
-        if (section && section.classList.contains('collapsed')) {
-            section.classList.remove('collapsed');
-            const content = section.querySelector('.collapsible-content');
-            if (content) {
-                // Use requestAnimationFrame to ensure proper height calculation
-                requestAnimationFrame(() => {
-                    content.style.height = (content.scrollHeight + 5) + 'px';
-                });
-            }
-        }
+        this.recalculateCollapsibleHeight(type);
+        const sectionId = type === 'asset' ? '#assetMaintenanceSection' : '#subAssetMaintenanceSection';       
+        expandSection(sectionId);
+    }
+
+    collapseMaintenanceSection(type) {
+        const sectionId = type === 'asset' ? '#assetMaintenanceSection' : '#subAssetMaintenanceSection';        
+        collapseSection(sectionId);
     }
 
     /**
@@ -265,21 +258,12 @@ export class MaintenanceManager {
     recalculateCollapsibleHeight(type) {
         const sectionId = type === 'asset' ? 'assetMaintenanceSection' : 'subAssetMaintenanceSection';
         const section = document.getElementById(sectionId);
-        
-        if (section && !section.classList.contains('collapsed')) {
+        if (section) {
             const content = section.querySelector('.collapsible-content');
             if (content) {
-                // Use requestAnimationFrame to ensure DOM has updated
-                requestAnimationFrame(() => {
-                    // Force a reflow to get accurate scrollHeight
-                    content.style.display = 'none';
-                    content.offsetHeight; // Trigger reflow
-                    content.style.display = '';
-                    
-                    // Set the new height with a small buffer
-                    content.style.height = (content.scrollHeight + 10) + 'px';
-                });
+                // Use the generic calculateCollapsibleContentHeight from collapsible.js
+                calculateCollapsibleContentHeight(content);
             }
         }
     }
-} 
+}

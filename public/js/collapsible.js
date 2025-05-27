@@ -23,7 +23,7 @@ function initCollapsibleSections() {
             document.querySelectorAll('.collapsible-section:not(.collapsed)').forEach(section => {
                 const content = section.querySelector('.collapsible-content');
                 if (content) {
-                    // Don't use ensureContentHeight which could cause issues
+                    // Don't use calculateCollapsibleContentHeight which could cause issues
                     // Just set the height directly
                     requestAnimationFrame(() => {
                         content.style.height = (content.scrollHeight + 5) + 'px';
@@ -73,7 +73,7 @@ function setupCollapsible(section) {
     } else {
         section.classList.remove('collapsed');
         // Make sure the content has rendered before calculating height
-        ensureContentHeight(content);
+        calculateCollapsibleContentHeight(content);
     }
 }
 
@@ -86,7 +86,7 @@ function toggleCollapsible(section) {
         // Expand
         section.classList.remove('collapsed');
         // Make sure the content has rendered before calculating height
-        ensureContentHeight(content);
+        calculateCollapsibleContentHeight(content);
     } else {
         // Collapse
         section.classList.add('collapsed');
@@ -96,22 +96,26 @@ function toggleCollapsible(section) {
 }
 
 // Ensure the content height is calculated properly
-function ensureContentHeight(content) {
+// Now supports summing all visible children for accurate height (for any component)
+function calculateCollapsibleContentHeight(content) {
     // Only calculate height if the parent section isn't collapsed
     const parentSection = content.closest('.collapsible-section');
     if (parentSection && parentSection.classList.contains('collapsed')) {
         return;
     }
-    
-    // Force a reflow to get accurate scrollHeight
-    content.style.display = 'none';
-    content.offsetHeight; // Trigger reflow
-    content.style.display = '';
-    
-    // Set the height after a tiny delay to ensure rendering
+    // Force browser to render children before measuring
     requestAnimationFrame(() => {
-        // Add a bit of extra height to account for any potential rendering issues
-        content.style.height = (content.scrollHeight + 5) + 'px';
+        let totalHeight = 0;
+        Array.from(content.children).forEach(child => {
+            // Force reflow for each child to ensure layout is up to date
+            child.offsetHeight;
+            if (child.offsetParent !== null) {
+                totalHeight += child.scrollHeight;
+            }
+        });
+        // Add a small buffer for safety
+        totalHeight += 35;
+        content.style.height = totalHeight + 'px';
     });
 }
 
@@ -124,9 +128,7 @@ function expandSection(selector) {
             section.classList.remove('collapsed');
             const content = section.querySelector('.collapsible-content');
             if (content) {
-                requestAnimationFrame(() => {
-                    content.style.height = (content.scrollHeight + 5) + 'px';
-                });
+                calculateCollapsibleContentHeight(content);
             }
         }
     }
@@ -150,5 +152,6 @@ export {
     setupCollapsible, 
     toggleCollapsible,
     expandSection,
-    collapseSection
+    collapseSection,
+    calculateCollapsibleContentHeight
 };
