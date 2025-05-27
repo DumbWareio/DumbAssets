@@ -9,6 +9,7 @@ services:
       - ./data:/app/data
     restart: unless-stopped
     environment:
+      DEMO_MODE: ${DUMBASSETS_DEMO_MODE:-false}
       PORT: ${DUMBASSETS_PORT:-3000}
       NODE_ENV: ${DUMBASSETS_NODE_ENV:-production}
       DEBUG: ${DUMBASSETS_DEBUG:-true}
