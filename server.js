@@ -479,7 +479,13 @@ function deleteAssetFiles(asset) {
         if (filePath && typeof filePath === 'string') {
             try {
                 // Normalize the file path
-                const normalizedPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+                let normalizedPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+                
+                // If the path doesn't start with 'data/', prepend it
+                if (!normalizedPath.startsWith('data/')) {
+                    normalizedPath = path.join('data', normalizedPath);
+                }
+                
                 const fullPath = path.join(__dirname, normalizedPath);
                 
                 if (fs.existsSync(fullPath)) {
