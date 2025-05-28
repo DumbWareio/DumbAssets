@@ -72,8 +72,9 @@ export class ImportManager {
             const urlColumn = document.getElementById('urlColumn');
             const warrantyColumn = document.getElementById('warrantyColumn');
             const warrantyExpirationColumn = document.getElementById('warrantyExpirationColumn');
+            const lifetimeColumn = document.getElementById('lifetimeColumn');
             const tagsColumn = document.getElementById('tagsColumn');
-            [urlColumn, warrantyColumn, warrantyExpirationColumn, tagsColumn].forEach(select => {
+            [urlColumn, warrantyColumn, warrantyExpirationColumn, lifetimeColumn, tagsColumn].forEach(select => {
                 if (!select) return;
                 select.innerHTML = '<option value="">Select Column</option>';
                 headers.forEach((header, index) => {
@@ -119,6 +120,7 @@ export class ImportManager {
             url: document.getElementById('urlColumn').value,
             warranty: document.getElementById('warrantyColumn').value,
             warrantyExpiration: document.getElementById('warrantyExpirationColumn').value,
+            lifetime: document.getElementById('lifetimeColumn').value,
             secondaryWarranty: document.getElementById('secondaryWarrantyColumn') ? document.getElementById('secondaryWarrantyColumn').value : '',
             secondaryWarrantyExpiration: document.getElementById('secondaryWarrantyExpirationColumn') ? document.getElementById('secondaryWarrantyExpirationColumn').value : '',
             tags: document.getElementById('tagsColumn') ? document.getElementById('tagsColumn').value : ''
@@ -212,6 +214,7 @@ export class ImportManager {
             urlColumn: ["url", "link", "website"],
             warrantyColumn: ["warranty", "warranty scope", "coverage"],
             warrantyExpirationColumn: ["warranty expiration", "warranty expiry", "warranty end", "warranty end date", "expiration", "expiry"],
+            lifetimeColumn: ["lifetime", "lifetime warranty", "is lifetime", "islifetime", "permanent"],
             secondaryWarrantyColumn: ["secondary warranty", "secondary warranty scope", "warranty 2", "warranty2", "warranty scope 2"],
             secondaryWarrantyExpirationColumn: ["secondary warranty expiration", "secondary warranty expiry", "secondary warranty end", "secondary warranty end date", "warranty 2 expiration", "warranty2 expiration", "warranty expiration 2", "warranty expiry 2"],
             tagsColumn: ["tags", "tag", "labels", "categories"]
@@ -261,6 +264,7 @@ export class ImportManager {
             'urlColumn',
             'warrantyColumn',
             'warrantyExpirationColumn',
+            'lifetimeColumn',
             'secondaryWarrantyColumn',
             'secondaryWarrantyExpirationColumn',
             'tagsColumn'
@@ -291,6 +295,7 @@ export class ImportManager {
             'URL',
             'Warranty',
             'Warranty Expiration',
+            'Lifetime',
             'Secondary Warranty',
             'Secondary Warranty Expiration',
             'Tags'
@@ -302,6 +307,7 @@ export class ImportManager {
             if (lower.includes('date') || lower.includes('expiration')) return today;
             if (lower === 'tags') return '"tag1,tag2,tag3"'; // CSV string for tags
             if (lower === 'purchase price') return '123.45';
+            if (lower === 'lifetime') return 'false'; // Boolean value for lifetime warranty
             return `Test ${h}`;
         });
         const csvContent = headers.join(',') + '\n' + testRow.join(',') + '\n';

@@ -428,6 +428,7 @@ function generateId() {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
 }
 
+
 // Helper function to delete all files associated with an asset or sub-asset
 function deleteAssetFiles(asset) {
     if (!asset) return;
@@ -678,28 +679,38 @@ app.delete('/api/asset/:id', (req, res) => {
         return res.status(404).json({ error: 'Asset not found' });
     }
     
-    // Get the asset to delete
-    const deletedAsset = assets[assetIndex];
-    
-    // Find all sub-assets that will be deleted (including sub-sub-assets)
-    const subAssetsToDelete = subAssets.filter(sa => sa.parentId === assetId);
-    
-    // Delete files for the main asset and all related sub-assets
-    if (DEBUG) {
-        console.log(`[DEBUG] Deleting asset "${deletedAsset.name}" and ${subAssetsToDelete.length} related sub-assets`);
-    }
-    
-    deleteAssetFiles(deletedAsset);
-    
-    subAssetsToDelete.forEach(subAsset => {
-        deleteAssetFiles(subAsset);
-    });
-    
-    // Remove the asset from the array
-    assets.splice(assetIndex, 1);
+    // Remove the asset
+    const deletedAsset = assets.splice(assetIndex, 1)[0];
     
     // Remove all related sub-assets
     const updatedSubAssets = subAssets.filter(sa => sa.parentId !== assetId);
+    
+    // Delete associated files if they exist
+    try {
+        if (deletedAsset.photoPath) {
+            const photoPath = path.join(__dirname, deletedAsset.photoPath.substring(1));
+            if (fs.existsSync(photoPath)) {
+                fs.unlinkSync(photoPath);
+            }
+        }
+        
+        if (deletedAsset.receiptPath) {
+            const receiptPath = path.join(__dirname, deletedAsset.receiptPath.substring(1));
+            if (fs.existsSync(receiptPath)) {
+                fs.unlinkSync(receiptPath);
+            }
+        }
+
+        if (deletedAsset.manualPath) {
+            const manualPath = path.join(__dirname, deletedAsset.manualPath.substring(1));
+            if (fs.existsSync(manualPath)) {
+                fs.unlinkSync(manualPath);
+            }
+        }
+    } catch (error) {
+        console.error('Error deleting asset files:', error);
+        // Continue with asset deletion even if file deletion fails
+    }
     
     // Write updated assets
     if (writeJsonFile(assetsFilePath, assets) && writeJsonFile(subAssetsFilePath, updatedSubAssets)) {
@@ -890,9 +901,8 @@ app.delete('/api/subasset/:id', async (req, res) => {
     // Get the sub-asset to delete
     const deletedSubAsset = subAssets[subAssetIndex];
     
-    // Collect all sub-assets that will be deleted (including nested sub-sub-assets)
+    // Ensure we don't delete a component that still has other parents
     const subAssetIdsToDelete = new Set([subAssetId]);
-    const subAssetsToDelete = [deletedSubAsset];
     let childrenToProcess = [deletedSubAsset];
     
     while (childrenToProcess.length > 0) {
@@ -915,19 +925,9 @@ app.delete('/api/subasset/:id', async (req, res) => {
         // Add valid children to deletion set and processing queue
         directChildren.forEach(child => {
             subAssetIdsToDelete.add(child.id);
-            subAssetsToDelete.push(child);
             childrenToProcess.push(child);
         });
     }
-    
-    // Delete files for all sub-assets that will be deleted
-    if (DEBUG) {
-        console.log(`[DEBUG] Deleting sub-asset "${deletedSubAsset.name}" and ${subAssetsToDelete.length - 1} nested sub-assets`);
-    }
-    
-    subAssetsToDelete.forEach(subAsset => {
-        deleteAssetFiles(subAsset);
-    });
     
     // Filter out all sub-assets that need to be deleted
     const updatedSubAssets = subAssets.filter(sa => !subAssetIdsToDelete.has(sa.id));
@@ -967,6 +967,33 @@ app.delete('/api/subasset/:id', async (req, res) => {
             }
         } catch (err) {
             console.error('Failed to send sub-asset deleted notification:', err.message);
+        }
+        
+        // Try to delete image and receipt files if they exist
+        try {
+            if (deletedSubAsset.photoPath) {
+                const photoPath = path.join(__dirname, deletedSubAsset.photoPath.substring(1));
+                if (fs.existsSync(photoPath)) {
+                    fs.unlinkSync(photoPath);
+                }
+            }
+            
+            if (deletedSubAsset.receiptPath) {
+                const receiptPath = path.join(__dirname, deletedSubAsset.receiptPath.substring(1));
+                if (fs.existsSync(receiptPath)) {
+                    fs.unlinkSync(receiptPath);
+                }
+            }
+            
+            if (deletedSubAsset.manualPath) {
+                const manualPath = path.join(__dirname, deletedSubAsset.manualPath.substring(1));
+                if (fs.existsSync(manualPath)) {
+                    fs.unlinkSync(manualPath);
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting files:', error);
+            // Continue even if file deletion fails
         }
         
         res.json({ message: 'Sub-asset deleted successfully' });
@@ -1179,6 +1206,13 @@ app.post('/api/import-assets', authMiddleware, upload.single('file'), (req, res)
             const get = idx => (mappings[idx] !== undefined && mappings[idx] !== "" && row[mappings[idx]] !== undefined) ? row[mappings[idx]] : "";
             const name = get('name');
             if (!name) continue;
+            // Parse lifetime warranty value
+            const lifetimeValue = get('lifetime');
+            const isLifetime = lifetimeValue ? 
+                (lifetimeValue.toString().toLowerCase() === 'true' || 
+                 lifetimeValue.toString().toLowerCase() === '1' || 
+                 lifetimeValue.toString().toLowerCase() === 'yes') : false;
+
             const asset = {
                 id: generateId(),
                 name: name,
@@ -1191,7 +1225,8 @@ app.post('/api/import-assets', authMiddleware, upload.single('file'), (req, res)
                 link: get('url'),
                 warranty: {
                     scope: get('warranty'),
-                    expirationDate: parseExcelDate(get('warrantyExpiration'))
+                    expirationDate: isLifetime ? null : parseExcelDate(get('warrantyExpiration')),
+                    isLifetime: isLifetime
                 },
                 secondaryWarranty: {
                     scope: get('secondaryWarranty'),
