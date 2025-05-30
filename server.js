@@ -21,6 +21,7 @@ const { sendNotification } = require('./src/services/notifications/appriseNotifi
 const { startWarrantyCron } = require('./src/services/notifications/warrantyCron');
 const { generatePWAManifest } = require("./scripts/pwa-manifest-generator");
 const { originValidationMiddleware, getCorsOptions } = require('./middleware/cors');
+const { demoModeMiddleware } = require('./middleware/demoMode');
 const packageJson = require('./package.json');
 
 const app = express();
@@ -255,6 +256,7 @@ app.get(BASE_PATH + '/config.js', async (req, res) => {
             siteTitle: '${SITE_TITLE}',
             version: '${VERSION}',
             defaultSettings: ${JSON.stringify(DEFAULT_SETTINGS)},
+            demoMode: ${DEMO_MODE},
         };
     `);
     
@@ -518,6 +520,10 @@ if (!fs.existsSync(assetsFilePath)) {
 if (!fs.existsSync(subAssetsFilePath)) {
     writeJsonFile(subAssetsFilePath, []);
 }
+
+// --- DEMO MODE MIDDLEWARE ---
+// Apply demo mode restrictions to all API routes
+app.use('/api', demoModeMiddleware);
 
 // API Routes
 // Get all assets

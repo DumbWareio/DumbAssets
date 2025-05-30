@@ -40,6 +40,8 @@ import { MaintenanceManager } from './managers/maintenanceManager.js';
 import { ModalManager } from './managers/modalManager.js';
 import { DashboardManager } from './managers/dashboardManager.js';
 import { ToastManager } from './managers/toaster.js';
+// Import Demo Mode Manager
+import { DemoModeManager, demoModeManager } from './managers/demoMode.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize variables for app state

@@ -56,6 +56,7 @@ services:
       DUMBASSETS_PIN: ${DUMBASSETS_PIN:-1234}
       ALLOWED_ORIGINS: ${DUMBASSETS_ALLOWED_ORIGINS:-*}
       APPRISE_URL: ${DUMBASSETS_APPRISE_URL:-}
+      DEMO_MODE: ${DUMBASSETS_DEMO_MODE:-false}
       # ...other env vars
 ```
 
@@ -93,7 +94,32 @@ Open your browser to [http://localhost:3000](http://localhost:3000)
 - 🌗 Light/Dark mode with theme persistence
 - 🛡️ PIN authentication with brute force protection
 - 📦 Docker support for easy deployment
+- 🔒 **Demo Mode**: Read-only demonstration mode for showcasing
 - **Direct Asset Linking**: Notifications now include clickable links that directly open the specific asset in your browser
+
+## Demo Mode
+
+Demo mode provides a read-only version of DumbAssets perfect for demonstrations, showcasing, or public instances. When enabled:
+
+- **Backend**: All modifying HTTP methods (POST, PUT, DELETE, PATCH) are blocked
+- **Frontend**: All buttons, forms, and file uploads are disabled
+- **Visual Indicators**: Clear "DEMO" badge and notices inform users of the read-only state
+- **User Experience**: Friendly messages explain why actions are disabled
+
+### Enabling Demo Mode
+
+Set the environment variable:
+```bash
+DEMO_MODE=true
+```
+
+Or in Docker Compose:
+```yaml
+environment:
+  DEMO_MODE: true
+```
+
+When demo mode is active, the site title will automatically include "(DEMO)" and users will see visual indicators throughout the interface.
 
 ## Direct Asset Linking
 
@@ -121,6 +147,7 @@ If not set, it defaults to `http://localhost:3000`.
 |------------------|---------------------------------------------|--------------------|----------|
 | PORT             | Server port                                 | 3000               | No       |
 | DUMBASSETS_PIN   | PIN protection (4+ digits)                  | None               | No       |
+| DEMO_MODE        | Enable read-only demo mode                  | false              | No       |
 | APPRISE_URL      | Apprise URL for notifications               | None               | No       |
 | TZ               | Container timezone                          | America/Chicago    | No       |
 | BASE_URL         | Base URL for the application                | http://localhost   | No       |
