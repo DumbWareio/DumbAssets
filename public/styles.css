@@ -2941,8 +2941,33 @@ a:hover {
     }
     
     .dashboard-legend-title {
-        font-size: 1rem;
-        padding: 0.5rem 0.5rem;
+        font-size: 0.9rem; /* Reduce font size on mobile */
+        padding: 0.3rem 0.5rem; /* Reduce padding to make it smaller */
+        top: -0.8rem; /* Move it higher to reduce overlap */
+    }
+    
+    /* Add extra top margin to asset header on mobile to prevent overlap */
+    .asset-header {
+        margin-top: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Ensure asset title scales properly on mobile */
+    .asset-title h2 {
+        font-size: 1.6rem; /* Slightly smaller on mobile */
+        line-height: 1.2;
+    }
+    
+    /* Make asset actions buttons slightly smaller on mobile */
+    .asset-actions button {
+        padding: 0.25rem 0.4rem;
+    }
+    
+    .asset-actions .edit-asset-btn svg,
+    .asset-actions .delete-asset-btn svg,
+    .asset-actions .back-to-parent-btn svg {
+        width: 18px;
+        height: 18px;
     }
     
     .dashboard-cards {
