@@ -1289,10 +1289,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (input) {
+            // Prevent form submission when Enter is pressed in tag input
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ',') {
                     e.preventDefault();
+                    e.stopPropagation();
                     const tag = input.value.trim();
+                    if (tag && !tags.has(tag)) {
+                        tags.add(tag);
+                        input.value = '';
+                        renderTags();
+                    }
+                }
+            });
+
+            // Handle mobile keyboard "Enter" button that might trigger different events
+            input.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tag = input.value.trim();
+                    if (tag && !tags.has(tag)) {
+                        tags.add(tag);
+                        input.value = '';
+                        renderTags();
+                    }
+                }
+            });
+
+            // Handle comma input for tag separation
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (value.endsWith(',')) {
+                    e.preventDefault();
+                    const tag = value.slice(0, -1).trim();
                     if (tag && !tags.has(tag)) {
                         tags.add(tag);
                         input.value = '';
