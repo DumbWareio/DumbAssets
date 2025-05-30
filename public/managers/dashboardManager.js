@@ -516,8 +516,8 @@ export class DashboardManager {
         return events.map(event => {
             const daysUntil = Math.ceil((event.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
             const isOverdue = daysUntil < 0;
-            const isUrgent = daysUntil <= 7 && daysUntil >= 0;
-            const isWarning = daysUntil <= 30 && daysUntil > 7;
+            const isUrgent = daysUntil <= 30 && daysUntil >= 0;
+            const isWarning = daysUntil <= 60 && daysUntil > 30;
 
             let urgencyClass = '';
             if (isOverdue) urgencyClass = 'overdue';
