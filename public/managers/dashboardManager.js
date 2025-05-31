@@ -311,8 +311,9 @@ export class DashboardManager {
                 }
                 this.renderAssetList(this.searchInput.value);
                 
-                // Update events display if events section is visible
-                if (sectionVisibility.events) {
+                // Update events display if events section exists
+                const eventsTable = document.getElementById('eventsTable');
+                if (eventsTable) {
                     this.updateEventsDisplay();
                 }
             });
