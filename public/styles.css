@@ -1373,10 +1373,97 @@ input[type="date"][data-has-value="true"] {
     transform: translateX(18px);
 }
 #settingsModal .modal-actions {
+    margin-top: 1.5rem;
     display: flex;
+    gap: 0.75rem;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 1.2em;
+}
+
+/* Export Section Styling */
+#settingsModal .export-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--hover-color);
+    border: var(--app-border);
+    border-radius: var(--app-border-radius);
+    margin: 0.5rem 0;
+}
+
+#settingsModal .export-info {
+    flex: 1;
+}
+
+#settingsModal .export-info h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+#settingsModal .export-info p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+    line-height: 1.4;
+}
+
+#settingsModal .export-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: var(--app-border-radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+#settingsModal .export-btn:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+#settingsModal .export-btn:active {
+    transform: translateY(0);
+}
+
+#settingsModal .export-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+}
+
+#settingsModal .export-btn.loading {
+    color: transparent;
+    pointer-events: none;
+}
+
+#settingsModal .export-btn .spinner {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+#settingsModal .export-btn.loading .spinner {
+    display: block;
 }
 
 .toast-container {
@@ -3244,5 +3331,30 @@ a:hover {
     .pin-input-container input.pin-input {
         width: 32px;
         height: 32px;
+    }
+}
+
+@media (max-width: 500px) {
+
+    #settingsModal .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #settingsModal .modal-content {
+        padding: 1rem;
+        margin: 1rem;
+    }
+    
+    /* Stack export section vertically on mobile */
+    #settingsModal .export-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        text-align: center;
+    }
+    
+    #settingsModal .export-btn {
+        width: 100%;
+        justify-content: center;
     }
 }

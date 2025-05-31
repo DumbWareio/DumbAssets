@@ -588,6 +588,7 @@
                             <div class="tab-nav">
                                 <button class="tab-btn active" data-tab="notifications">Notifications</button>
                                 <button class="tab-btn" data-tab="interface">Interface</button>
+                                <button class="tab-btn" data-tab="system">System</button>
                                 <!-- Add more tab buttons here in the future -->
                             </div>
                             <div class="tab-content">
@@ -783,25 +784,31 @@
                                     </form>
                                 </div>
 
-                                <!-- Add more tab panes here in the future -->
-                                
-                                <!-- Example for a future tab -->
-                                <!-- <div class="tab-pane" id="general-tab">
-                                    <form id="generalSettingsForm">
+                                <!-- System Settings Tab -->
+                                <div class="tab-pane" id="system-tab">
+                                    <form id="systemSettingsForm">
                                         <fieldset>
-                                            <legend>Application</legend>
+                                            <legend>Data Export</legend>
                                             <div class="settings-grid">
-                                                <div class="toggle-row">
-                                                    <span>Auto-refresh Assets</span>
-                                                    <label class="toggle-switch">
-                                                        <input type="checkbox" name="autoRefreshAssets" id="autoRefreshAssets">
-                                                        <span class="slider"></span>
-                                                    </label>
+                                                <div class="export-section">
+                                                    <div class="export-info">
+                                                        <h4>Export All Data</h4>
+                                                        <p>Export all assets and components to a CSV file including all details, warranties, and maintenance information.</p>
+                                                    </div>
+                                                    <button type="button" id="exportDataBtn" class="action-button export-btn">
+                                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-15"></path>
+                                                            <path d="M7 10l5 5 5-5"></path>
+                                                            <path d="M12 15V3"></path>
+                                                        </svg>
+                                                        Export CSV
+                                                        <div class="spinner"></div>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </fieldset>
                                     </form>
-                                </div> -->
+                                </div>
                             </div>
                             
                             <!-- Settings modal actions - now outside of individual forms -->
