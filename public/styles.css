@@ -1382,23 +1382,25 @@ input[type="date"][data-has-value="true"] {
 /* Export Section Styling */
 #settingsModal .export-section {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 1rem;
-    padding: 1rem;
+    padding: 1.5rem;
     background: var(--hover-color);
     border: var(--app-border);
     border-radius: var(--app-border-radius);
     margin: 0.5rem 0;
+    text-align: center;
 }
 
 #settingsModal .export-info {
-    flex: 1;
+    flex: none;
 }
 
 #settingsModal .export-info h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
+    margin: 0;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-color);
 }
@@ -1415,7 +1417,7 @@ input[type="date"][data-has-value="true"] {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1.5rem;
     background: var(--success-color);
     color: white;
     border: none;
