@@ -23,7 +23,7 @@ import {
     // Import list renderer functions
     initListRenderer,
     updateListState,
-    updateDashboardFilter,
+    updateDashboardFilter as updateListDashboardFilter,
     updateSort,
     renderAssetList,
     sortAssets,
@@ -52,6 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedSubAssetId = null;
     let dashboardFilter = 'all';
     let currentSort = { field: 'updatedAt', direction: 'desc' };
+
+    // Local function to update dashboard filter and keep modules in sync
+    function updateDashboardFilter(filter) {
+        dashboardFilter = filter || 'all';
+        updateListDashboardFilter(filter);
+    }
 
     // DOM Elements
     const siteTitleElem = document.getElementById('siteTitle');

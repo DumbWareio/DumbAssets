@@ -295,7 +295,6 @@ export class DashboardManager {
             card.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const filter = card.getAttribute('data-filter');
-                console.log('Dashboard card clicked, filter:', filter);
 
                 // Remove active class from all cards
                 this.assetDetails.querySelectorAll('.dashboard-card').forEach(c => {
@@ -310,17 +309,13 @@ export class DashboardManager {
                 } else {
                     this.updateDashboardFilter(filter);
                 }
-                console.log('Dashboard filter updated to:', this.getDashboardFilter());
                 
                 this.renderAssetList(this.searchInput.value);
                 
                 // Update events display if events section exists
                 const eventsTable = document.getElementById('eventsTable');
                 if (eventsTable) {
-                    console.log('Events table found, calling updateEventsDisplay');
                     this.updateEventsDisplay();
-                } else {
-                    console.log('Events table not found');
                 }
             });
         });
@@ -682,19 +677,15 @@ export class DashboardManager {
     
     updateEventsDisplay() {
         let events = this.collectUpcomingEvents();
-        console.log('updateEventsDisplay called, total events:', events.length);
 
         // Apply local events filter (all, warranty, maintenance)
         if (this.currentFilter !== 'all') {
             events = events.filter(event => event.type === this.currentFilter);
-            console.log('After local filter (' + this.currentFilter + '):', events.length);
         }
 
         // Apply global dashboard filter to respect the same filtering as asset list
         const dashboardFilter = this.getDashboardFilter();
-        console.log('Dashboard filter in updateEventsDisplay:', dashboardFilter);
         if (dashboardFilter) {
-            const eventsBefore = events.length;
             const now = new Date();
             
             if (dashboardFilter === 'components') {
@@ -769,7 +760,6 @@ export class DashboardManager {
                     return false;
                 });
             }
-            console.log('After dashboard filter (' + dashboardFilter + '):', eventsBefore, '->', events.length);
         }
 
         // Apply sort
@@ -783,8 +773,6 @@ export class DashboardManager {
         const startIndex = (this.currentPage - 1) * this.eventsPerPage;
         const endIndex = startIndex + this.eventsPerPage;
         const paginatedEvents = events.slice(startIndex, endIndex);
-
-        console.log('Final events for display:', paginatedEvents.length);
 
         // Update table
         const eventsTable = document.getElementById('eventsTable');
