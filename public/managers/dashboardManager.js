@@ -310,6 +310,11 @@ export class DashboardManager {
                     this.updateDashboardFilter(filter);
                 }
                 this.renderAssetList(this.searchInput.value);
+                
+                // Update events display if events section is visible
+                if (sectionVisibility.events) {
+                    this.updateEventsDisplay();
+                }
             });
         });
     }
@@ -624,7 +629,7 @@ export class DashboardManager {
             eventsTableContainer.addEventListener('click', (e) => this.handlePaginationClick(e));
         }
         
-        // Initialize the display with click handlers
+        // Initialize the display with click handlers and apply any existing filters
         this.updateEventsDisplay();
     }
     
@@ -671,9 +676,88 @@ export class DashboardManager {
     updateEventsDisplay() {
         let events = this.collectUpcomingEvents();
 
-        // Apply filter
+        // Apply local events filter (all, warranty, maintenance)
         if (this.currentFilter !== 'all') {
             events = events.filter(event => event.type === this.currentFilter);
+        }
+
+        // Apply global dashboard filter to respect the same filtering as asset list
+        const dashboardFilter = this.getDashboardFilter();
+        if (dashboardFilter) {
+            const now = new Date();
+            
+            if (dashboardFilter === 'components') {
+                // Only show events from sub-assets (components)
+                events = events.filter(event => event.isSubAsset);
+            }
+            else if (dashboardFilter === 'warranties') {
+                // Only show warranty events
+                events = events.filter(event => event.type === 'warranty');
+            }
+            else if (dashboardFilter === 'expired') {
+                // Only show events with expired warranties or overdue maintenance
+                events = events.filter(event => {
+                    if (event.type === 'warranty') {
+                        return event.date < now;
+                    } else if (event.type === 'maintenance') {
+                        return event.date < now; // Overdue maintenance
+                    }
+                    return false;
+                });
+            }
+            else if (dashboardFilter === 'within30') {
+                // Only show events within 30 days
+                events = events.filter(event => {
+                    const diff = (event.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+                    return diff >= 0 && diff <= 30;
+                });
+            }
+            else if (dashboardFilter === 'within60') {
+                // Only show events within 31-60 days
+                events = events.filter(event => {
+                    const diff = (event.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+                    return diff > 30 && diff <= 60;
+                });
+            }
+            else if (dashboardFilter === 'active') {
+                // Only show events from items with active warranties (more than 60 days or lifetime)
+                // For warranty events: show those more than 60 days away
+                // For maintenance events: show all from assets/components with active warranties
+                events = events.filter(event => {
+                    if (event.type === 'warranty') {
+                        const diff = (event.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+                        return diff > 60;
+                    } else if (event.type === 'maintenance') {
+                        // For maintenance events, check if the parent asset/component has an active warranty
+                        const assets = this.getAssets();
+                        const subAssets = this.getSubAssets();
+                        
+                        if (event.isSubAsset) {
+                            const subAsset = subAssets.find(sa => sa.id === event.id);
+                            if (subAsset && subAsset.warranty) {
+                                if (subAsset.warranty.isLifetime) return true;
+                                if (subAsset.warranty.expirationDate) {
+                                    const expDate = new Date(subAsset.warranty.expirationDate);
+                                    const diff = (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+                                    return diff > 60;
+                                }
+                            }
+                        } else {
+                            const asset = assets.find(a => a.id === event.id);
+                            if (asset && asset.warranty) {
+                                if (asset.warranty.isLifetime) return true;
+                                if (asset.warranty.expirationDate) {
+                                    const expDate = new Date(asset.warranty.expirationDate);
+                                    const diff = (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+                                    return diff > 60;
+                                }
+                            }
+                        }
+                        return false;
+                    }
+                    return false;
+                });
+            }
         }
 
         // Apply sort
@@ -823,6 +907,17 @@ export class DashboardManager {
                 await this.renderDashboard(false);
                 this.setButtonLoading(this.clearFiltersBtn, false);
             });
+        }
+    }
+    
+    /**
+     * Public method to refresh events display - useful for external calls
+     */
+    refreshEventsDisplay() {
+        // Only refresh if events section exists
+        const eventsTable = document.getElementById('eventsTable');
+        if (eventsTable) {
+            this.updateEventsDisplay();
         }
     }
 } 
