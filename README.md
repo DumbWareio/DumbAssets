@@ -1,6 +1,8 @@
 # DumbAssets
 
-A stupid simple asset tracker for keeping track of your physical assets and their components.
+A stupid simple asset tracker for keeping track of your physical assets, their components, and applicable warranties and routine maintenance.
+
+[Demo](https://dumbassets.dumbware.io)
 
 ---
 
@@ -89,29 +91,13 @@ Open your browser to [http://localhost:3000](http://localhost:3000)
 - 🔍 Search by name, model, serial, or description
 - 🏷️ Hierarchical organization of components
 - 📅 Warranty expiration notifications (configurable)
+- 🔧 Maintenance event notifications
+- 🏷️ Flexible tagging system for better organization
 - 🔔 Apprise notification integration
 - 🌗 Light/Dark mode with theme persistence
 - 🛡️ PIN authentication with brute force protection
 - 📦 Docker support for easy deployment
-- **Direct Asset Linking**: Notifications now include clickable links that directly open the specific asset in your browser
-
-## Direct Asset Linking
-
-When you receive notifications (warranty expiring, asset added/edited, maintenance due), they now include direct links to view the specific asset. Simply click the "🔗 View Asset" link in the notification to be taken directly to that asset's details page.
-
-### URL Format
-- Main assets: `yoursite.com?ass=asset-id`  
-- Sub-assets: `yoursite.com?ass=parent-id&sub=sub-asset-id`
-
-### Configuration
-To use this feature, set the `BASE_URL` environment variable to your domain:
-```bash
-BASE_URL=https://assets.yourcompany.com
-```
-
-If not set, it defaults to `http://localhost:3000`.
-
----
+- 🔗 Direct Asset Linking: Notifications include links to the specific asset
 
 ## Configuration
 
@@ -126,6 +112,7 @@ If not set, it defaults to `http://localhost:3000`.
 | BASE_URL         | Base URL for the application                | http://localhost   | No       |
 | SITE_TITLE       | Site title shown in browser tab and header  | DumbAssets         | No       |
 | ALLOWED_ORIGINS  | Origins allowed to visit your instance      | '*'                | No       |
+| DEMO_MODE        | Enables read-only mode                      | false              | No       |
 
 ### Data Storage
 
@@ -152,12 +139,31 @@ All data is stored in JSON files in the `/data` directory:
 
 ## Technical Details
 
+### Stack
+
 - **Backend:** Node.js (>=14.0.0) with Express
 - **Frontend:** Vanilla JavaScript (ES6+)
 - **Container:** Docker with Alpine base
 - **Notifications:** Apprise integration (via Python)
 - **Uploads:** Multer for file handling
-- **Scheduling:** node-cron for warranty notifications
+- **Scheduling:** node-cron for warranty & Maintenance notifications
+
+### Dependencies
+- **express**: Web framework for Node.js
+- **multer**: File upload handling and multipart/form-data parsing
+- **apprise**: Notification system integration for alerts
+- **cors**: Cross-origin resource sharing middleware
+- **dotenv**: Environment variable configuration management
+- **express-rate-limit**: Rate limiting middleware for API protection
+- **express-session**: Session management and authentication
+- **cookie-parser**: Cookie parsing middleware
+- **node-cron**: Task scheduling for notifications
+- **uuid**: Unique ID generation for assets
+- **sharp**: Image processing and optimization
+- **compression**: Response compression middleware
+- **helmet**: Security headers middleware
+- **fs-extra**: Enhanced filesystem operations
+- **path**: Path manipulation utilities
 
 ---
 
@@ -173,4 +179,4 @@ See the Development Guide for local setup and guidelines.
 
 ---
 
-Made with ❤️ by DumbWare.io 
+Made with ❤️ by [DumbWare.io](https://dumbware.io)
