@@ -77,6 +77,12 @@ export class SettingsManager {
             exportDataBtn.addEventListener('click', () => this._exportData());
         }
         
+        // Export simple data button
+        const exportSimpleDataBtn = document.getElementById('exportSimpleDataBtn');
+        if (exportSimpleDataBtn) {
+            exportSimpleDataBtn.addEventListener('click', () => this._exportSimpleData());
+        }
+        
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tabId = btn.getAttribute('data-tab');
@@ -691,6 +697,120 @@ export class SettingsManager {
                 subAsset.parentSubId || '',
                 subAsset.createdAt || '',
                 subAsset.updatedAt || ''
+            ];
+            rows.push(row.map(escapeCsvValue));
+        });
+        
+        // Convert to CSV string
+        return rows.map(row => row.join(',')).join('\n');
+    }
+
+    async _exportSimpleData() {
+        const exportBtn = document.getElementById('exportSimpleDataBtn');
+        if (!exportBtn) return;
+        
+        this.setButtonLoading(exportBtn, true);
+        
+        try {
+            const apiBaseUrl = globalThis.getApiBaseUrl();
+            
+            // Fetch both assets and sub-assets
+            const [assetsResponse, subAssetsResponse] = await Promise.all([
+                fetch(`${apiBaseUrl}/api/assets`, { credentials: 'include' }),
+                fetch(`${apiBaseUrl}/api/subassets`, { credentials: 'include' })
+            ]);
+            
+            // Validate responses
+            const assetsValidation = await globalThis.validateResponse(assetsResponse);
+            if (assetsValidation.errorMessage) throw new Error(assetsValidation.errorMessage);
+            
+            const subAssetsValidation = await globalThis.validateResponse(subAssetsResponse);
+            if (subAssetsValidation.errorMessage) throw new Error(subAssetsValidation.errorMessage);
+            
+            const assets = await assetsResponse.json();
+            const subAssets = await subAssetsResponse.json();
+            
+            // Generate simplified CSV content
+            const csvContent = this._generateSimpleCSV(assets, subAssets);
+            
+            // Create and download the file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            // Generate filename with current date
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const filename = `dumbAssets_simple_export_${dateStr}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            globalThis.toaster.show('Simple data exported successfully!');
+            
+        } catch (error) {
+            globalThis.logError('Failed to export simple data:', error.message);
+        } finally {
+            this.setButtonLoading(exportBtn, false);
+        }
+    }
+    
+    _generateSimpleCSV(assets, subAssets) {
+        // Simple CSV headers - only basic fields
+        const headers = [
+            'Name',
+            'Manufacturer',
+            'Model',
+            'Serial',
+            'Purchase Date',
+            'Purchase Price',
+            'Notes',
+            'URL'
+        ];
+        
+        const rows = [headers];
+        
+        // Helper function to escape CSV values
+        const escapeCsvValue = (value) => {
+            if (value === null || value === undefined) return '';
+            const str = String(value);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+        
+        // Add assets
+        assets.forEach(asset => {
+            const row = [
+                asset.name || '',
+                asset.manufacturer || '',
+                asset.modelNumber || '',
+                asset.serialNumber || '',
+                asset.purchaseDate || '',
+                asset.price || '',
+                asset.notes || '',
+                asset.url || ''
+            ];
+            rows.push(row.map(escapeCsvValue));
+        });
+        
+        // Add sub-assets
+        subAssets.forEach(subAsset => {
+            const row = [
+                subAsset.name || '',
+                subAsset.manufacturer || '',
+                subAsset.modelNumber || '',
+                subAsset.serialNumber || '',
+                subAsset.purchaseDate || '',
+                subAsset.purchasePrice || '',
+                subAsset.notes || '',
+                subAsset.url || ''
             ];
             rows.push(row.map(escapeCsvValue));
         });

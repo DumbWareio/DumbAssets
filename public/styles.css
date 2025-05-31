@@ -1392,6 +1392,16 @@ input[type="date"][data-has-value="true"] {
     border-radius: var(--app-border-radius);
     margin: 0.5rem 0;
     text-align: center;
+    min-height: 150px;
+}
+
+/* Make export sections display side by side */
+#systemSettingsForm .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
 }
 
 #settingsModal .export-info {
@@ -3347,12 +3357,15 @@ a:hover {
         margin: 1rem;
     }
     
-    /* Stack export section vertically on mobile */
+    /* Stack export sections vertically on mobile */
+    #systemSettingsForm .settings-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
     #settingsModal .export-section {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.75rem;
-        text-align: center;
+        min-height: 120px;
+        padding: 1rem;
     }
     
     #settingsModal .export-btn {
