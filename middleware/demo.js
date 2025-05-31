@@ -12,6 +12,6 @@ function demoModeMiddleware(req, res, next) {
   next();
 }
 
-export {
+module.exports = {
   demoModeMiddleware,
 }
