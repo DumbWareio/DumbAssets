@@ -53,6 +53,12 @@ function formatNotification(eventType, assetData, baseUrl = '') {
     }
   } else if (eventType === 'warranty_expiring') {
     lines.push(`⏰ Warranty Expiring in ${assetData.days ? assetData.days + ' days' : assetData.time || ''}`);
+    if (assetData.assetType === 'Component') {
+      lines.push(`Component: ${assetData.name}`);
+    } else {
+      lines.push(`Asset: ${assetData.name}`);
+    }
+    if (assetData.modelNumber) lines.push(`Model #: ${assetData.modelNumber}`);
     if (assetData.warrantyType) lines.push(assetData.warrantyType);
     if (assetData.expirationDate) lines.push(`Expires: ${assetData.expirationDate}`);
   } else if (eventType === 'maintenance_schedule') {
