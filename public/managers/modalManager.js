@@ -397,6 +397,7 @@ export class ModalManager {
             'subAssetSerial': subAsset.serialNumber || '',
             'subAssetPurchaseDate': subAsset.purchaseDate || '',
             'subAssetPurchasePrice': subAsset.purchasePrice || '',
+            'subAssetLink': subAsset.link || '',
             'subAssetNotes': subAsset.notes || '',
             'subAssetWarrantyScope': subAsset.warranty?.scope || '',
             'subAssetWarrantyExpiration': subAsset.warranty?.expirationDate ? new Date(subAsset.warranty.expirationDate).toISOString().split('T')[0] : ''
@@ -729,6 +730,7 @@ export class ModalManager {
             purchasePrice: parseFloat(document.getElementById('subAssetPurchasePrice')?.value) || null,
             parentId: document.getElementById('parentAssetId')?.value || '',
             parentSubId: document.getElementById('parentSubAssetId')?.value || '',
+            link: document.getElementById('subAssetLink')?.value || '',
             notes: document.getElementById('subAssetNotes')?.value || '',
             tags: subAssetTags,
             warranty: {
