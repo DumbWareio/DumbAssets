@@ -688,6 +688,12 @@ input[type="date"][data-has-value="true"] {
     transition: background 0.2s, color 0.2s;
 }
 
+.asset-actions .copy-link-btn svg {
+    stroke: var(--secondary-color);
+    width: 20px;
+    height: 20px;
+}
+
 .asset-actions .edit-asset-btn svg {
     stroke: var(--primary-color);
     width: 20px;
@@ -700,12 +706,17 @@ input[type="date"][data-has-value="true"] {
     height: 20px;
 }
 
+.asset-actions .copy-link-btn:hover {
+    background-color: rgba(100, 116, 139, 0.4);    
+    box-shadow: 0 0 5px rgb(100, 116, 139);
+}
+
 .asset-actions .edit-asset-btn:hover {
     background-color: rgba(37, 100, 235, 0.4);    
     box-shadow: 0 0 5px rgb(37, 100, 235);
 }
 
-.asset-actions .edit-asset-btn:hover svg, .asset-actions .delete-asset-btn:hover svg  {  
+.asset-actions .copy-link-btn:hover svg, .asset-actions .edit-asset-btn:hover svg, .asset-actions .delete-asset-btn:hover svg  {  
     stroke: #fff;
 }
 
@@ -3093,6 +3104,7 @@ a:hover {
         padding: 0.25rem 0.4rem;
     }
     
+    .asset-actions .copy-link-btn svg,
     .asset-actions .edit-asset-btn svg,
     .asset-actions .delete-asset-btn svg,
     .asset-actions .back-to-parent-btn svg {

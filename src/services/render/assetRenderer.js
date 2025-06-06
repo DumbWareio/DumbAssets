@@ -307,6 +307,9 @@ function renderAssetDetails(assetId, isSubAsset = false) {
                 </div>
                 <div class="asset-actions">
                     ${isSub ? `<button class="back-to-parent-btn" title="Back to Parent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>` : ''}
+                    <button class="copy-link-btn" data-id="${asset.id}" data-parent-id="${asset.parentId || ''}" title="Copy Link">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </button>
                     <button class="edit-asset-btn" data-id="${asset.id}" title="Edit">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
                     </button>
@@ -386,6 +389,45 @@ function renderAssetDetails(assetId, isSubAsset = false) {
             });
         }
     }
+    
+    const copyLinkBtn = assetDetails.querySelector('.copy-link-btn');
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', () => {
+            // Generate the same URL format used in notifications
+            const baseUrl = window.location.origin + window.location.pathname;
+            let assetUrl;
+            
+            if (isSub) {
+                // For sub-assets: baseUrl?ass=parentId&sub=subAssetId
+                const parentId = asset.parentId || copyLinkBtn.dataset.parentId;
+                assetUrl = `${baseUrl}?ass=${parentId}&sub=${asset.id}`;
+            } else {
+                // For main assets: baseUrl?ass=assetId
+                assetUrl = `${baseUrl}?ass=${asset.id}`;
+            }
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(assetUrl).then(() => {
+                // Show success toast using global toaster
+                if (globalThis.toaster) {
+                    globalThis.toaster.show('Asset link copied to clipboard!', 'success', false, 2000);
+                } else {
+                    // Fallback alert if toaster is not available
+                    alert('Asset link copied to clipboard!');
+                }
+            }).catch(err => {
+                console.error('Failed to copy link to clipboard:', err);
+                // Show error toast using global error handler
+                if (globalThis.logError) {
+                    globalThis.logError('Failed to copy link to clipboard', err, false, 3000);
+                } else {
+                    // Fallback alert if error handler is not available
+                    alert('Failed to copy link to clipboard. Please try again.');
+                }
+            });
+        });
+    }
+    
     const editBtn = assetDetails.querySelector('.edit-asset-btn');
     if (editBtn) {
         editBtn.addEventListener('click', () => {
