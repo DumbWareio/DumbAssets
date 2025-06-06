@@ -128,6 +128,39 @@ document.addEventListener('DOMContentLoaded', () => {
         setupPageTitle();
         // Load initial data
         loadAllData().then(() => {
+            // Initialize dashboard manager first
+            dashboardManager = new DashboardManager({
+                // DOM elements
+                assetDetails,
+                subAssetContainer,
+                searchInput,
+                clearFiltersBtn,
+
+                // Utility functions
+                formatDate,
+                formatCurrency,
+                
+                // Managers
+                chartManager,
+                settingsManager,
+                
+                // UI functions
+                updateDashboardFilter,
+                updateSort,
+                updateSelectedIds,
+                renderAssetDetails,
+                renderAssetList,
+                handleSidebarNav,
+                setButtonLoading,
+                
+                // Global state getters
+                getAssets: () => assets,
+                getSubAssets: () => subAssets,
+                getDashboardFilter: () => dashboardFilter,
+                getCurrentSort: () => currentSort,
+                getSelectedAssetId: () => selectedAssetId
+            });
+            
             // After data is loaded, check for URL parameters
             if (!handleUrlParameters()) {
                 // No URL parameters, show empty state as normal
@@ -244,38 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderDashboard: (animate = true) => dashboardManager.renderDashboard(animate),
             });
         }
-        
-        dashboardManager = new DashboardManager({
-            // DOM elements
-            assetDetails,
-            subAssetContainer,
-            searchInput,
-            clearFiltersBtn,
-
-            // Utility functions
-            formatDate,
-            formatCurrency,
-            
-            // Managers
-            chartManager,
-            settingsManager,
-            
-            // UI functions
-            updateDashboardFilter,
-            updateSort,
-            updateSelectedIds,
-            renderAssetDetails,
-            renderAssetList,
-            handleSidebarNav,
-            setButtonLoading,
-            
-            // Global state getters
-            getAssets: () => assets,
-            getSubAssets: () => subAssets,
-            getDashboardFilter: () => dashboardFilter,
-            getCurrentSort: () => currentSort,
-            getSelectedAssetId: () => selectedAssetId
-        });
 
         if (importModal && importBtn && importFile && startImportBtn) {
             const importManager = new ImportManager({
@@ -384,10 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Load both assets and sub-assets, then render the dashboard
+    // Load both assets and sub-assets
     async function loadAllData() {
         await Promise.all([loadAssets(), loadSubAssets()]);
-        dashboardManager.renderDashboard();
     }
 
     // Also add a dedicated refresh function to reload data without resetting the UI
@@ -1323,8 +1323,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const assetId = urlParams.get('ass');
         const subAssetId = urlParams.get('sub');
         
+        console.log('handleUrlParameters called - URL:', window.location.href);
+        console.log('Parsed parameters - assetId:', assetId, 'subAssetId:', subAssetId);
+        
         if (assetId) {
             console.log('URL parameter detected - navigating to asset:', assetId, subAssetId ? `sub-asset: ${subAssetId}` : '');
+            
+            // Check if the asset exists
+            const targetAsset = assets.find(a => a.id === assetId);
+            const targetSubAsset = subAssetId ? subAssets.find(sa => sa.id === subAssetId) : null;
+            
+            console.log('Found asset:', targetAsset ? targetAsset.name : 'NOT FOUND');
+            if (subAssetId) {
+                console.log('Found sub-asset:', targetSubAsset ? targetSubAsset.name : 'NOT FOUND');
+            }
+            
+            if (!targetAsset) {
+                console.error('Asset not found for ID:', assetId);
+                globalThis.toaster?.show('Asset not found', 'error');
+                return false;
+            }
+            
+            if (subAssetId && !targetSubAsset) {
+                console.error('Sub-asset not found for ID:', subAssetId);
+                globalThis.toaster?.show('Component not found', 'error');
+                return false;
+            }
             
             // Clear URL parameters from browser history without page reload
             if (window.history && window.history.replaceState) {
@@ -1335,10 +1359,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Navigate to the asset/sub-asset
             if (subAssetId) {
                 // Navigate to sub-asset
+                console.log('Navigating to sub-asset:', subAssetId);
                 updateSelectedIds(assetId, subAssetId);
                 renderAssetDetails(subAssetId, true);
             } else {
                 // Navigate to main asset
+                console.log('Navigating to main asset:', assetId);
                 updateSelectedIds(assetId, null);
                 renderAssetDetails(assetId, false);
             }
@@ -1349,6 +1375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return true; // Indicates we handled URL parameters
         }
         
+        console.log('No URL parameters found');
         return false; // No URL parameters to handle
     }
     
