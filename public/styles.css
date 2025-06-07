@@ -1668,24 +1668,34 @@ a:hover {
 
 .preview-grid {
     grid-column: span 3;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
     gap: 12px;
     margin-top: 8px;
+    width: 100%;
 }
 .preview-grid .file-preview-item {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 125px;
+}
+
+.preview-grid .file-preview-item .file-preview {
     border: var(--app-border);
     border-radius: var(--app-border-radius);
     padding: 8px;
     background-color: var(--background-color);
-    width: 125px;
+    width: 100%;
     height: 125px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
 }
 .preview-grid .file-preview-item img {
     max-width: 100%;
@@ -1699,8 +1709,8 @@ a:hover {
     position: absolute;
     top: 2px;
     right: 2px;
-    background: transparent;
-    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 0, 0, 0.3);
     border-radius: 50%;
     padding: 4px;
     cursor: pointer;
@@ -1708,6 +1718,13 @@ a:hover {
     align-items: center;
     justify-content: center;
     z-index: 10;
+    backdrop-filter: blur(2px);
+}
+
+.preview-grid .file-preview-item .delete-preview-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: red;
+    transform: scale(1.1);
 }
 .file-preview-item .delete-preview-btn svg {
     width: 16px;
@@ -1743,6 +1760,46 @@ a:hover {
 .file-info .file-size {
     font-size: 0.65rem;
     color: var(--text-color-light);
+}
+
+.file-info-pill {
+    background-color: var(--primary-transparent);
+    border: 1px solid var(--primary-color);
+    border-radius: 1rem;
+    padding: 0.4rem 0.75rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 1.5rem;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.file-info-pill .file-name {
+    font-size: 0.7rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    text-align: center;
+    position: static !important;
+    padding: 0 !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    max-width: none !important;
+}
+
+.file-info-pill .file-size {
+    font-size: 0.65rem;
+    color: var(--primary-color);
+    opacity: 0.8;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .files-grid {
