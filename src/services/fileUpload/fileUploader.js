@@ -26,13 +26,13 @@ function getDeleteFlags() {
 }
 
 /**
- * Upload a file to the server
- * @param {File} file - The file to upload
+ * Upload files to the server
+ * @param {FileList|File[]} files - The files to upload
  * @param {string} type - The type of file ('image', 'receipt', or 'manual')
  * @param {string} id - The ID of the associated asset
- * @returns {Promise<{path: string, fileInfo: Object}|null>} - The path and info of the uploaded file, or null if the upload failed
+ * @returns {Promise<{files: Array}|null>} - The uploaded files info, or null if the upload failed
  */
-async function uploadFile(file, type, id) {
+async function uploadFiles(files, type, id) {
     let fieldName;
     let endpoint;
     const apiBaseUrl = window.location.origin + (window.appConfig?.basePath || '');
@@ -47,9 +47,13 @@ async function uploadFile(file, type, id) {
         fieldName = 'receipt';
         endpoint = `${apiBaseUrl}/api/upload/receipt`;
     }
+    
     const formData = new FormData();
-    formData.append(fieldName, new File([file], sanitizeFileName(file.name), { type: file.type }));
+    Array.from(files).forEach(file => {
+        formData.append(fieldName, new File([file], sanitizeFileName(file.name), { type: file.type }));
+    });
     formData.append('id', id);
+    
     try {
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -68,6 +72,18 @@ async function uploadFile(file, type, id) {
 }
 
 /**
+ * Upload a single file to the server (backward compatibility)
+ * @param {File} file - The file to upload
+ * @param {string} type - The type of file ('image', 'receipt', or 'manual')
+ * @param {string} id - The ID of the associated asset
+ * @returns {Promise<{path: string, fileInfo: Object}|null>} - The path and info of the uploaded file, or null if the upload failed
+ */
+async function uploadFile(file, type, id) {
+    const result = await uploadFiles([file], type, id);
+    return result ? result.files[0] : null;
+}
+
+/**
  * Setup file preview functionality for a file input element
  * @param {string} inputId - The ID of the file input element
  * @param {string} previewId - The ID of the preview container element
@@ -83,59 +99,29 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
     
     // Store the previous file value to restore if user cancels
     let previousValue = input.value;
+    
+    // Track processed files to prevent duplicates
+    let processedFiles = new Set();
 
-    // Drag and drop handlers
-    if (uploadBox) {
-        uploadBox.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.add('drag-over');
-        });
-
-        uploadBox.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.remove('drag-over');
-        });
-
-        uploadBox.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.add('drag-over');
-        });
-
-        uploadBox.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.remove('drag-over');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                // Use the validateFileType utility function
-                const validFiles = Array.from(files).filter(file => validateFileType(file, input.accept));
-                
-                if (validFiles.length > 0) {
-                    input.files = new DataTransfer().files;
-                    validFiles.forEach(file => {
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
-                        input.files = dataTransfer.files;
-                    });
-                    input.dispatchEvent(new Event('change'));
-                } else {
-                    alert('One or more files are not of the accepted type. Please upload valid files.');
-                }
-            }
-        });
-    }
+    // Drag and drop functionality is handled by setupDragAndDrop()
 
     input.onchange = () => {
-        // Clear the preview first
-        preview.innerHTML = '';
-
+        // Don't clear existing previews - only add new ones
+        // The existing previews are managed by setupFilePreview() calls from modal manager
+        
         // Only show preview if there are files
         if (input.files && input.files.length > 0) {
             Array.from(input.files).forEach(file => {
+                // Create a unique identifier for the file (name + size + lastModified)
+                const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+                
+                // Skip if we've already processed this file
+                if (processedFiles.has(fileId)) {
+                    return;
+                }
+                
+                // Mark this file as processed
+                processedFiles.add(fileId);
                 // Create the preview element using component approach
                 const previewItem = document.createElement('div');
                 
@@ -157,6 +143,8 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
                     const deleteHandler = () => {
                         if (confirm(`Are you sure you want to delete this ${docType}?`)) {
                             previewItem.remove();
+                            // Remove from processed files set
+                            processedFiles.delete(fileId);
                             // Update the input files
                             const dataTransfer = new DataTransfer();
                             Array.from(input.files).forEach((f, i) => {
@@ -185,6 +173,8 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
                         const deleteHandler = () => {
                             if (confirm('Are you sure you want to delete this image?')) {
                                 previewItem.remove();
+                                // Remove from processed files set
+                                processedFiles.delete(fileId);
                                 // Update the input files
                                 const dataTransfer = new DataTransfer();
                                 Array.from(input.files).forEach((f, i) => {
@@ -217,113 +207,65 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
  * @returns {Promise<Object>} - The updated asset with file paths
  */
 async function handleFileUploads(asset, isEditMode, isSubAsset = false) {
-    // Get the current delete flags
-    getDeleteFlags();
-    
-    // Clone the asset to avoid modifying the original
     const assetCopy = { ...asset };
-    
-    // Log initial state of file paths
-    console.log('handleFileUploads starting with asset:', {
-        id: assetCopy.id,
-        name: assetCopy.name,
-        parentId: assetCopy.parentId || null
-    });
-    
-    // Initialize file info arrays if they don't exist
-    assetCopy.photoInfo = assetCopy.photoInfo || [];
-    assetCopy.receiptInfo = assetCopy.receiptInfo || [];
-    assetCopy.manualInfo = assetCopy.manualInfo || [];
-    
-    // Get file inputs
-    const photoInput = document.getElementById(isSubAsset ? 'subAssetPhoto' : 'assetPhoto');
-    const receiptInput = document.getElementById(isSubAsset ? 'subAssetReceipt' : 'assetReceipt');
-    const manualInput = document.getElementById(isSubAsset ? 'subAssetManual' : 'assetManual');
-    
-    // Make sure inputs exist before trying to access them
-    if (!photoInput || !receiptInput || !manualInput) {
-        console.error('File inputs not found:', {
-            photoInput: !!photoInput,
-            receiptInput: !!receiptInput,
-            manualInput: !!manualInput
-        });
-        return assetCopy;
-    }
-    
-    // Initialize arrays for multiple files
-    assetCopy.photoPaths = assetCopy.photoPaths || [];
-    assetCopy.receiptPaths = assetCopy.receiptPaths || [];
-    assetCopy.manualPaths = assetCopy.manualPaths || [];
-    
-    // Handle photo uploads
-    if (photoInput.files && photoInput.files.length > 0) {
-        console.log(`Uploading ${photoInput.files.length} photo(s)`);
-        assetCopy.photoPaths = [];
-        assetCopy.photoInfo = [];
-        for (const file of photoInput.files) {
-            const result = await uploadFile(new File([file], sanitizeFileName(file.name), { type: file.type }), 'image', assetCopy.id);
-            if (result) {
-                assetCopy.photoPaths.push(result.path);
-                assetCopy.photoInfo.push(result.fileInfo);
-            }
-        }
-        // Set the first photo as the main photo
-        assetCopy.photoPath = assetCopy.photoPaths[0] || null;
-        console.log(`Setting main photoPath to: ${assetCopy.photoPath}`);
-    } else if (isEditMode) {
-        if ((isSubAsset ? deleteSubPhoto : deletePhoto) && assetCopy.photoPath) {
-            assetCopy.photoPath = null;
-            assetCopy.photoPaths = [];
-            assetCopy.photoInfo = [];
-        }
-    }
-    
-    // Handle receipt uploads
-    if (receiptInput.files && receiptInput.files.length > 0) {
-        console.log(`Uploading ${receiptInput.files.length} receipt(s)`);
-        assetCopy.receiptPaths = [];
-        assetCopy.receiptInfo = [];
-        for (const file of receiptInput.files) {
-            const result = await uploadFile(new File([file], sanitizeFileName(file.name), { type: file.type }), 'receipt', assetCopy.id);
-            if (result) {
-                assetCopy.receiptPaths.push(result.path);
-                assetCopy.receiptInfo.push(result.fileInfo);
-            }
-        }
-        // Set the first receipt as the main receipt
-        assetCopy.receiptPath = assetCopy.receiptPaths[0] || null;
-        console.log(`Setting main receiptPath to: ${assetCopy.receiptPath}`);
-    } else if (isEditMode) {
-        if ((isSubAsset ? deleteSubReceipt : deleteReceipt) && assetCopy.receiptPath) {
-            assetCopy.receiptPath = null;
-            assetCopy.receiptPaths = [];
-            assetCopy.receiptInfo = [];
-        }
-    }
 
-    // Handle manual uploads
-    if (manualInput.files && manualInput.files.length > 0) {
-        console.log(`Uploading ${manualInput.files.length} manual(s)`);
-        assetCopy.manualPaths = [];
-        assetCopy.manualInfo = [];
-        for (const file of manualInput.files) {
-            const result = await uploadFile(new File([file], sanitizeFileName(file.name), { type: file.type }), 'manual', assetCopy.id);
-            if (result) {
-                assetCopy.manualPaths.push(result.path);
-                assetCopy.manualInfo.push(result.fileInfo);
+    // Ensure file path and info arrays exist
+    ['photo', 'receipt', 'manual'].forEach(type => {
+        assetCopy[`${type}Paths`] = assetCopy[`${type}Paths`] || [];
+        assetCopy[`${type}Info`] = assetCopy[`${type}Info`] || [];
+    });
+
+    const fileInputs = {
+        photo: document.getElementById(isSubAsset ? 'subAssetPhoto' : 'assetPhoto'),
+        receipt: document.getElementById(isSubAsset ? 'subAssetReceipt' : 'assetReceipt'),
+        manual: document.getElementById(isSubAsset ? 'subAssetManual' : 'assetManual')
+    };
+
+    const processFiles = async (fileType) => {
+        const input = fileInputs[fileType];
+        const typeMap = { photo: 'image', receipt: 'receipt', manual: 'manual' };
+        const pathsKey = `${fileType}Paths`;
+        const infoKey = `${fileType}Info`;
+        const legacyPathKey = `${fileType}Path`;
+
+        let currentPaths = assetCopy[pathsKey] || (assetCopy[legacyPathKey] ? [assetCopy[legacyPathKey]] : []);
+        let currentInfos = assetCopy[infoKey] || [];
+
+        // 1. Filter out files marked for deletion
+        if (assetCopy.filesToDelete && assetCopy.filesToDelete.length > 0) {
+            const filesToDeleteSet = new Set(assetCopy.filesToDelete);
+            const filteredEntries = [];
+            currentPaths.forEach((path, index) => {
+                if (!filesToDeleteSet.has(path)) {
+                    filteredEntries.push({ path, info: currentInfos[index] });
+                }
+            });
+            currentPaths = filteredEntries.map(e => e.path);
+            currentInfos = filteredEntries.map(e => e.info || {});
+        }
+
+        // 2. Handle new uploads
+        let newPaths = [];
+        let newInfos = [];
+        if (input && input.files && input.files.length > 0) {
+            const sanitizedFiles = Array.from(input.files).map(file => new File([file], sanitizeFileName(file.name), { type: file.type }));
+            const result = await uploadFiles(sanitizedFiles, typeMap[fileType], assetCopy.id);
+            if (result && result.files) {
+                newPaths = result.files.map(f => f.path);
+                newInfos = result.files.map(f => f.fileInfo);
             }
         }
-        // Set the first manual as the main manual
-        assetCopy.manualPath = assetCopy.manualPaths[0] || null;
-        console.log(`Setting main manualPath to: ${assetCopy.manualPath}`);
-    } else if (isEditMode) {
-        if ((isSubAsset ? deleteSubManual : deleteManual) && assetCopy.manualPath) {
-            assetCopy.manualPath = null;
-            assetCopy.manualPaths = [];
-            assetCopy.manualInfo = [];
-        }
-    }
-    
+
+        // 3. Merge and set the final arrays
+        assetCopy[pathsKey] = [...currentPaths, ...newPaths];
+        assetCopy[infoKey] = [...currentInfos, ...newInfos];
+        assetCopy[legacyPathKey] = assetCopy[pathsKey][0] || null;
+    };
+
+    await processFiles('photo');
+    await processFiles('receipt');
+    await processFiles('manual');
+
     return assetCopy;
 }
 
@@ -382,16 +324,29 @@ function setupDragAndDrop() {
 
         function handleFiles(files) {
             if (files.length > 0) {
-                const file = files[0];
-                // Use the validateFileType utility function
-                if (validateFileType(file, fileInput.accept)) {
-                    fileInput.files = new DataTransfer().files;
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
+                const dataTransfer = new DataTransfer();
+                let validFiles = 0;
+                
+                // Add existing files first
+                if (fileInput.files) {
+                    Array.from(fileInput.files).forEach(file => {
+                        dataTransfer.items.add(file);
+                    });
+                }
+                
+                // Add new files
+                Array.from(files).forEach(file => {
+                    if (validateFileType(file, fileInput.accept)) {
+                        dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
+                        validFiles++;
+                    }
+                });
+                
+                if (validFiles > 0) {
                     fileInput.files = dataTransfer.files;
                     fileInput.dispatchEvent(new Event('change'));
                 } else {
-                    alert('Invalid file type. Please upload a supported file.');
+                    alert('Invalid file type(s). Please upload supported files.');
                 }
             }
         }
@@ -401,6 +356,7 @@ function setupDragAndDrop() {
 // Export the functions
 export {
     uploadFile,
+    uploadFiles,
     setupFileInputPreview,
     handleFileUploads,
     setupDragAndDrop
