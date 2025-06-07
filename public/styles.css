@@ -1805,17 +1805,21 @@ a:hover {
 }
 
 .file-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     text-align: center;
-    padding: 0.4rem 0;
-    width: 35%;
+    padding: 0.4rem 0.8rem;
+    min-width: 60%;
+    max-width: 85%;
     background-color: var(--primary-transparent);
     border-radius: 1rem;
     color: var(--primary-color);
     transition: color 0.2s ease;
     position: relative;
     bottom: 0.5rem;
-    /* left: 25%; */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 auto;
 }
 
 .file-name {

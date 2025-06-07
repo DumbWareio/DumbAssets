@@ -212,6 +212,38 @@ function generateAssetInfoHTML(asset) {
  * @param {Object} asset - The asset object containing file paths
  * @returns {string} HTML string for the file grid
  */
+/**
+ * Format filename for display with truncation if needed
+ * @param {string} fileName - The original filename
+ * @param {number} maxLength - Maximum length (default 15)
+ * @returns {string} Formatted filename
+ */
+function formatDisplayFileName(fileName, maxLength = 15) {
+    if (!fileName || fileName.length <= maxLength) {
+        return fileName || 'Unknown File';
+    }
+    
+    // Find the last dot for the extension
+    const lastDotIndex = fileName.lastIndexOf('.');
+    if (lastDotIndex === -1) {
+        // No extension found, just truncate
+        return fileName.substring(0, maxLength - 3) + '...';
+    }
+    
+    const extension = fileName.substring(lastDotIndex);
+    const nameWithoutExt = fileName.substring(0, lastDotIndex);
+    
+    // Calculate how much space we have for the name part
+    const availableSpace = maxLength - extension.length - 3; // 3 for "..."
+    
+    if (availableSpace <= 0) {
+        // Extension is too long, just show truncated name
+        return fileName.substring(0, maxLength - 3) + '...';
+    }
+    
+    return nameWithoutExt.substring(0, availableSpace) + '...' + extension;
+}
+
 function generateFileGridHTML(asset) {
     let html = '';
     
@@ -224,7 +256,7 @@ function generateFileGridHTML(asset) {
                 <div class="file-item photo">
                     <a href="${formatFilePath(photoPath)}" target="_blank" class="file-preview">
                         <img src="${formatFilePath(photoPath)}" alt="${asset.name}" class="asset-image">
-                        <div class="file-label">Photo${asset.photoPaths.length > 1 ? ` ${index + 1}` : ''}</div>
+                        <div class="file-label">${formatDisplayFileName(fileName)}</div>
                     </a>
                 </div>
             `;
@@ -237,7 +269,7 @@ function generateFileGridHTML(asset) {
             <div class="file-item photo">
                 <a href="${formatFilePath(asset.photoPath)}" target="_blank" class="file-preview">
                     <img src="${formatFilePath(asset.photoPath)}" alt="${asset.name}" class="asset-image">
-                    <div class="file-label">Photo</div>
+                    <div class="file-label">${formatDisplayFileName(fileName)}</div>
                 </a>
             </div>
         `;
@@ -255,7 +287,7 @@ function generateFileGridHTML(asset) {
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                             <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
                         </svg>
-                        <div class="file-label">Receipt${asset.receiptPaths.length > 1 ? ` ${index + 1}` : ''}</div>
+                        <div class="file-label">${formatDisplayFileName(fileName)}</div>
                     </a>
                 </div>
             `;
@@ -271,7 +303,7 @@ function generateFileGridHTML(asset) {
                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                         <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
                     </svg>
-                    <div class="file-label">Receipt</div>
+                    <div class="file-label">${formatDisplayFileName(fileName)}</div>
                 </a>
             </div>
         `;
@@ -292,7 +324,7 @@ function generateFileGridHTML(asset) {
                             <line x1="16" y1="17" x2="8" y2="17"></line>
                             <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
-                        <div class="file-label">Manual${asset.manualPaths.length > 1 ? ` ${index + 1}` : ''}</div>
+                        <div class="file-label">${formatDisplayFileName(fileName)}</div>
                     </a>
                 </div>
             `;
@@ -311,7 +343,7 @@ function generateFileGridHTML(asset) {
                         <line x1="16" y1="17" x2="8" y2="17"></line>
                         <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
-                    <div class="file-label">Manual</div>
+                    <div class="file-label">${formatDisplayFileName(fileName)}</div>
                 </a>
             </div>
         `;
