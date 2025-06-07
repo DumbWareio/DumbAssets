@@ -99,6 +99,9 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
     
     // Store the previous file value to restore if user cancels
     let previousValue = input.value;
+    
+    // Track processed files to prevent duplicates
+    let processedFiles = new Set();
 
     // Drag and drop functionality is handled by setupDragAndDrop()
 
@@ -109,6 +112,16 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
         // Only show preview if there are files
         if (input.files && input.files.length > 0) {
             Array.from(input.files).forEach(file => {
+                // Create a unique identifier for the file (name + size + lastModified)
+                const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+                
+                // Skip if we've already processed this file
+                if (processedFiles.has(fileId)) {
+                    return;
+                }
+                
+                // Mark this file as processed
+                processedFiles.add(fileId);
                 // Create the preview element using component approach
                 const previewItem = document.createElement('div');
                 
@@ -130,6 +143,8 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
                     const deleteHandler = () => {
                         if (confirm(`Are you sure you want to delete this ${docType}?`)) {
                             previewItem.remove();
+                            // Remove from processed files set
+                            processedFiles.delete(fileId);
                             // Update the input files
                             const dataTransfer = new DataTransfer();
                             Array.from(input.files).forEach((f, i) => {
@@ -158,6 +173,8 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
                         const deleteHandler = () => {
                             if (confirm('Are you sure you want to delete this image?')) {
                                 previewItem.remove();
+                                // Remove from processed files set
+                                processedFiles.delete(fileId);
                                 // Update the input files
                                 const dataTransfer = new DataTransfer();
                                 Array.from(input.files).forEach((f, i) => {
