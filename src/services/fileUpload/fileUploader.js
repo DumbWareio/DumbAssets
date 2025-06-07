@@ -100,50 +100,7 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
     // Store the previous file value to restore if user cancels
     let previousValue = input.value;
 
-    // Drag and drop handlers
-    if (uploadBox) {
-        uploadBox.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.add('drag-over');
-        });
-
-        uploadBox.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.remove('drag-over');
-        });
-
-        uploadBox.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.add('drag-over');
-        });
-
-        uploadBox.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            uploadBox.classList.remove('drag-over');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                // Use the validateFileType utility function
-                const validFiles = Array.from(files).filter(file => validateFileType(file, input.accept));
-                
-                if (validFiles.length > 0) {
-                    input.files = new DataTransfer().files;
-                    validFiles.forEach(file => {
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
-                        input.files = dataTransfer.files;
-                    });
-                    input.dispatchEvent(new Event('change'));
-                } else {
-                    alert('One or more files are not of the accepted type. Please upload valid files.');
-                }
-            }
-        });
-    }
+    // Drag and drop functionality is handled by setupDragAndDrop()
 
     input.onchange = () => {
         // Don't clear existing previews - only add new ones
