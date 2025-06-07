@@ -207,6 +207,120 @@ function generateAssetInfoHTML(asset) {
 }
 
 /**
+ * Generate HTML for file grid display (supports multiple files)
+ * 
+ * @param {Object} asset - The asset object containing file paths
+ * @returns {string} HTML string for the file grid
+ */
+function generateFileGridHTML(asset) {
+    let html = '';
+    
+    // Handle multiple photos
+    if (asset.photoPaths && Array.isArray(asset.photoPaths) && asset.photoPaths.length > 0) {
+        asset.photoPaths.forEach((photoPath, index) => {
+            const photoInfo = asset.photoInfo?.[index] || {};
+            const fileName = photoInfo.originalName || photoPath.split('/').pop();
+            html += `
+                <div class="file-item photo">
+                    <a href="${formatFilePath(photoPath)}" target="_blank" class="file-preview">
+                        <img src="${formatFilePath(photoPath)}" alt="${asset.name}" class="asset-image">
+                        <div class="file-label">Photo${asset.photoPaths.length > 1 ? ` ${index + 1}` : ''}</div>
+                    </a>
+                </div>
+            `;
+        });
+    } else if (asset.photoPath) {
+        // Backward compatibility for single photo
+        const photoInfo = asset.photoInfo?.[0] || {};
+        const fileName = photoInfo.originalName || asset.photoPath.split('/').pop();
+        html += `
+            <div class="file-item photo">
+                <a href="${formatFilePath(asset.photoPath)}" target="_blank" class="file-preview">
+                    <img src="${formatFilePath(asset.photoPath)}" alt="${asset.name}" class="asset-image">
+                    <div class="file-label">Photo</div>
+                </a>
+            </div>
+        `;
+    }
+    
+    // Handle multiple receipts
+    if (asset.receiptPaths && Array.isArray(asset.receiptPaths) && asset.receiptPaths.length > 0) {
+        asset.receiptPaths.forEach((receiptPath, index) => {
+            const receiptInfo = asset.receiptInfo?.[index] || {};
+            const fileName = receiptInfo.originalName || receiptPath.split('/').pop();
+            html += `
+                <div class="file-item receipt">
+                    <a href="${formatFilePath(receiptPath)}" target="_blank" class="file-preview">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
+                        </svg>
+                        <div class="file-label">Receipt${asset.receiptPaths.length > 1 ? ` ${index + 1}` : ''}</div>
+                    </a>
+                </div>
+            `;
+        });
+    } else if (asset.receiptPath) {
+        // Backward compatibility for single receipt
+        const receiptInfo = asset.receiptInfo?.[0] || {};
+        const fileName = receiptInfo.originalName || asset.receiptPath.split('/').pop();
+        html += `
+            <div class="file-item receipt">
+                <a href="${formatFilePath(asset.receiptPath)}" target="_blank" class="file-preview">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
+                    </svg>
+                    <div class="file-label">Receipt</div>
+                </a>
+            </div>
+        `;
+    }
+    
+    // Handle multiple manuals
+    if (asset.manualPaths && Array.isArray(asset.manualPaths) && asset.manualPaths.length > 0) {
+        asset.manualPaths.forEach((manualPath, index) => {
+            const manualInfo = asset.manualInfo?.[index] || {};
+            const fileName = manualInfo.originalName || manualPath.split('/').pop();
+            html += `
+                <div class="file-item manual">
+                    <a href="${formatFilePath(manualPath)}" target="_blank" class="file-preview">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <div class="file-label">Manual${asset.manualPaths.length > 1 ? ` ${index + 1}` : ''}</div>
+                    </a>
+                </div>
+            `;
+        });
+    } else if (asset.manualPath) {
+        // Backward compatibility for single manual
+        const manualInfo = asset.manualInfo?.[0] || {};
+        const fileName = manualInfo.originalName || asset.manualPath.split('/').pop();
+        html += `
+            <div class="file-item manual">
+                <a href="${formatFilePath(asset.manualPath)}" target="_blank" class="file-preview">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <div class="file-label">Manual</div>
+                </a>
+            </div>
+        `;
+    }
+    
+    return html || '<!-- No files available -->';
+}
+
+/**
  * Render asset details in the UI
  * 
  * @param {String} assetId ID of the asset to render
@@ -338,39 +452,7 @@ function renderAssetDetails(assetId, isSubAsset = false) {
             </div>` : ''}
             <div class="asset-files">
                 <div class="files-grid">
-                    ${photoPath ? `
-                    <div class="file-item photo">
-                        <a href="${photoPath}" target="_blank" class="file-preview">
-                            <img src="${photoPath}" alt="${asset.name}" class="asset-image">
-                            <div class="file-label">Photo</div>
-                        </a>
-                    </div>
-                    ` : '<!-- No photo available -->'}
-                    ${receiptPath ? `
-                    <div class="file-item receipt">
-                        <a href="${receiptPath}" target="_blank" class="file-preview">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
-                            </svg>
-                            <div class="file-label">Receipt</div>
-                        </a>
-                    </div>
-                    ` : '<!-- No receipt available -->'}
-                    ${manualPath ? `
-                    <div class="file-item manual">
-                        <a href="${manualPath}" target="_blank" class="file-preview">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                            <div class="file-label">Manual</div>
-                        </a>
-                    </div>
-                    ` : '<!-- No manual available -->'}
+                    ${generateFileGridHTML(asset)}
                 </div>
             </div>
         </fieldset>

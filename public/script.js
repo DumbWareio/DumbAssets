@@ -433,7 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Make the API call to save the asset
-            const response = await fetch(`${apiBaseUrl}/api/asset`, {
+            const url = isEditMode ? `${apiBaseUrl}/api/assets/${assetToSave.id}` : `${apiBaseUrl}/api/asset`;
+            const response = await fetch(url, {
                 method: isEditMode ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -522,7 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Missing required fields for sub-asset. Check the console for details.');
             }
             
-            const response = await fetch(`${apiBaseUrl}/api/subasset`, {
+            const url = isEditMode ? `${apiBaseUrl}/api/subassets/${subAsset.id}` : `${apiBaseUrl}/api/subasset`;
+            const response = await fetch(url, {
                 method: isEditMode ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json'

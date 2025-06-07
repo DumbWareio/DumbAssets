@@ -481,33 +481,117 @@ function generateId() {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
 }
 
-
-// Helper function to delete all files associated with an asset or sub-asset
 function deleteAssetFileAsync(filePath) {
-    if (!filePath || filePath.trim() === '') return;
-
-    let formattedPath = filePath.trim();
-    if (formattedPath.startsWith('/')) formattedPath = formattedPath.substring(1);
-    const assetFilePath = path.join(DATA_DIR, formattedPath);
-    fs.unlink(assetFilePath, (err) => {
-        if (err && err.code !== 'ENOENT') {
-            console.error(`Error deleting file - ${filePath}:`, err.message);
+    return new Promise((resolve, reject) => {
+        if (!filePath) {
+            console.log('[DEBUG] Skipping empty filePath');
+            return resolve();
         }
+        // File paths are stored as '/Images/filename.jpg', so we need to join with DATA_DIR
+        // and remove the leading slash to avoid double slashes
+        const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+        const fullPath = path.join(DATA_DIR, cleanPath);
+        console.log(`[DEBUG] Attempting to delete file: ${fullPath}`);
+        fs.unlink(fullPath, (err) => {
+            if (err && err.code !== 'ENOENT') {
+                console.error(`[DEBUG] Error deleting file ${fullPath}:`, err);
+                return reject(err);
+            }
+            if (!err) {
+                console.log(`[DEBUG] Successfully deleted file: ${fullPath}`);
+            } else {
+                console.log(`[DEBUG] File not found (already deleted?): ${fullPath}`);
+            }
+            resolve();
+        });
     });
 }
 
-function deleteAssetFiles(assets) {
-    // check assets is an array
-    if (!Array.isArray(assets)) {
-        console.error('deleteAssetFiles expects an array of assets');
-        return;
+/**
+ * Recursively finds all sub-assets (including nested ones) for a given parent.
+ * @param {string} parentId - The parent asset ID
+ * @param {string} parentSubId - The parent sub-asset ID (for nested sub-assets)
+ * @param {Array} allSubAssets - Array of all sub-assets to search through
+ * @returns {Array} Array of all child sub-assets (direct and nested)
+ */
+function findAllChildSubAssets(parentId, parentSubId, allSubAssets) {
+    const directChildren = allSubAssets.filter(sa => {
+        if (parentSubId) {
+            // Looking for sub-assets of a sub-asset
+            return sa.parentSubId === parentSubId;
+        } else {
+            // Looking for sub-assets of an asset
+            return sa.parentId === parentId && !sa.parentSubId;
+        }
+    });
+
+    let allChildren = [...directChildren];
+
+    // Recursively find children of each direct child
+    for (const child of directChildren) {
+        const nestedChildren = findAllChildSubAssets(parentId, child.id, allSubAssets);
+        allChildren.push(...nestedChildren);
     }
 
-    assets.forEach(asset => {
-        if (asset.photoPath) deleteAssetFileAsync(asset.photoPath);
-        if (asset.receiptPath) deleteAssetFileAsync(asset.receiptPath);
-        if (asset.manualPath) deleteAssetFileAsync(asset.manualPath);
-    });
+    return allChildren;
+}
+
+/**
+ * Deletes files associated with assets or sub-assets.
+ * @param {string|string[]|Object|Object[]} input - File paths, asset objects, or arrays of either.
+ */
+async function deleteAssetFiles(input) {
+    if (!input) return;
+    // Normalize input to an array
+    const items = Array.isArray(input) ? input : [input];
+    const pathsToDelete = [];
+    // Extract file paths from assets/sub-assets or use direct paths
+    for (const item of items) {
+        if (typeof item === 'string') {
+            // Direct file path
+            console.log('[DEBUG] Will delete file path:', item);
+            pathsToDelete.push(item);
+        } else if (typeof item === 'object' && item !== null) {
+            // Asset or sub-asset object - extract all file paths
+            const asset = item;
+            console.log('[DEBUG] Processing asset/sub-asset for deletion:', asset.id || asset.name || asset);
+            // Photos
+            if (asset.photoPaths && Array.isArray(asset.photoPaths)) {
+                asset.photoPaths.forEach(p => console.log('[DEBUG] Will delete photo:', p));
+                pathsToDelete.push(...asset.photoPaths);
+            } else if (asset.photoPath) {
+                console.log('[DEBUG] Will delete photo:', asset.photoPath);
+                pathsToDelete.push(asset.photoPath);
+            }
+            // Receipts
+            if (asset.receiptPaths && Array.isArray(asset.receiptPaths)) {
+                asset.receiptPaths.forEach(p => console.log('[DEBUG] Will delete receipt:', p));
+                pathsToDelete.push(...asset.receiptPaths);
+            } else if (asset.receiptPath) {
+                console.log('[DEBUG] Will delete receipt:', asset.receiptPath);
+                pathsToDelete.push(asset.receiptPath);
+            }
+            // Manuals
+            if (asset.manualPaths && Array.isArray(asset.manualPaths)) {
+                asset.manualPaths.forEach(p => console.log('[DEBUG] Will delete manual:', p));
+                pathsToDelete.push(...asset.manualPaths);
+            } else if (asset.manualPath) {
+                console.log('[DEBUG] Will delete manual:', asset.manualPath);
+                pathsToDelete.push(asset.manualPath);
+            }
+        }
+    }
+    // Delete all collected file paths
+    for (const filePath of pathsToDelete) {
+        if (filePath) {
+            try {
+                await deleteAssetFileAsync(filePath);
+            } catch (error) {
+                // Log error but continue trying to delete other files
+                console.error(`[DEBUG] Failed to delete ${filePath}, continuing...`);
+            }
+        }
+    }
 }
 
 // Initialize data directories
@@ -601,165 +685,72 @@ app.post('/api/asset', async (req, res) => {
 });
 
 // Update an existing asset
-app.put('/api/asset', (req, res) => {
-    const assets = readJsonFile(assetsFilePath);
-    const updatedAsset = req.body;
+app.put('/api/assets/:id', async (req, res) => {
+    try {
+        const assetId = req.params.id;
+        const updatedAssetData = req.body;
+        const assets = readJsonFile(path.join(DATA_DIR, 'Assets.json'));
+        const assetIndex = assets.findIndex(a => a.id === assetId);
 
-    // Ensure maintenanceEvents is always present (even if empty)
-    updatedAsset.maintenanceEvents = updatedAsset.maintenanceEvents || [];
-    
-    // Ensure required fields
-    if (!updatedAsset.id || !updatedAsset.name) {
-        return res.status(400).json({ error: 'Asset ID and name are required' });
-    }
-    
-    const index = assets.findIndex(a => a.id === updatedAsset.id);
-    
-    if (index === -1) {
-        return res.status(404).json({ error: 'Asset not found' });
-    }
-
-    const oldAsset = assets[index];
-
-    // Preserve creation date
-    updatedAsset.createdAt = assets[index].createdAt;
-    // Update the modification date
-    updatedAsset.updatedAt = new Date().toISOString();
-    
-    // Delete old files if new paths are provided
-    if (oldAsset.photoPath && updatedAsset.photoPath !== oldAsset.photoPath) {
-        deleteAssetFileAsync(oldAsset.photoPath);
-    } else if (updatedAsset.photoPath === oldAsset.photoPath) {
-        // If no new photoPath is provided, keep the old one
-        updatedAsset.photoPath = oldAsset.photoPath;
-        updatedAsset.photoInfo = oldAsset.photoInfo;
-        updatedAsset.photoPaths = oldAsset.photoPaths || [];
-    }
-    if (oldAsset.receiptPath && updatedAsset.receiptPath !== oldAsset.receiptPath) {
-        deleteAssetFileAsync(oldAsset.receiptPath);
-    } else if (updatedAsset.receiptPath === oldAsset.receiptPath) {
-        // If no new receiptPath is provided, keep the old one
-        updatedAsset.receiptPath = oldAsset.receiptPath;
-        updatedAsset.receiptInfo = oldAsset.receiptInfo;
-        updatedAsset.receiptPaths = oldAsset.receiptPaths || [];
-    }
-    if (oldAsset.manualPath && updatedAsset.manualPath !== oldAsset.manualPath) {
-        deleteAssetFileAsync(oldAsset.manualPath);
-    } else if (updatedAsset.manualPath === oldAsset.manualPath) {
-        // If no new manualPath is provided, keep the old one
-        updatedAsset.manualPath = oldAsset.manualPath;
-        updatedAsset.manualInfo = oldAsset.manualInfo;
-        updatedAsset.manualPaths = oldAsset.manualPaths || [];
-    }
-    
-    const assetToSave = {...oldAsset, ...updatedAsset};
-    assets[index] = assetToSave;
-
-    if (writeJsonFile(assetsFilePath, assets)) {
-        if (DEBUG) {
-            console.log('[DEBUG] Asset edited:', { id: updatedAsset.id, name: updatedAsset.name, modelNumber: updatedAsset.modelNumber });
+        if (assetIndex === -1) {
+            return res.status(404).json({ message: 'Asset not found' });
         }
-        // Notification logic
-        try {
-            const configPath = path.join(DATA_DIR, 'config.json');
-            let config = {};
-            if (fs.existsSync(configPath)) {
-                config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            }
-            const notificationSettings = config.notificationSettings || {};
-            const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
-            if (DEBUG) {
-                console.log('[DEBUG] Notification settings (edit):', notificationSettings, 'Apprise URL:', appriseUrl);
-            }
-            if (notificationSettings.notifyEdit && appriseUrl) {
-                sendNotification('asset_edited', {
-                    id: updatedAsset.id,
-                    name: updatedAsset.name,
-                    modelNumber: updatedAsset.modelNumber,
-                    description: updatedAsset.description
-                }, {
-                    appriseUrl,
-                    baseUrl: getBaseUrl(req)
-                });
-                if (DEBUG) {
-                    console.log('[DEBUG] Asset edited notification sent.');
-                }
-            }
-        } catch (err) {
-            console.error('Failed to send asset edited notification:', err.message);
+
+        const existingAsset = assets[assetIndex];
+
+        if (updatedAssetData.filesToDelete && updatedAssetData.filesToDelete.length > 0) {
+            await deleteAssetFiles(updatedAssetData.filesToDelete);
         }
-        res.json(updatedAsset);
-    } else {
-        res.status(500).json({ error: 'Failed to update asset' });
+
+        const finalAsset = {
+            ...existingAsset,
+            ...updatedAssetData,
+            updatedAt: new Date().toISOString()
+        };
+        delete finalAsset.filesToDelete;
+
+        assets[assetIndex] = finalAsset;
+        writeJsonFile(path.join(DATA_DIR, 'Assets.json'), assets);
+        res.json(finalAsset);
+
+    } catch (error) {
+        console.error(`Error updating asset ${req.params.id}:`, error);
+        res.status(500).json({ message: 'Error updating asset' });
     }
 });
 
 // Delete an asset
-app.delete('/api/asset/:id', (req, res) => {
+app.delete('/api/asset/:id', async (req, res) => {
     const assetId = req.params.id;
     const assets = readJsonFile(assetsFilePath);
     const subAssets = readJsonFile(subAssetsFilePath);
-    
     // Find the asset to delete
     const assetIndex = assets.findIndex(a => a.id === assetId);
-    
     if (assetIndex === -1) {
         return res.status(404).json({ error: 'Asset not found' });
     }
-    
-    // Remove the asset
+    // Get the asset to delete
     const deletedAsset = assets.splice(assetIndex, 1)[0];
-    // Remove all related sub-assets
-    const updatedSubAssets = subAssets.filter(sa => sa.parentId !== assetId);
-    
-    // Delete associated files if they exist
+    console.log(`[DEBUG] Deleting asset: ${deletedAsset.id} (${deletedAsset.name})`);
+    // Find all sub-assets (including nested ones) that belong to this asset
+    const allChildSubAssets = findAllChildSubAssets(assetId, null, subAssets);
+    console.log(`[DEBUG] Found ${allChildSubAssets.length} sub-assets to delete for asset ${assetId}`);
+    // Remove all related sub-assets from the array
+    const updatedSubAssets = subAssets.filter(sa => {
+        return sa.parentId !== assetId && !allChildSubAssets.some(child => child.id === sa.id);
+    });
+    // Delete all associated files
     try {
-        deleteAssetFiles([deletedAsset]);
-        
-        // delete subasset and subasset children files
-        const subAssetFiles = subAssets.filter(sa => sa.parentId === assetId);
-        deleteAssetFiles(subAssetFiles);
+        await deleteAssetFiles(deletedAsset);
+        if (allChildSubAssets.length > 0) {
+            await deleteAssetFiles(allChildSubAssets);
+        }
+        console.log(`[DEBUG] Deleted asset ${deletedAsset.id} and ${allChildSubAssets.length} sub-assets with their files`);
     } catch (error) {
-        console.error('Error deleting asset files:', error);
-        // Continue with asset deletion even if file deletion fails
+        console.error('[DEBUG] Error deleting asset files:', error);
     }
-
     // Write updated assets
     if (writeJsonFile(assetsFilePath, assets) && writeJsonFile(subAssetsFilePath, updatedSubAssets)) {
-        if (DEBUG) {
-            console.log('[DEBUG] Asset deleted:', { id: deletedAsset.id, name: deletedAsset.name, modelNumber: deletedAsset.modelNumber });
-        }
-        // Notification logic
-        try {
-            const configPath = path.join(DATA_DIR, 'config.json');
-            let config = {};
-            if (fs.existsSync(configPath)) {
-                config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            }
-            const notificationSettings = config.notificationSettings || {};
-            const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
-            if (DEBUG) {
-                console.log('[DEBUG] Notification settings (delete):', notificationSettings, 'Apprise URL:', appriseUrl);
-            }
-            if (notificationSettings.notifyDelete && appriseUrl) {
-                sendNotification('asset_deleted', {
-                    name: deletedAsset.name,
-                    modelNumber: deletedAsset.modelNumber,
-                    serialNumber: deletedAsset.serialNumber,
-                    purchaseDate: deletedAsset.purchaseDate,
-                    price: deletedAsset.price,
-                    warranty: deletedAsset.warranty
-                }, {
-                    appriseUrl,
-                    baseUrl: getBaseUrl(req)
-                });
-                if (DEBUG) {
-                    console.log('[DEBUG] Asset deleted notification sent.');
-                }
-            }
-        } catch (err) {
-            console.error('Failed to send asset deleted notification:', err.message);
-        }
         res.json({ message: 'Asset deleted successfully' });
     } else {
         res.status(500).json({ error: 'Failed to delete asset' });
@@ -832,98 +823,37 @@ app.post('/api/subasset', async (req, res) => {
 });
 
 // Update an existing sub-asset
-app.put('/api/subasset', async (req, res) => {
-    const subAssets = readJsonFile(subAssetsFilePath);
-    const updatedSubAsset = req.body;
-    // Remove legacy maintenanceReminder if present
-    if (updatedSubAsset.maintenanceReminder) delete updatedSubAsset.maintenanceReminder;
-    // Ensure maintenanceEvents is always present (even if empty)
-    updatedSubAsset.maintenanceEvents = updatedSubAsset.maintenanceEvents || [];
-    
-    // Ensure required fields
-    if (!updatedSubAsset.id || !updatedSubAsset.name || !updatedSubAsset.parentId) {
-        return res.status(400).json({ error: 'Sub-asset ID, name, and parent ID are required' });
-    }
-    
-    const index = subAssets.findIndex(sa => sa.id === updatedSubAsset.id);
-    
-    if (index === -1) {
-        return res.status(404).json({ error: 'Sub-asset not found' });
-    }
+app.put('/api/subassets/:id', async (req, res) => {
+    try {
+        const subAssetId = req.params.id;
+        const updatedSubAssetData = req.body;
+        const subAssets = readJsonFile(path.join(DATA_DIR, 'SubAssets.json'));
+        const subAssetIndex = subAssets.findIndex(sa => sa.id === subAssetId);
 
-    const oldSubAsset = subAssets[index];
+        if (subAssetIndex === -1) {
+            return res.status(404).json({ message: 'Sub-asset not found' });
+        }
 
-    // Preserve creation date
-    updatedSubAsset.createdAt = subAssets[index].createdAt;
-    // Update the modification date
-    updatedSubAsset.updatedAt = new Date().toISOString();
-    
-    // Delete old files if new paths are provided
-    if (oldSubAsset.photoPath && updatedSubAsset.photoPath !== oldSubAsset.photoPath) {
-        deleteAssetFileAsync(oldSubAsset.photoPath);
-    } else if (updatedSubAsset.photoPath === oldSubAsset.photoPath){
-        // If no new photoPath is provided, keep the old one
-        updatedSubAsset.photoPath = oldSubAsset.photoPath;
-        updatedSubAsset.photoInfo = oldSubAsset.photoInfo;
-        updatedSubAsset.photoPaths = oldSubAsset.photoPaths || [];
-    }
-    if (oldSubAsset.receiptPath && updatedSubAsset.receiptPath !== oldSubAsset.receiptPath) {
-        deleteAssetFileAsync(oldSubAsset.receiptPath);
-    } else if (updatedSubAsset.receiptPath === oldSubAsset.receiptPath){
-        // If no new receiptPath is provided, keep the old one
-        updatedSubAsset.receiptPath = oldSubAsset.receiptPath;
-        updatedSubAsset.receiptInfo = oldSubAsset.receiptInfo;
-        updatedSubAsset.receiptPaths = oldSubAsset.receiptPaths || [];
-    }
-    if (oldSubAsset.manualPath && updatedSubAsset.manualPath !== oldSubAsset.manualPath) {
-        deleteAssetFileAsync(oldSubAsset.manualPath);
-    } else if (updatedSubAsset.manualPath === oldSubAsset.manualPath){
-        // If no new manualPath is provided, keep the old one
-        updatedSubAsset.manualPath = oldSubAsset.manualPath;
-        updatedSubAsset.manualInfo = oldSubAsset.manualInfo;
-        updatedSubAsset.manualPaths = oldSubAsset.manualPaths || [];
-    }
-    
-    const subAssetToSave = {...oldSubAsset, ...updatedSubAsset};
-    subAssets[index] = subAssetToSave;    
-    
-    if (writeJsonFile(subAssetsFilePath, subAssets)) {
-        if (DEBUG) {
-            console.log('[DEBUG] Sub-asset edited:', { id: updatedSubAsset.id, name: updatedSubAsset.name, parentId: updatedSubAsset.parentId });
+        const existingSubAsset = subAssets[subAssetIndex];
+
+        if (updatedSubAssetData.filesToDelete && updatedSubAssetData.filesToDelete.length > 0) {
+            await deleteAssetFiles(updatedSubAssetData.filesToDelete);
         }
-        // Notification logic for sub-asset edit
-        try {
-            const configPath = path.join(DATA_DIR, 'config.json');
-            let config = {};
-            if (fs.existsSync(configPath)) {
-                config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            }
-            const notificationSettings = config.notificationSettings || {};
-            const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
-            if (DEBUG) {
-                console.log('[DEBUG] Sub-asset notification settings (edit):', notificationSettings, 'Apprise URL:', appriseUrl);
-            }
-            if (notificationSettings.notifyEdit && appriseUrl) {
-                await sendNotification('asset_edited', {
-                    id: updatedSubAsset.id,
-                    parentId: updatedSubAsset.parentId,
-                    name: `${updatedSubAsset.name} (Component)`,
-                    modelNumber: updatedSubAsset.modelNumber,
-                    description: updatedSubAsset.description || updatedSubAsset.notes
-                }, {
-                    appriseUrl,
-                    baseUrl: getBaseUrl(req)
-                });
-                if (DEBUG) {
-                    console.log('[DEBUG] Sub-asset edited notification sent.');
-                }
-            }
-        } catch (err) {
-            console.error('Failed to send sub-asset edited notification:', err.message);
-        }
-        res.json(updatedSubAsset);
-    } else {
-        res.status(500).json({ error: 'Failed to update sub-asset' });
+
+        const finalSubAsset = {
+            ...existingSubAsset,
+            ...updatedSubAssetData,
+            updatedAt: new Date().toISOString()
+        };
+        delete finalSubAsset.filesToDelete;
+
+        subAssets[subAssetIndex] = finalSubAsset;
+        writeJsonFile(path.join(DATA_DIR, 'SubAssets.json'), subAssets);
+        res.json(finalSubAsset);
+
+    } catch (error) {
+        console.error(`Error updating sub-asset ${req.params.id}:`, error);
+        res.status(500).json({ message: 'Error updating sub-asset' });
     }
 });
 
@@ -931,68 +861,33 @@ app.put('/api/subasset', async (req, res) => {
 app.delete('/api/subasset/:id', async (req, res) => {
     const subAssetId = req.params.id;
     const subAssets = readJsonFile(subAssetsFilePath);
-    
     // Find the sub-asset to delete
     const subAssetIndex = subAssets.findIndex(sa => sa.id === subAssetId);
-    
     if (subAssetIndex === -1) {
         return res.status(404).json({ error: 'Sub-asset not found' });
     }
-    
     // Get the sub-asset to delete
-    const deletedSubAsset = subAssets.splice(subAssetIndex, 1)[0];  
-    // Remove all related sub-assets
-    const updatedSubAssets = subAssets.filter(sa => sa.id !== subAssetId && sa.parentSubId !== subAssetId);
-    
-    // Try to delete image and receipt files if they exist
+    const deletedSubAsset = subAssets.splice(subAssetIndex, 1)[0];
+    console.log(`[DEBUG] Deleting sub-asset: ${deletedSubAsset.id} (${deletedSubAsset.name})`);
+    // Find all child sub-assets (nested ones) that belong to this sub-asset
+    const allChildSubAssets = findAllChildSubAssets(deletedSubAsset.parentId, subAssetId, subAssets);
+    console.log(`[DEBUG] Found ${allChildSubAssets.length} nested sub-assets to delete for sub-asset ${subAssetId}`);
+    // Remove all related sub-assets from the array
+    const updatedSubAssets = subAssets.filter(sa => {
+        return sa.id !== subAssetId && !allChildSubAssets.some(child => child.id === sa.id);
+    });
+    // Delete all associated files
     try {
-        deleteAssetFiles([deletedSubAsset]);
-
-        // delete subasset child files
-        const subAssetChildren = subAssets.filter(sa => sa.parentSubId === subAssetId);
-        deleteAssetFiles(subAssetChildren);
+        await deleteAssetFiles(deletedSubAsset);
+        if (allChildSubAssets.length > 0) {
+            await deleteAssetFiles(allChildSubAssets);
+        }
+        console.log(`[DEBUG] Deleted sub-asset ${deletedSubAsset.id} and ${allChildSubAssets.length} nested sub-assets with their files`);
     } catch (error) {
-        console.error('Error deleting files:', error);
-        // Continue even if file deletion fails
+        console.error('[DEBUG] Error deleting files:', error);
     }
-    
     // Write updated sub-assets
     if (writeJsonFile(subAssetsFilePath, updatedSubAssets)) {
-        if (DEBUG) {
-            console.log('[DEBUG] Sub-asset deleted:', { id: deletedSubAsset.id, name: deletedSubAsset.name, parentId: deletedSubAsset.parentId });
-        }
-        // Notification logic for sub-asset deletion
-        try {
-            const configPath = path.join(DATA_DIR, 'config.json');
-            let config = {};
-            if (fs.existsSync(configPath)) {
-                config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            }
-            const notificationSettings = config.notificationSettings || {};
-            const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
-            if (DEBUG) {
-                console.log('[DEBUG] Sub-asset notification settings (delete):', notificationSettings, 'Apprise URL:', appriseUrl);
-            }
-            if (notificationSettings.notifyDelete && appriseUrl) {
-                await sendNotification('asset_deleted', {
-                    name: `${deletedSubAsset.name} (Component)`,
-                    modelNumber: deletedSubAsset.modelNumber,
-                    serialNumber: deletedSubAsset.serialNumber,
-                    purchaseDate: deletedSubAsset.purchaseDate,
-                    price: deletedSubAsset.price || deletedSubAsset.purchasePrice,
-                    warranty: deletedSubAsset.warranty
-                }, {
-                    appriseUrl,
-                    baseUrl: getBaseUrl(req)
-                });
-                if (DEBUG) {
-                    console.log('[DEBUG] Sub-asset deleted notification sent.');
-                }
-            }
-        } catch (err) {
-            console.error('Failed to send sub-asset deleted notification:', err.message);
-        }
-        
         res.json({ message: 'Sub-asset deleted successfully' });
     } else {
         res.status(500).json({ error: 'Failed to delete sub-asset' });
@@ -1070,52 +965,58 @@ const uploadManual = multer({
     }
 });
 
-app.post('/api/upload/image', uploadImage.single('photo'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+app.post('/api/upload/image', uploadImage.array('photo', 10), (req, res) => {
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
     
-    // Get file stats
-    const stats = fs.statSync(req.file.path);
-    
-    res.json({
-        path: `/Images/${sanitizeFileName(req.file.filename)}`,
-        fileInfo: {
-            originalName: sanitizeFileName(req.file.originalname),
-            size: stats.size,
-            fileName: sanitizeFileName(req.file.filename)
-        }
+    const uploadedFiles = req.files.map(file => {
+        const stats = fs.statSync(file.path);
+        return {
+            path: `/Images/${sanitizeFileName(file.filename)}`,
+            fileInfo: {
+                originalName: sanitizeFileName(file.originalname),
+                size: stats.size,
+                fileName: sanitizeFileName(file.filename)
+            }
+        };
     });
+    
+    res.json({ files: uploadedFiles });
 });
 
-app.post('/api/upload/receipt', uploadReceipt.single('receipt'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+app.post('/api/upload/receipt', uploadReceipt.array('receipt', 10), (req, res) => {
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
     
-    // Get file stats
-    const stats = fs.statSync(req.file.path);
-    
-    res.json({
-        path: `/Receipts/${sanitizeFileName(req.file.filename)}`,
-        fileInfo: {
-            originalName: sanitizeFileName(req.file.originalname),
-            size: stats.size,
-            fileName: sanitizeFileName(req.file.filename)
-        }
+    const uploadedFiles = req.files.map(file => {
+        const stats = fs.statSync(file.path);
+        return {
+            path: `/Receipts/${sanitizeFileName(file.filename)}`,
+            fileInfo: {
+                originalName: sanitizeFileName(file.originalname),
+                size: stats.size,
+                fileName: sanitizeFileName(file.filename)
+            }
+        };
     });
+    
+    res.json({ files: uploadedFiles });
 });
 
-app.post('/api/upload/manual', uploadManual.single('manual'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+app.post('/api/upload/manual', uploadManual.array('manual', 10), (req, res) => {
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
     
-    // Get file stats
-    const stats = fs.statSync(req.file.path);
-    
-    res.json({
-        path: `/Manuals/${sanitizeFileName(req.file.filename)}`,
-        fileInfo: {
-            originalName: sanitizeFileName(req.file.originalname),
-            size: stats.size,
-            fileName: sanitizeFileName(req.file.filename)
-        }
+    const uploadedFiles = req.files.map(file => {
+        const stats = fs.statSync(file.path);
+        return {
+            path: `/Manuals/${sanitizeFileName(file.filename)}`,
+            fileInfo: {
+                originalName: sanitizeFileName(file.originalname),
+                size: stats.size,
+                fileName: sanitizeFileName(file.filename)
+            }
+        };
     });
+    
+    res.json({ files: uploadedFiles });
 });
 
 // Delete a file (image, receipt, or manual)

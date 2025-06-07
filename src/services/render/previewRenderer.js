@@ -23,21 +23,20 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
         <div class="file-preview">
             <div class="preview-content">
                 <img src="${filePath}" alt="Photo Preview">
-                <div class="file-info">
-                    <span class="file-type">Photo</span>
-                    <span class="file-name">${fileName}</span>
-                    ${fileSize ? `<span class="file-size">(${fileSize})</span>` : ''}
-                </div>
             </div>
-            <button type="button" class="delete-preview-btn" title="Delete Image">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                    <line x1="10" y1="11" x2="10" y2="17"/>
-                    <line x1="14" y1="11" x2="14" y2="17"/>
-                </svg>
-            </button>
+            <div class="file-info">
+                <span class="file-name">${fileName}</span>
+                ${fileSize ? `<span class="file-size">(${fileSize})</span>` : ''}
+            </div>
         </div>
+        <button type="button" class="delete-preview-btn" title="Delete Image">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+        </button>
     `;
     
     if (onDeleteCallback) {
@@ -100,7 +99,6 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
             <div class="preview-content">
                 ${fileIcon}
                 <div class="file-info">
-                    <span class="file-type">${typeLabel}</span>
                     <span class="file-name">${fileName || 'Document'}</span>
                     ${fileSize ? `<span class="file-size">(${fileSize})</span>` : ''}
                 </div>
@@ -125,33 +123,28 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
 }
 
 /**
- * Clear the preview container and set up a new preview
+ * Add a new preview to the container (for multiple files)
  * 
- * @param {Element} container - The container element to clear and add preview to
+ * @param {Element} container - The container element to add preview to
  * @param {string} type - Type of preview ('photo', 'receipt', or 'manual')
- * @param {string} filePath - Path to the file
+ * @param {string} displayPath - Path to the file for display (e.g., with base URL)
+ * @param {string} originalPath - Original path of the file as stored on the server
  * @param {Element} fileInput - The file input element to clear on delete
- * @param {Object} flags - Object containing delete flags
- * @param {string} flagName - Name of the flag to set when item is deleted
+ * @param {Object} modalManager - The instance of the modal manager to update delete flags
+ * @param {string} fileName - The name of the file
+ * @param {string} fileSize - The size of the file
  */
-export function setupFilePreview(container, type, filePath, fileInput, flags, flagName, fileName = null, fileSize = null) {
-    if (!container || !filePath) return;
+export function setupFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null) {
+    if (!container || !displayPath) return;
 
-    // Clear existing content
-    container.innerHTML = '';
-    
     const confirmMessage = `Are you sure you want to delete this ${type}?`;
     
     const onDelete = () => {
         if (confirm(confirmMessage)) {
-            container.innerHTML = '';
-            if (fileInput) fileInput.value = '';
-            if (flags && flagName) {
-                flags[flagName] = true;
-                // Also set window flag if it exists
-                if (window[flagName] !== undefined) {
-                    window[flagName] = true;
-                }
+            // Remove only this specific preview element
+            previewElement.remove();
+            if (modalManager && modalManager.filesToDelete) {
+                modalManager.filesToDelete.push(originalPath);
             }
         }
     };
@@ -159,14 +152,14 @@ export function setupFilePreview(container, type, filePath, fileInput, flags, fl
     let previewElement;
     
     // Extract file name from path if not provided
-    if (!fileName && typeof filePath === 'string') {
-        fileName = filePath.split('/').pop();
+    if (!fileName && typeof displayPath === 'string') {
+        fileName = displayPath.split('/').pop();
     }
     
     if (type === 'photo') {
-        previewElement = createPhotoPreview(filePath, onDelete, fileName, fileSize);
+        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize);
     } else {
-        previewElement = createDocumentPreview(type, filePath, onDelete, fileName, fileSize);
+        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize);
     }
     
     container.appendChild(previewElement);
