@@ -335,15 +335,9 @@ export class ModalManager {
         const manualPreview = document.getElementById('manualPreview');
         
         // Always reset file upload helpers to clear all state
-        if (photoInput && photoInput._fileUploadHelpers) {
-            photoInput._fileUploadHelpers.reset();
-        }
-        if (receiptInput && receiptInput._fileUploadHelpers) {
-            receiptInput._fileUploadHelpers.reset();
-        }
-        if (manualInput && manualInput._fileUploadHelpers) {
-            manualInput._fileUploadHelpers.reset();
-        }
+        this.resetFileUploaderHelper(photoInput);
+        this.resetFileUploaderHelper(receiptInput);
+        this.resetFileUploaderHelper(manualInput);
         
         // Fallback: manually clear if helpers aren't available
         if (!this.isEditMode) {
@@ -353,6 +347,15 @@ export class ModalManager {
             if (photoPreview) photoPreview.innerHTML = '';
             if (receiptPreview) receiptPreview.innerHTML = '';
             if (manualPreview) manualPreview.innerHTML = '';
+        }
+    }
+
+    resetFileUploaderHelper(input) {
+        if (input && input._fileUploadHelpers) {
+            input._fileUploadHelpers.reset();
+        } else {
+            // Fallback for browsers that don't support custom file upload helpers
+            input.value = '';
         }
     }
     
@@ -365,15 +368,9 @@ export class ModalManager {
         const manualPreview = document.getElementById('subManualPreview');
         
         // Always reset file upload helpers to clear all state
-        if (photoInput && photoInput._fileUploadHelpers) {
-            photoInput._fileUploadHelpers.reset();
-        }
-        if (receiptInput && receiptInput._fileUploadHelpers) {
-            receiptInput._fileUploadHelpers.reset();
-        }
-        if (manualInput && manualInput._fileUploadHelpers) {
-            manualInput._fileUploadHelpers.reset();
-        }
+        this.resetFileUploaderHelper(photoInput);
+        this.resetFileUploaderHelper(receiptInput);
+        this.resetFileUploaderHelper(manualInput);
         
         // Fallback: manually clear if helpers aren't available
         if (!this.isEditMode) {

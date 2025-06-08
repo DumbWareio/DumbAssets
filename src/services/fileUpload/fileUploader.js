@@ -450,9 +450,20 @@ function setupDragAndDrop() {
                 let validFiles = 0;
                 let invalidFiles = 0;
                 
+                // Check if this input accepts multiple files
+                const acceptsMultiple = fileInput.hasAttribute('multiple');
+                
+                // For single file inputs, only take the first file
+                const filesToProcess = acceptsMultiple ? Array.from(files) : [files[0]];
+                
                 // Use helper functions if available (from setupFileInputPreview)
                 if (fileInput._fileUploadHelpers) {
-                    Array.from(files).forEach(file => {
+                    // For single file inputs, clear existing files first
+                    if (!acceptsMultiple) {
+                        fileInput._fileUploadHelpers.clearAll();
+                    }
+                    
+                    filesToProcess.forEach(file => {
                         if (validateFileType(file, fileInput.accept)) {
                             const sanitizedFile = new File([file], sanitizeFileName(file.name), { type: file.type });
                             fileInput._fileUploadHelpers.addFile(sanitizedFile);
@@ -464,25 +475,40 @@ function setupDragAndDrop() {
                 } else {
                     // Fallback to old method if helpers aren't available
                     const dataTransfer = new DataTransfer();
-                    // Build a set of existing file keys
-                    const existingFileKeys = new Set();
-                    if (fileInput.files) {
-                        Array.from(fileInput.files).forEach(file => {
+                    
+                    // For single file inputs, don't preserve existing files
+                    if (acceptsMultiple) {
+                        // Build a set of existing file keys for multiple file inputs
+                        const existingFileKeys = new Set();
+                        if (fileInput.files) {
+                            Array.from(fileInput.files).forEach(file => {
+                                const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+                                existingFileKeys.add(fileKey);
+                                dataTransfer.items.add(file);
+                            });
+                        }
+                        // Add new files only if not already present
+                        filesToProcess.forEach(file => {
                             const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
-                            existingFileKeys.add(fileKey);
-                            dataTransfer.items.add(file);
+                            if (validateFileType(file, fileInput.accept) && !existingFileKeys.has(fileKey)) {
+                                dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
+                                validFiles++;
+                            } else if (!validateFileType(file, fileInput.accept)) {
+                                invalidFiles++;
+                            }
+                        });
+                    } else {
+                        // For single file inputs, replace with the new file
+                        filesToProcess.forEach(file => {
+                            if (validateFileType(file, fileInput.accept)) {
+                                dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
+                                validFiles++;
+                            } else {
+                                invalidFiles++;
+                            }
                         });
                     }
-                    // Add new files only if not already present
-                    Array.from(files).forEach(file => {
-                        const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
-                        if (validateFileType(file, fileInput.accept) && !existingFileKeys.has(fileKey)) {
-                            dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
-                            validFiles++;
-                        } else if (!validateFileType(file, fileInput.accept)) {
-                            invalidFiles++;
-                        }
-                    });
+                    
                     if (validFiles > 0) {
                         fileInput.files = dataTransfer.files;
                         fileInput.dispatchEvent(new Event('change'));
@@ -491,10 +517,20 @@ function setupDragAndDrop() {
                 
                 if (invalidFiles > 0) {
                     if (validFiles > 0) {
-                        alert(`${validFiles} valid file(s) added. ${invalidFiles} file(s) were invalid or duplicate and were skipped.`);
+                        const fileText = acceptsMultiple ? 'file(s)' : 'file';
+                        globalThis.toaster?.show(`${validFiles} valid ${fileText} added. ${invalidFiles} file(s) were invalid or duplicate and were skipped.`, 'error') ||
+                        alert(`${validFiles} valid ${fileText} added. ${invalidFiles} file(s) were invalid or duplicate and were skipped.`);
                     } else {
-                        alert('Invalid file type(s) or duplicate files. Please upload supported, non-duplicate files.');
+                        const message = acceptsMultiple
+                            ? 'Invalid file type(s) or duplicate files. Please upload supported, non-duplicate files.'
+                            : 'Invalid file type. Please upload a supported file.';
+                        if (globalThis.toaster) globalThis.toaster.show(message, 'error');
+                        else alert(message);
                     }
+                } else if (validFiles > 1 && !acceptsMultiple) {
+                    // User dropped multiple files on a single-file input
+                    if (globalThis.toaster) globalThis.toaster?.show('Only one file allowed. The first valid file was selected.', 'error');
+                    else alert('Only one file allowed. The first valid file was selected.');
                 }
             }
         }

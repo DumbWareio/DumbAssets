@@ -36,12 +36,79 @@ export class ImportManager {
         });
         this.importFile.addEventListener('change', (e) => this._handleFileSelection(e));
         this.startImportBtn.addEventListener('click', () => this._handleImport());
+        
+        // Set up drag and drop for import file
+        this._setupDragAndDrop();
+        
         // Download Template button event
         const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
         if (downloadTemplateBtn) {
             downloadTemplateBtn.addEventListener('click', () => this._downloadTemplate());
         }
         window.resetImportForm = this.resetImportForm.bind(this);
+    }
+
+    _setupDragAndDrop() {
+        const fileUploadBox = document.querySelector('.file-upload-box[data-target="importFile"]');
+        if (!fileUploadBox) return;
+
+        const self = this;
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileUploadBox.addEventListener(eventName, self._preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileUploadBox.addEventListener(eventName, () => fileUploadBox.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileUploadBox.addEventListener(eventName, () => fileUploadBox.classList.remove('drag-over'), false);
+        });
+
+        // Handle dropped files
+        fileUploadBox.addEventListener('drop', (e) => self._handleFileDrop(e), false);
+    }
+
+    _preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    async _handleFileDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            // Only take the first file for import (single file upload)
+            const file = files[0];
+            
+            // Validate file type
+            const acceptedTypes = ['.csv', '.xls', '.xlsx'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!acceptedTypes.includes(fileExtension)) {
+                globalThis.toaster.show(`Invalid file type. Please select a ${acceptedTypes.join(', ')} file.`, 'error');
+                return;
+            }
+            
+            // Set the file on the actual input element so it's properly tracked
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            this.importFile.files = dataTransfer.files;
+            
+            // Create a synthetic file input event to reuse existing logic
+            const syntheticEvent = {
+                target: {
+                    files: [file]
+                }
+            };
+            
+            // Call the existing file selection handler
+            await this._handleFileSelection(syntheticEvent);
+        }
     }
 
     async _handleFileSelection(e) {
@@ -172,7 +239,7 @@ export class ImportManager {
             this.setButtonLoading(this.startImportBtn, false);
             return;
         }
-        // ...existing code for sending to backend...
+
         try {
             const formData = new FormData();
             formData.append('file', new File([file], sanitizeFileName(file.name), { type: file.type }));
@@ -243,12 +310,18 @@ export class ImportManager {
         // Remove file preview and clear file input
         const importFilePreview = document.getElementById('importFilePreview');
         if (importFilePreview) importFilePreview.innerHTML = '';
+        
         if (this.importFile) {
-            this.importFile.value = '';
-            // Forcibly remove files from input (for browsers that keep the file after value='')
-            if (this.importFile.files && this.importFile.files.length > 0) {
-                const dt = new DataTransfer();
-                this.importFile.files = dt.files;
+            // Reset file upload helpers if available
+            if (this.importFile._fileUploadHelpers) {
+                this.importFile._fileUploadHelpers.reset();
+            } else {
+                this.importFile.value = '';
+                // Forcibly remove files from input (for browsers that keep the file after value='')
+                if (this.importFile.files && this.importFile.files.length > 0) {
+                    const dt = new DataTransfer();
+                    this.importFile.files = dt.files;
+                }
             }
         }
         this.columnSelects.forEach(select => {
