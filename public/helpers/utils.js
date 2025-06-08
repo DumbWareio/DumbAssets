@@ -34,8 +34,12 @@ export function formatCurrency(amount, forSearch = false) {
     if (amount === null || amount === undefined) return 'N/A';
     else if (!amount && !forSearch) return '';
     
-    return new Intl.NumberFormat('en-US', {
+    // Get currency configuration from global app config
+    const currencyCode = window.appConfig?.currency?.code || 'USD';
+    const currencyLocale = window.appConfig?.currency?.locale || 'en-US';
+    
+    return new Intl.NumberFormat(currencyLocale, {
         style: 'currency',
-        currency: 'USD'
+        currency: currencyCode
     }).format(amount);
 }

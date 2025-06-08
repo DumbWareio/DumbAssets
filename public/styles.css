@@ -2012,7 +2012,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 110px;
+    min-height: 100px;
     transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s, background 0.2s;
     border: var(--app-border);
     cursor: pointer;
@@ -2032,11 +2032,18 @@ a:hover {
     letter-spacing: 0.1px;
 }
 .dashboard-card .card-value {
-    font-size: 2.1rem;
+    font-size: clamp(0.9rem, 4vw, 1.5rem);
     font-weight: 700;
     color: var(--primary-color);
     letter-spacing: -1px;
-    line-height: 2.5rem;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
+    hyphens: auto;
+    max-width: 100%;
+    display: block;
+    text-align: center;
 }
 .dashboard-card.card-total .card-value {
     color: var(--primary-color);
@@ -3118,10 +3125,9 @@ a:hover {
 /* RESPONSIVE ADJUSTMENTS SECTION */
 @media (max-width: 1200px) {
     .dashboard-card .card-value {
-        font-size: 1rem;
-        /* make sure the text is responsive and not too big */
-        line-height: 2rem;
-        
+        font-size: clamp(0.9rem, 3vw, 1.1rem);
+        line-height: 1.1;
+        max-width: 100%;
     }
 }
 
