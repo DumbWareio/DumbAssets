@@ -163,8 +163,96 @@ export function setupFilePreview(container, type, displayPath, originalPath, fil
     container.appendChild(previewElement);
 }
 
+/**
+ * Add existing file preview using the new file upload helpers (prevents re-upload duplication)
+ * 
+ * @param {Element} container - The container element to add preview to
+ * @param {string} type - Type of preview ('photo', 'receipt', or 'manual')
+ * @param {string} displayPath - Path to the file for display (e.g., with base URL)
+ * @param {string} originalPath - Original path of the file as stored on the server
+ * @param {Element} fileInput - The file input element
+ * @param {Object} modalManager - The instance of the modal manager to update delete flags
+ * @param {string} fileName - The name of the file
+ * @param {string} fileSize - The size of the file (in bytes)
+ */
+export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null) {
+    if (!container || !displayPath || !fileInput) return;
+
+    // Extract file name from path if not provided
+    if (!fileName && typeof displayPath === 'string') {
+        fileName = displayPath.split('/').pop();
+    }
+
+    // Create the delete handler that integrates with the modal manager's filesToDelete system
+    const confirmMessage = `Are you sure you want to delete this ${type}?`;
+    const onDelete = () => {
+        if (confirm(confirmMessage)) {
+            // Remove the preview element
+            previewElement.remove();
+            
+            // Add to the modal manager's filesToDelete array for server-side deletion
+            if (modalManager && modalManager.filesToDelete) {
+                modalManager.filesToDelete.push(originalPath);
+            }
+            
+            // If file upload helpers are available, we need to track this differently
+            // We'll create a special marker to represent the deleted existing file
+            if (fileInput._fileUploadHelpers) {
+                // Create a unique marker for this deleted file
+                const deletedFileMarker = new File(['DELETED_EXISTING_FILE'], `DELETED:${fileName}`, {
+                    type: 'application/x-deleted-marker',
+                    lastModified: Date.now()
+                });
+                
+                // Store the original path on the file object for reference
+                deletedFileMarker._originalPath = originalPath;
+                deletedFileMarker._isDeletedExisting = true;
+                
+                // Add this marker so the upload system knows about the deletion
+                fileInput._fileUploadHelpers.addFile(deletedFileMarker, false);
+            }
+        }
+    };
+
+    let previewElement;
+    
+    // Create the preview element directly with the server path (not mock file)
+    if (type === 'photo') {
+        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize);
+    } else {
+        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize);
+    }
+    
+    // Add the preview to the container
+    container.appendChild(previewElement);
+    
+    // If file upload helpers are available, create a representation of the existing file
+    // This ensures the file system knows about the existing file but won't upload it
+    if (fileInput._fileUploadHelpers) {
+        try {
+            // Create a marker file that represents the existing file
+            const existingFileMarker = new File(['EXISTING_FILE'], fileName, {
+                type: type === 'photo' ? 'image/jpeg' : 'application/pdf',
+                lastModified: Date.now() - Math.random() * 1000000000 // Unique timestamp
+            });
+            
+            // Mark this as an existing file with metadata
+            existingFileMarker._originalPath = originalPath;
+            existingFileMarker._displayPath = displayPath;
+            existingFileMarker._isExisting = true;
+            existingFileMarker._previewElement = previewElement;
+            
+            // Add as existing file (won't be uploaded)
+            fileInput._fileUploadHelpers.addExistingFile(existingFileMarker);
+        } catch (error) {
+            console.warn('Could not create file marker for existing file:', error);
+        }
+    }
+}
+
 export default {
     createPhotoPreview,
     createDocumentPreview,
-    setupFilePreview
+    setupFilePreview,
+    setupExistingFilePreview
 };

@@ -97,105 +97,183 @@ function setupFileInputPreview(inputId, previewId, isDocument = false, fileType 
     
     if (!input || !preview) return;
     
-    // Store the previous file value to restore if user cancels
-    let previousValue = input.value;
-    
-    // Track processed files to prevent duplicates
-    let processedFiles = new Set();
+    // Store all files and their preview states
+    let allFiles = [];
+    let filePreviewMap = new Map(); // Maps fileKey to preview element
+    let newFilesSet = new Set(); // Tracks which files are newly added (not existing)
 
-    // Drag and drop functionality is handled by setupDragAndDrop()
+    // Helper function to create unique file key
+    const createFileKey = (file) => `${file.name}-${file.size}-${file.lastModified}`;
 
-    input.onchange = () => {
-        // Don't clear existing previews - only add new ones
-        // The existing previews are managed by setupFilePreview() calls from modal manager
+    // Helper function to update input.files from allFiles
+    const updateInputFiles = () => {
+        const dataTransfer = new DataTransfer();
+        allFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+    };
+
+    // Helper function to remove file and its preview
+    const removeFile = (fileToRemove) => {
+        const fileKey = createFileKey(fileToRemove);
         
-        // Only show preview if there are files
-        if (input.files && input.files.length > 0) {
-            Array.from(input.files).forEach(file => {
-                // Create a unique identifier for the file (name + size + lastModified)
-                const fileId = `${file.name}-${file.size}-${file.lastModified}`;
-                
-                // Skip if we've already processed this file
-                if (processedFiles.has(fileId)) {
-                    return;
-                }
-                
-                // Mark this file as processed
-                processedFiles.add(fileId);
-                // Create the preview element using component approach
-                const previewItem = document.createElement('div');
-                
-                if (isDocument) {
-                    // For documents (receipt, manual, or import), use the document preview component
-                    let docType;
-                    if (fileType === 'receipt') {
-                        docType = 'receipt';
-                    } else if (fileType === 'import') {
-                        docType = 'import';
-                    } else if (fileType === 'manual') {
-                        docType = 'manual';
-                    } else {
-                        docType = 'document';
-                    }
-                    const reader = new FileReader();
-                    
-                    // Set up delete handler
-                    const deleteHandler = () => {
-                        if (confirm(`Are you sure you want to delete this ${docType}?`)) {
-                            previewItem.remove();
-                            // Remove from processed files set
-                            processedFiles.delete(fileId);
-                            // Update the input files
-                            const dataTransfer = new DataTransfer();
-                            Array.from(input.files).forEach((f, i) => {
-                                if (f !== file) {
-                                    dataTransfer.items.add(new File([f], sanitizeFileName(f.name), { type: f.type }));
-                                }
-                            });
-                            input.files = dataTransfer.files;
-                            
-                            // If this is an import file, reset the import form
-                            if (fileType === 'import' && window.resetImportForm) {
-                                window.resetImportForm();
-                            }
-                        }
-                    };
-                    
-                    // Use createDocumentPreview for documents with filename and size
-                    const docPreview = createDocumentPreview(docType, sanitizeFileName(file.name), deleteHandler, sanitizeFileName(file.name), formatFileSize(file.size));
-                    previewItem.appendChild(docPreview);
-                    
-                } else {
-                    // For images, use the photo preview component
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        // Set up delete handler
-                        const deleteHandler = () => {
-                            if (confirm('Are you sure you want to delete this image?')) {
-                                previewItem.remove();
-                                // Remove from processed files set
-                                processedFiles.delete(fileId);
-                                // Update the input files
-                                const dataTransfer = new DataTransfer();
-                                Array.from(input.files).forEach((f, i) => {
-                                    if (f !== file) {
-                                        dataTransfer.items.add(new File([f], sanitizeFileName(f.name), { type: f.type }));
-                                    }
-                                });
-                                input.files = dataTransfer.files;
-                            }
-                        };
-                        
-                        // Use createPhotoPreview for images with filename and size
-                        const photoPreview = createPhotoPreview(e.target.result, deleteHandler, sanitizeFileName(file.name), formatFileSize(file.size));
-                        previewItem.appendChild(photoPreview);
-                    };
-                    reader.readAsDataURL(file);
-                }
-
-                preview.appendChild(previewItem);
-            });
+        // Remove from allFiles
+        allFiles = allFiles.filter(file => createFileKey(file) !== fileKey);
+        
+        // Remove from newFilesSet
+        newFilesSet.delete(fileKey);
+        
+        // Remove preview if it exists
+        if (filePreviewMap.has(fileKey)) {
+            const previewElement = filePreviewMap.get(fileKey);
+            previewElement.remove();
+            filePreviewMap.delete(fileKey);
         }
+        
+        // Update input.files
+        updateInputFiles();
+        
+        // If this is an import file, reset the import form
+        if (fileType === 'import' && window.resetImportForm) {
+            window.resetImportForm();
+        }
+    };
+
+    // Helper function to add file and create preview
+    const addFile = (file, isNewFile = true) => {
+        const fileKey = createFileKey(file);
+        
+        // Skip if already exists
+        if (filePreviewMap.has(fileKey)) {
+            return;
+        }
+        
+        // Add to allFiles
+        allFiles.push(file);
+        
+        // Track if this is a new file (user uploaded) vs existing file (loaded for preview)
+        if (isNewFile) {
+            newFilesSet.add(fileKey);
+        }
+        
+        // Special handling for marker files (existing files, deleted files)
+        // These don't need previews created since they're handled separately
+        if (file._isExisting || file._isDeletedExisting || file.type === 'application/x-deleted-marker') {
+            // Don't create a preview - it's already handled or not needed
+            return;
+        }
+        
+        // Create preview element
+        const previewItem = document.createElement('div');
+        filePreviewMap.set(fileKey, previewItem);
+        
+        if (isDocument) {
+            // For documents (receipt, manual, or import), use the document preview component
+            let docType;
+            if (fileType === 'receipt') {
+                docType = 'receipt';
+            } else if (fileType === 'import') {
+                docType = 'import';
+            } else if (fileType === 'manual') {
+                docType = 'manual';
+            } else {
+                docType = 'document';
+            }
+            
+            // Set up delete handler
+            const deleteHandler = () => {
+                if (confirm(`Are you sure you want to delete this ${docType}?`)) {
+                    removeFile(file);
+                }
+            };
+            
+            // Use createDocumentPreview for documents with filename and size
+            const docPreview = createDocumentPreview(docType, sanitizeFileName(file.name), deleteHandler, sanitizeFileName(file.name), formatFileSize(file.size));
+            previewItem.appendChild(docPreview);
+            
+        } else {
+            // For images, use the photo preview component
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                // Set up delete handler
+                const deleteHandler = () => {
+                    if (confirm('Are you sure you want to delete this image?')) {
+                        removeFile(file);
+                    }
+                };
+                
+                // Use createPhotoPreview for images with filename and size
+                const photoPreview = createPhotoPreview(e.target.result, deleteHandler, sanitizeFileName(file.name), formatFileSize(file.size));
+                previewItem.appendChild(photoPreview);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        preview.appendChild(previewItem);
+    };
+
+    // Helper function to add existing file for preview only (not for upload)
+    const addExistingFile = (file) => {
+        addFile(file, false); // false = not a new file
+    };
+
+    // Handle file input changes (additive behavior)
+    input.onchange = () => {
+        if (input.files && input.files.length > 0) {
+            // Get newly selected files
+            const newFiles = Array.from(input.files);
+            
+            // Add each new file (addFile will handle duplicates)
+            newFiles.forEach(file => {
+                addFile(file, true); // true = new file
+            });
+            
+            // Update input.files to include all files
+            updateInputFiles();
+        } else {
+            // Input was cleared - remove all files and previews
+            allFiles = [];
+            newFilesSet.clear();
+            filePreviewMap.forEach((previewElement) => {
+                previewElement.remove();
+            });
+            filePreviewMap.clear();
+        }
+    };
+
+    // Expose helper functions for external use (e.g., drag and drop)
+    input._fileUploadHelpers = {
+        addFile: (file) => addFile(file, true), // Always mark as new when added via helpers
+        addExistingFile,
+        removeFile,
+        getAllFiles: () => [...allFiles],
+        getNewFiles: () => allFiles.filter(file => newFilesSet.has(createFileKey(file))),
+        clearAll: () => {
+            allFiles = [];
+            newFilesSet.clear();
+            filePreviewMap.forEach((previewElement) => {
+                previewElement.remove();
+            });
+            filePreviewMap.clear();
+            updateInputFiles();
+        },
+        reset: () => {
+            // Complete reset - clear everything and reset input
+            allFiles = [];
+            newFilesSet.clear();
+            filePreviewMap.forEach((previewElement) => {
+                previewElement.remove();
+            });
+            filePreviewMap.clear();
+            input.value = ''; // Clear the input value
+            updateInputFiles();
+        },
+        getState: () => ({
+            totalFiles: allFiles.length,
+            newFiles: Array.from(newFilesSet).length,
+            existingFiles: allFiles.length - Array.from(newFilesSet).length
+        })
     };
 }
 
@@ -244,10 +322,55 @@ async function handleFileUploads(asset, isEditMode, isSubAsset = false) {
             currentInfos = filteredEntries.map(e => e.info || {});
         }
 
-        // 2. Handle new uploads
+        // 2. Handle new uploads - only upload truly new files
         let newPaths = [];
         let newInfos = [];
-        if (input && input.files && input.files.length > 0) {
+        if (input && input._fileUploadHelpers) {
+            // Use helper to get only new files (not existing ones loaded for preview)
+            const allHelperFiles = input._fileUploadHelpers.getAllFiles();
+            
+            // Filter out existing files, deleted markers, and only get truly new files
+            const newFiles = allHelperFiles.filter(file => {
+                // Skip existing file markers
+                if (file._isExisting) return false;
+                
+                // Skip deleted file markers  
+                if (file._isDeletedExisting || file.type === 'application/x-deleted-marker') return false;
+                
+                // Check if it's marked as new
+                const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+                return input._fileUploadHelpers.getNewFiles().some(newFile => 
+                    `${newFile.name}-${newFile.size}-${newFile.lastModified}` === fileKey
+                );
+            });
+            
+            // Also collect deletion information from markers
+            const deletionMarkers = allHelperFiles.filter(file => 
+                file._isDeletedExisting || file.type === 'application/x-deleted-marker'
+            );
+            
+            // Add deleted paths to the asset's filesToDelete array
+            deletionMarkers.forEach(marker => {
+                if (marker._originalPath) {
+                    if (!assetCopy.filesToDelete) {
+                        assetCopy.filesToDelete = [];
+                    }
+                    if (!assetCopy.filesToDelete.includes(marker._originalPath)) {
+                        assetCopy.filesToDelete.push(marker._originalPath);
+                    }
+                }
+            });
+            
+            if (newFiles.length > 0) {
+                const sanitizedFiles = newFiles.map(file => new File([file], sanitizeFileName(file.name), { type: file.type }));
+                const result = await uploadFiles(sanitizedFiles, typeMap[fileType], assetCopy.id);
+                if (result && result.files) {
+                    newPaths = result.files.map(f => f.path);
+                    newInfos = result.files.map(f => f.fileInfo);
+                }
+            }
+        } else if (input && input.files && input.files.length > 0) {
+            // Fallback for when helpers aren't available - upload all files in input
             const sanitizedFiles = Array.from(input.files).map(file => new File([file], sanitizeFileName(file.name), { type: file.type }));
             const result = await uploadFiles(sanitizedFiles, typeMap[fileType], assetCopy.id);
             if (result && result.files) {
@@ -324,29 +447,54 @@ function setupDragAndDrop() {
 
         function handleFiles(files) {
             if (files.length > 0) {
-                const dataTransfer = new DataTransfer();
                 let validFiles = 0;
+                let invalidFiles = 0;
                 
-                // Add existing files first
-                if (fileInput.files) {
-                    Array.from(fileInput.files).forEach(file => {
-                        dataTransfer.items.add(file);
+                // Use helper functions if available (from setupFileInputPreview)
+                if (fileInput._fileUploadHelpers) {
+                    Array.from(files).forEach(file => {
+                        if (validateFileType(file, fileInput.accept)) {
+                            const sanitizedFile = new File([file], sanitizeFileName(file.name), { type: file.type });
+                            fileInput._fileUploadHelpers.addFile(sanitizedFile);
+                            validFiles++;
+                        } else {
+                            invalidFiles++;
+                        }
                     });
+                } else {
+                    // Fallback to old method if helpers aren't available
+                    const dataTransfer = new DataTransfer();
+                    // Build a set of existing file keys
+                    const existingFileKeys = new Set();
+                    if (fileInput.files) {
+                        Array.from(fileInput.files).forEach(file => {
+                            const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+                            existingFileKeys.add(fileKey);
+                            dataTransfer.items.add(file);
+                        });
+                    }
+                    // Add new files only if not already present
+                    Array.from(files).forEach(file => {
+                        const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+                        if (validateFileType(file, fileInput.accept) && !existingFileKeys.has(fileKey)) {
+                            dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
+                            validFiles++;
+                        } else if (!validateFileType(file, fileInput.accept)) {
+                            invalidFiles++;
+                        }
+                    });
+                    if (validFiles > 0) {
+                        fileInput.files = dataTransfer.files;
+                        fileInput.dispatchEvent(new Event('change'));
+                    }
                 }
                 
-                // Add new files
-                Array.from(files).forEach(file => {
-                    if (validateFileType(file, fileInput.accept)) {
-                        dataTransfer.items.add(new File([file], sanitizeFileName(file.name), { type: file.type }));
-                        validFiles++;
+                if (invalidFiles > 0) {
+                    if (validFiles > 0) {
+                        alert(`${validFiles} valid file(s) added. ${invalidFiles} file(s) were invalid or duplicate and were skipped.`);
+                    } else {
+                        alert('Invalid file type(s) or duplicate files. Please upload supported, non-duplicate files.');
                     }
-                });
-                
-                if (validFiles > 0) {
-                    fileInput.files = dataTransfer.files;
-                    fileInput.dispatchEvent(new Event('change'));
-                } else {
-                    alert('Invalid file type(s). Please upload supported files.');
                 }
             }
         }

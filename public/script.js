@@ -28,7 +28,8 @@ import {
     renderAssetList,
     sortAssets,
     // Import file preview renderer
-    setupFilePreview
+    setupFilePreview,
+    setupExistingFilePreview
 } from '/src/services/render/index.js';
 import { ChartManager } from '/managers/charts.js';
 import { registerServiceWorker } from './helpers/serviceWorkerHelper.js';
@@ -244,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // File handling
             handleFileUploads,
             setupFilePreview,
+            setupExistingFilePreview,
             formatFilePath,
             
             // UI functions

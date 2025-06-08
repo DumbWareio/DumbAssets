@@ -22,6 +22,7 @@ export class ModalManager {
         // File handling
         handleFileUploads,
         setupFilePreview,
+        setupExistingFilePreview,
         formatFilePath,
         
         // UI functions
@@ -59,6 +60,7 @@ export class ModalManager {
         // Store file handling functions
         this.handleFileUploads = handleFileUploads;
         this.setupFilePreview = setupFilePreview;
+        this.setupExistingFilePreview = setupExistingFilePreview;
         this.formatFilePath = formatFilePath;
         
         // Store UI functions
@@ -332,6 +334,18 @@ export class ModalManager {
         const receiptPreview = document.getElementById('receiptPreview');
         const manualPreview = document.getElementById('manualPreview');
         
+        // Always reset file upload helpers to clear all state
+        if (photoInput && photoInput._fileUploadHelpers) {
+            photoInput._fileUploadHelpers.reset();
+        }
+        if (receiptInput && receiptInput._fileUploadHelpers) {
+            receiptInput._fileUploadHelpers.reset();
+        }
+        if (manualInput && manualInput._fileUploadHelpers) {
+            manualInput._fileUploadHelpers.reset();
+        }
+        
+        // Fallback: manually clear if helpers aren't available
         if (!this.isEditMode) {
             if (photoInput) photoInput.value = '';
             if (receiptInput) receiptInput.value = '';
@@ -350,6 +364,18 @@ export class ModalManager {
         const receiptPreview = document.getElementById('subReceiptPreview');
         const manualPreview = document.getElementById('subManualPreview');
         
+        // Always reset file upload helpers to clear all state
+        if (photoInput && photoInput._fileUploadHelpers) {
+            photoInput._fileUploadHelpers.reset();
+        }
+        if (receiptInput && receiptInput._fileUploadHelpers) {
+            receiptInput._fileUploadHelpers.reset();
+        }
+        if (manualInput && manualInput._fileUploadHelpers) {
+            manualInput._fileUploadHelpers.reset();
+        }
+        
+        // Fallback: manually clear if helpers aren't available
         if (!this.isEditMode) {
             if (photoInput) photoInput.value = '';
             if (receiptInput) receiptInput.value = '';
@@ -499,7 +525,7 @@ export class ModalManager {
         if (asset.photoPaths && Array.isArray(asset.photoPaths) && asset.photoPaths.length > 0) {
             asset.photoPaths.forEach((photoPath, index) => {
                 const photoInfo = asset.photoInfo?.[index] || {};
-                this.setupFilePreview(
+                this.setupExistingFilePreview(
                     photoPreview, 
                     'photo', 
                     this.formatFilePath(photoPath),
@@ -514,7 +540,7 @@ export class ModalManager {
         } else if (asset.photoPath) {
             // Backward compatibility for single photo
             const photoInfo = asset.photoInfo?.[0] || {};
-            this.setupFilePreview(
+            this.setupExistingFilePreview(
                 photoPreview, 
                 'photo', 
                 this.formatFilePath(asset.photoPath),
@@ -531,7 +557,7 @@ export class ModalManager {
         if (asset.receiptPaths && Array.isArray(asset.receiptPaths) && asset.receiptPaths.length > 0) {
             asset.receiptPaths.forEach((receiptPath, index) => {
                 const receiptInfo = asset.receiptInfo?.[index] || {};
-                this.setupFilePreview(
+                this.setupExistingFilePreview(
                     receiptPreview, 
                     'receipt', 
                     this.formatFilePath(receiptPath),
@@ -546,7 +572,7 @@ export class ModalManager {
         } else if (asset.receiptPath) {
             // Backward compatibility for single receipt
             const receiptInfo = asset.receiptInfo?.[0] || {};
-            this.setupFilePreview(
+            this.setupExistingFilePreview(
                 receiptPreview, 
                 'receipt', 
                 this.formatFilePath(asset.receiptPath),
@@ -563,7 +589,7 @@ export class ModalManager {
         if (asset.manualPaths && Array.isArray(asset.manualPaths) && asset.manualPaths.length > 0) {
             asset.manualPaths.forEach((manualPath, index) => {
                 const manualInfo = asset.manualInfo?.[index] || {};
-                this.setupFilePreview(
+                this.setupExistingFilePreview(
                     manualPreview, 
                     'manual', 
                     this.formatFilePath(manualPath),
@@ -578,7 +604,7 @@ export class ModalManager {
         } else if (asset.manualPath) {
             // Backward compatibility for single manual
             const manualInfo = asset.manualInfo?.[0] || {};
-            this.setupFilePreview(
+            this.setupExistingFilePreview(
                 manualPreview, 
                 'manual', 
                 this.formatFilePath(asset.manualPath),
@@ -612,7 +638,7 @@ export class ModalManager {
         if (subAsset.photoPaths && Array.isArray(subAsset.photoPaths) && subAsset.photoPaths.length > 0) {
             subAsset.photoPaths.forEach((photoPath, index) => {
                 const photoInfo = subAsset.photoInfo?.[index] || {};
-                this.setupFilePreview(
+                this.setupExistingFilePreview(
                     photoPreview, 
                     'photo', 
                     this.formatFilePath(photoPath),
@@ -627,7 +653,7 @@ export class ModalManager {
         } else if (subAsset.photoPath) {
             // Backward compatibility for single photo
             const photoInfo = subAsset.photoInfo?.[0] || {};
-            this.setupFilePreview(
+            this.setupExistingFilePreview(
                 photoPreview, 
                 'photo', 
                 this.formatFilePath(subAsset.photoPath),
@@ -644,7 +670,7 @@ export class ModalManager {
         if (subAsset.receiptPaths && Array.isArray(subAsset.receiptPaths) && subAsset.receiptPaths.length > 0) {
             subAsset.receiptPaths.forEach((receiptPath, index) => {
                 const receiptInfo = subAsset.receiptInfo?.[index] || {};
-                this.setupFilePreview(
+                this.setupExistingFilePreview(
                     receiptPreview, 
                     'receipt', 
                     this.formatFilePath(receiptPath),
@@ -659,7 +685,7 @@ export class ModalManager {
         } else if (subAsset.receiptPath) {
             // Backward compatibility for single receipt
             const receiptInfo = subAsset.receiptInfo?.[0] || {};
-            this.setupFilePreview(
+            this.setupExistingFilePreview(
                 receiptPreview, 
                 'receipt', 
                 this.formatFilePath(subAsset.receiptPath),
@@ -676,7 +702,7 @@ export class ModalManager {
         if (subAsset.manualPaths && Array.isArray(subAsset.manualPaths) && subAsset.manualPaths.length > 0) {
             subAsset.manualPaths.forEach((manualPath, index) => {
                 const manualInfo = subAsset.manualInfo?.[index] || {};
-                this.setupFilePreview(
+                this.setupExistingFilePreview(
                     manualPreview, 
                     'manual', 
                     this.formatFilePath(manualPath),
@@ -691,7 +717,7 @@ export class ModalManager {
         } else if (subAsset.manualPath) {
             // Backward compatibility for single manual
             const manualInfo = subAsset.manualInfo?.[0] || {};
-            this.setupFilePreview(
+            this.setupExistingFilePreview(
                 manualPreview, 
                 'manual', 
                 this.formatFilePath(subAsset.manualPath),

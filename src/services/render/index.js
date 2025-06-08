@@ -44,7 +44,8 @@ import { syncState } from './syncHelper.js';
 import {
     createPhotoPreview,
     createDocumentPreview,
-    setupFilePreview
+    setupFilePreview,
+    setupExistingFilePreview
 } from './previewRenderer.js';
 
 // Export all render service functions
@@ -68,6 +69,7 @@ export {
     createPhotoPreview,
     createDocumentPreview,
     setupFilePreview,
+    setupExistingFilePreview,
     
     // Sync helper function
     syncState
