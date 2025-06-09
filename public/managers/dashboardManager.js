@@ -323,7 +323,12 @@ export class DashboardManager {
     }
     
     generateEventsSection() {
-        const events = this.collectUpcomingEvents();
+        // Get saved date range from localStorage, default to '12' (1 Year)
+        const savedDateRange = localStorage.getItem('eventsDateRange') || '12';
+        
+        // Convert range value to the appropriate parameter for collectEventsInRange
+        const monthsAhead = savedDateRange === 'all' ? 'all' : savedDateRange === 'past' ? 'past' : parseInt(savedDateRange);
+        const events = this.collectEventsInRange(monthsAhead);
         
         return `
             <fieldset class="dashboard-legend">
@@ -357,6 +362,16 @@ export class DashboardManager {
                             </button>
                         </div>
                         <div class="events-sort">
+                            <div class="events-date-filter">
+                                <select id="eventsDateRange" class="events-date-select">
+                                    <option value="1"${savedDateRange === '1' ? ' selected' : ''}>1 Month</option>
+                                    <option value="3"${savedDateRange === '3' ? ' selected' : ''}>3 Months</option>
+                                    <option value="6"${savedDateRange === '6' ? ' selected' : ''}>6 Months</option>
+                                    <option value="12"${savedDateRange === '12' ? ' selected' : ''}>1 Year</option>
+                                    <option value="all"${savedDateRange === 'all' ? ' selected' : ''}>All</option>
+                                    <option value="past"${savedDateRange === 'past' ? ' selected' : ''}>Past</option>
+                                </select>
+                            </div>
                             <button class="events-sort-btn" data-sort="date" data-direction="asc">
                                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18"></path>
@@ -380,20 +395,47 @@ export class DashboardManager {
         `;
     }
     
-    collectUpcomingEvents() {
+    collectEventsInRange(monthsAhead = 12) {
         const assets = this.getAssets();
         const subAssets = this.getSubAssets();
         const events = [];
         const now = new Date();
-        const futureLimit = new Date();
-        futureLimit.setFullYear(now.getFullYear() + 1); // Show events up to 1 year in the future
+        let futureLimit = null;
+        let pastLimit = null;
+        let showPast = false;
+        
+        // Set date range limits based on monthsAhead parameter
+        if (monthsAhead === 'all') {
+            // Show all future events (no time limit)
+            pastLimit = now;
+        } else if (monthsAhead === 'past') {
+            // Show only past events
+            futureLimit = now;
+            showPast = true;
+        } else {
+            // Show only future events within the specified range
+            futureLimit = new Date();
+            futureLimit.setMonth(now.getMonth() + monthsAhead);
+            pastLimit = now;
+        }
 
         // Collect warranty events from assets
         assets.forEach(asset => {
             // Primary warranty
             if (asset.warranty && asset.warranty.expirationDate && !asset.warranty.isLifetime) {
                 const expDate = new Date(formatDate(asset.warranty.expirationDate));
-                if (expDate >= now && expDate <= futureLimit) {
+                
+                // Apply date filtering logic
+                let includeEvent = false;
+                if (monthsAhead === 'all') {
+                    includeEvent = expDate >= now; // Only future events for "All Events"
+                } else if (monthsAhead === 'past') {
+                    includeEvent = expDate < now; // Only past events
+                } else {
+                    includeEvent = expDate >= now && expDate <= futureLimit; // Only future events in range
+                }
+                
+                if (includeEvent) {
                     events.push({
                         type: 'warranty',
                         date: expDate,
@@ -410,7 +452,18 @@ export class DashboardManager {
             // Secondary warranty
             if (asset.secondaryWarranty && asset.secondaryWarranty.expirationDate && !asset.secondaryWarranty.isLifetime) {
                 const expDate = new Date(formatDate(asset.secondaryWarranty.expirationDate));
-                if (expDate >= now && expDate <= futureLimit) {
+                
+                // Apply date filtering logic
+                let includeEvent = false;
+                if (monthsAhead === 'all') {
+                    includeEvent = expDate >= now; // Only future events for "All Events"
+                } else if (monthsAhead === 'past') {
+                    includeEvent = expDate < now; // Only past events
+                } else {
+                    includeEvent = expDate >= now && expDate <= futureLimit; // Only future events in range
+                }
+                
+                if (includeEvent) {
                     events.push({
                         type: 'warranty',
                         date: expDate,
@@ -437,17 +490,29 @@ export class DashboardManager {
                         eventDate = new Date(formatDate(event.specificDate));
                     }
 
-                    if (eventDate && eventDate >= now && eventDate <= futureLimit) {
-                        events.push({
-                            type: 'maintenance',
-                            date: eventDate,
-                            name: asset.name,
-                            details: eventDetails,
-                            assetType: 'Asset',
-                            notes: event.notes,
-                            id: asset.id,
-                            isSubAsset: false
-                        });
+                    if (eventDate) {
+                        // Apply date filtering logic
+                        let includeEvent = false;
+                        if (monthsAhead === 'all') {
+                            includeEvent = eventDate >= now; // Only future events for "All Events"
+                        } else if (monthsAhead === 'past') {
+                            includeEvent = eventDate < now; // Only past events
+                        } else {
+                            includeEvent = eventDate >= now && eventDate <= futureLimit; // Only future events in range
+                        }
+                        
+                        if (includeEvent) {
+                            events.push({
+                                type: 'maintenance',
+                                date: eventDate,
+                                name: asset.name,
+                                details: eventDetails,
+                                assetType: 'Asset',
+                                notes: event.notes,
+                                id: asset.id,
+                                isSubAsset: false
+                            });
+                        }
                     }
                 });
             }
@@ -480,7 +545,18 @@ export class DashboardManager {
 
             if (subAsset.warranty && subAsset.warranty.expirationDate && !subAsset.warranty.isLifetime) {
                 const expDate = new Date(formatDate(subAsset.warranty.expirationDate));
-                if (expDate >= now && expDate <= futureLimit) {
+                
+                // Apply date filtering logic
+                let includeEvent = false;
+                if (monthsAhead === 'all') {
+                    includeEvent = expDate >= now; // Only future events for "All Events"
+                } else if (monthsAhead === 'past') {
+                    includeEvent = expDate < now; // Only past events
+                } else {
+                    includeEvent = expDate >= now && expDate <= futureLimit; // Only future events in range
+                }
+                
+                if (includeEvent) {
                     events.push({
                         type: 'warranty',
                         date: expDate,
@@ -507,18 +583,30 @@ export class DashboardManager {
                         eventDate = new Date(formatDate(event.specificDate));
                     }
 
-                    if (eventDate && eventDate >= now && eventDate <= futureLimit) {
-                        events.push({
-                            type: 'maintenance',
-                            date: eventDate,
-                            name: subAsset.name,
-                            details: eventDetails,
-                            assetType: assetType,
-                            parentAsset: parentName,
-                            notes: event.notes,
-                            id: subAsset.id,
-                            isSubAsset: true
-                        });
+                    if (eventDate) {
+                        // Apply date filtering logic
+                        let includeEvent = false;
+                        if (monthsAhead === 'all') {
+                            includeEvent = eventDate >= now; // Only future events for "All Events"
+                        } else if (monthsAhead === 'past') {
+                            includeEvent = eventDate < now; // Only past events
+                        } else {
+                            includeEvent = eventDate >= now && eventDate <= futureLimit; // Only future events in range
+                        }
+                        
+                        if (includeEvent) {
+                            events.push({
+                                type: 'maintenance',
+                                date: eventDate,
+                                name: subAsset.name,
+                                details: eventDetails,
+                                assetType: assetType,
+                                parentAsset: parentName,
+                                notes: event.notes,
+                                id: subAsset.id,
+                                isSubAsset: true
+                            });
+                        }
                     }
                 });
             }
@@ -538,7 +626,7 @@ export class DashboardManager {
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M12 6v6l4 2"></path>
                     </svg>
-                    <p>No upcoming events</p>
+                    <p>No events found</p>
                 </div>
             `;
         }
@@ -594,6 +682,13 @@ export class DashboardManager {
         this.currentFilter = 'all';
         this.currentSort = { field: 'date', direction: 'asc' };
         this.currentPage = 1;
+        
+        // Load saved date range from localStorage, default to '12' (1 Year)
+        const savedDateRange = localStorage.getItem('eventsDateRange') || '12';
+        const eventsDateRangeSelect = document.getElementById('eventsDateRange');
+        if (eventsDateRangeSelect) {
+            eventsDateRangeSelect.value = savedDateRange;
+        }
 
         // Filter buttons
         document.querySelectorAll('.events-filter-btn').forEach(btn => {
@@ -622,6 +717,18 @@ export class DashboardManager {
                 }
                 
                 this.currentPage = 1; // Reset to first page when sorting
+                this.updateEventsDisplay();
+            });
+        }
+        
+        // Date range dropdown with localStorage persistence
+        if (eventsDateRangeSelect) {
+            eventsDateRangeSelect.addEventListener('change', () => {
+                // Save the selected value to localStorage
+                localStorage.setItem('eventsDateRange', eventsDateRangeSelect.value);
+                
+                // Reset to first page when date range changes
+                this.currentPage = 1;
                 this.updateEventsDisplay();
             });
         }
@@ -665,7 +772,13 @@ export class DashboardManager {
             e.preventDefault();
             e.stopPropagation();
             console.log('Next button clicked, current page:', this.currentPage);
-            const allEvents = this.collectUpcomingEvents();
+            
+            // Get current date range selection for pagination calculation
+            const dateRangeSelect = document.getElementById('eventsDateRange');
+            const selectedRange = dateRangeSelect ? dateRangeSelect.value : '12';
+            const monthsAhead = selectedRange === 'all' ? 'all' : selectedRange === 'past' ? 'past' : parseInt(selectedRange);
+            
+            const allEvents = this.collectEventsInRange(monthsAhead);
             const filteredEvents = this.currentFilter !== 'all' ? allEvents.filter(event => event.type === this.currentFilter) : allEvents;
             const totalPages = Math.ceil(filteredEvents.length / this.eventsPerPage);
             console.log('Total pages:', totalPages);
@@ -677,7 +790,14 @@ export class DashboardManager {
     }
     
     updateEventsDisplay() {
-        let events = this.collectUpcomingEvents();
+        // Get the selected date range from the dropdown
+        const dateRangeSelect = document.getElementById('eventsDateRange');
+        const selectedRange = dateRangeSelect ? dateRangeSelect.value : '12';
+        
+        // Convert range value to the appropriate parameter for collectEventsInRange
+        const monthsAhead = selectedRange === 'all' ? 'all' : selectedRange === 'past' ? 'past' : parseInt(selectedRange);
+        
+        let events = this.collectEventsInRange(monthsAhead);
 
         // Apply local events filter (all, warranty, maintenance)
         if (this.currentFilter !== 'all') {
