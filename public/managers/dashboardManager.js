@@ -395,12 +395,215 @@ export class DashboardManager {
         `;
     }
     
+    /**
+     * Get filtered assets and sub-assets based on current search and dashboard filter
+     * @param {Array} assets - All assets
+     * @param {Array} subAssets - All sub-assets
+     * @returns {Object} Object containing filteredAssets and filteredSubAssets arrays
+     */
+    getFilteredAssetsAndSubAssets(assets, subAssets) {
+        const searchQuery = this.searchInput ? this.searchInput.value : '';
+        const dashboardFilter = this.getDashboardFilter();
+        
+        // First apply search filter (same logic as renderAssetList)
+        let filteredAssets = searchQuery
+            ? assets.filter(asset => {
+                // Check if the asset itself matches the search query
+                const assetMatches = asset.name?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.tags?.some(tag => tag.toString().toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    asset.manufacturer?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.modelNumber?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.serialNumber?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.location?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.notes?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.description?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.link?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.warranty?.scope?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    asset.secondaryWarranty?.scope?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    this.formatCurrency(asset.price, true).toLowerCase().includes(this.formatCurrency(searchQuery, true)) ||
+                    this.formatDate(asset.warranty?.expirationDate, true).includes(searchQuery.toLowerCase()) ||
+                    this.formatDate(asset.secondaryWarranty?.expirationDate, true).includes(searchQuery.toLowerCase()) ||
+                    this.formatDate(asset.purchaseDate, true).includes(searchQuery.toLowerCase());
+                
+                // If asset matches, return true
+                if (assetMatches) return true;
+                
+                // Check if any of its sub-assets match the search query
+                const hasMatchingSubAsset = subAssets.some(subAsset => {
+                    if (subAsset.parentId !== asset.id) return false;
+                    
+                    return subAsset.name?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.tags?.some(tag => tag.toString().toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        subAsset.manufacturer?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.modelNumber?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.serialNumber?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.location?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.notes?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.description?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.link?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.warranty?.scope?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        subAsset.secondaryWarranty?.scope?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        this.formatCurrency(subAsset.purchasePrice, true).toLowerCase().includes(this.formatCurrency(searchQuery, true)) ||
+                        this.formatDate(subAsset.warranty?.expirationDate, true).includes(searchQuery.toLowerCase()) ||
+                        this.formatDate(subAsset.secondaryWarranty?.expirationDate, true).includes(searchQuery.toLowerCase()) ||
+                        this.formatDate(subAsset.purchaseDate, true).includes(searchQuery.toLowerCase());
+                });
+                
+                return hasMatchingSubAsset;
+            })
+            : assets;
+
+        // Apply dashboard filter
+        if (dashboardFilter) {
+            const now = new Date();
+            
+            if (dashboardFilter === 'components') {
+                // Only show assets that have sub-assets associated with them
+                filteredAssets = filteredAssets.filter(a => 
+                    subAssets.some(sa => sa.parentId === a.id)
+                );
+            }
+            else if (dashboardFilter === 'warranties') {
+                // Assets with warranties
+                filteredAssets = filteredAssets.filter(a => a.warranty && a.warranty.expirationDate);
+            } else if (dashboardFilter === 'expired') {
+                // Assets with expired warranties
+                filteredAssets = filteredAssets.filter(a => {
+                    const exp = a.warranty?.expirationDate;
+                    if (!exp) return false;
+                    return new Date(this.formatDate(exp)) < now;
+                });
+                
+                // Also include assets with sub-assets that have expired warranties
+                const assetsWithExpiredComponents = assets.filter(a => 
+                    !filteredAssets.includes(a) && // Don't duplicate
+                    subAssets.some(sa => {
+                        if (sa.parentId !== a.id) return false;
+                        const exp = sa.warranty?.expirationDate;
+                        if (!exp) return false;
+                        return new Date(this.formatDate(exp)) < now;
+                    })
+                );
+                
+                filteredAssets = [...filteredAssets, ...assetsWithExpiredComponents];
+            } else if (dashboardFilter === 'within30') {
+                // Assets with warranties expiring within 30 days
+                filteredAssets = filteredAssets.filter(a => {
+                    const exp = a.warranty?.expirationDate;
+                    if (!exp) return false;
+                    const diff = (new Date(this.formatDate(exp)) - now) / (1000 * 60 * 60 * 24);
+                    return diff >= 0 && diff <= 30;
+                });
+                
+                // Also include assets with sub-assets expiring within 30 days
+                const assetsWithExpiringComponents = assets.filter(a => 
+                    !filteredAssets.includes(a) && // Don't duplicate
+                    subAssets.some(sa => {
+                        if (sa.parentId !== a.id) return false;
+                        const exp = sa.warranty?.expirationDate;
+                        if (!exp) return false;
+                        const diff = (new Date(this.formatDate(exp)) - now) / (1000 * 60 * 60 * 24);
+                        return diff >= 0 && diff <= 30;
+                    })
+                );
+                
+                filteredAssets = [...filteredAssets, ...assetsWithExpiringComponents];
+            } else if (dashboardFilter === 'within60') {
+                // Assets with warranties expiring between 31-60 days
+                filteredAssets = filteredAssets.filter(a => {
+                    const exp = a.warranty?.expirationDate;
+                    if (!exp) return false;
+                    const diff = (new Date(this.formatDate(exp)) - now) / (1000 * 60 * 60 * 24);
+                    return diff > 30 && diff <= 60;
+                });
+                
+                // Also include assets with sub-assets expiring within 31-60 days
+                const assetsWithWarningComponents = assets.filter(a => 
+                    !filteredAssets.includes(a) && // Don't duplicate
+                    subAssets.some(sa => {
+                        if (sa.parentId !== a.id) return false;
+                        const exp = sa.warranty?.expirationDate;
+                        if (!exp) return false;
+                        const diff = (new Date(this.formatDate(exp)) - now) / (1000 * 60 * 60 * 24);
+                        return diff > 30 && diff <= 60;
+                    })
+                );
+                
+                filteredAssets = [...filteredAssets, ...assetsWithWarningComponents];
+            } else if (dashboardFilter === 'active') {
+                // Assets with active warranties (more than 60 days)
+                filteredAssets = filteredAssets.filter(a => {
+                    const exp = a.warranty?.expirationDate;
+                    const isLifetime = a.warranty?.isLifetime;
+                    if (!exp && !isLifetime) return false;
+                    if (isLifetime) return true;
+                    const diff = (new Date(this.formatDate(exp)) - now) / (1000 * 60 * 60 * 24);
+                    return diff > 60;
+                });
+                
+                // Also include assets with sub-assets having active warranties
+                const assetsWithActiveComponents = assets.filter(a => 
+                    !filteredAssets.includes(a) && // Don't duplicate
+                    subAssets.some(sa => {
+                        if (sa.parentId !== a.id) return false;
+                        const exp = sa.warranty?.expirationDate;
+                        const isLifetime = sa.warranty?.isLifetime;
+                        if (!exp && !isLifetime) return false;
+                        if (isLifetime) return true;
+                        const diff = (new Date(this.formatDate(exp)) - now) / (1000 * 60 * 60 * 24);
+                        return diff > 60;
+                    })
+                );
+                
+                filteredAssets = [...filteredAssets, ...assetsWithActiveComponents];
+            }
+        }
+
+        // Get asset IDs that are visible in the filtered list
+        const filteredAssetIds = new Set(filteredAssets.map(a => a.id));
+        
+        // Filter sub-assets to only include those whose parents are in the filtered asset list
+        // or those that match the search query themselves
+        let filteredSubAssets = subAssets.filter(subAsset => {
+            // Always include sub-assets whose parent assets are visible
+            if (filteredAssetIds.has(subAsset.parentId)) {
+                return true;
+            }
+            
+            // If there's a search query, also include sub-assets that match the search directly
+            if (searchQuery) {
+                return subAsset.name?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.tags?.some(tag => tag.toString().toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    subAsset.manufacturer?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.modelNumber?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.serialNumber?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.location?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.notes?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.description?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.link?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.warranty?.scope?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    subAsset.secondaryWarranty?.scope?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    this.formatCurrency(subAsset.purchasePrice, true).toLowerCase().includes(this.formatCurrency(searchQuery, true)) ||
+                    this.formatDate(subAsset.warranty?.expirationDate, true).includes(searchQuery.toLowerCase()) ||
+                    this.formatDate(subAsset.secondaryWarranty?.expirationDate, true).includes(searchQuery.toLowerCase()) ||
+                    this.formatDate(subAsset.purchaseDate, true).includes(searchQuery.toLowerCase());
+            }
+            
+            return false;
+        });
+
+        return { filteredAssets, filteredSubAssets };
+    }
+    
     collectEventsInRange(monthsAhead = 12) {
         const assets = this.getAssets();
         const subAssets = this.getSubAssets();
         const events = [];
         const now = new Date();
         let futureLimit = null;
+        
+        // Get filtered assets and sub-assets based on current search and dashboard filter
+        const { filteredAssets, filteredSubAssets } = this.getFilteredAssetsAndSubAssets(assets, subAssets);
         
         // Set date range limits based on monthsAhead parameter
         if (monthsAhead === 'all') {
@@ -423,8 +626,8 @@ export class DashboardManager {
             }
         }
 
-        // Collect warranty events from assets
-        assets.forEach(asset => {
+        // Collect warranty events from filtered assets
+        filteredAssets.forEach(asset => {
             // Primary warranty
             if (asset.warranty && asset.warranty.expirationDate && !asset.warranty.isLifetime) {
                 const expDate = new Date(formatDate(asset.warranty.expirationDate));
@@ -537,8 +740,8 @@ export class DashboardManager {
             }
         });
 
-        // Collect warranty events from sub-assets
-        subAssets.forEach(subAsset => {
+        // Collect warranty events from filtered sub-assets
+        filteredSubAssets.forEach(subAsset => {
             // Determine parent information based on whether this is a sub-asset or sub-sub-asset
             let parentName = 'Unknown Parent';
             let assetType = 'Component';
@@ -726,12 +929,12 @@ export class DashboardManager {
             
             if (includeEvent) {
                 events.push(new Date(currentDate));
+                eventCount++; // Only increment when we actually add an event
             }
             
             // Move to next occurrence
             currentDate = this.addTimePeriod(currentDate, numericFrequency, frequencyUnit);
             if (!currentDate) break; // Safety check
-            eventCount++;
         }
         
         return events;
@@ -1198,6 +1401,17 @@ export class DashboardManager {
                 this.renderAssetList(this.searchInput.value);
                 await this.renderDashboard(false);
                 this.setButtonLoading(this.clearFiltersBtn, false);
+            });
+        }
+
+        // Add input event listener for search input to refresh events
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', () => {
+                // Refresh events display if events section exists
+                const eventsTable = document.getElementById('eventsTable');
+                if (eventsTable) {
+                    this.updateEventsDisplay();
+                }
             });
         }
     }
