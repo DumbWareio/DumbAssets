@@ -401,22 +401,26 @@ export class DashboardManager {
         const events = [];
         const now = new Date();
         let futureLimit = null;
-        let pastLimit = null;
-        let showPast = false;
         
         // Set date range limits based on monthsAhead parameter
         if (monthsAhead === 'all') {
             // Show all future events (no time limit)
-            pastLimit = now;
+            futureLimit = null;
         } else if (monthsAhead === 'past') {
             // Show only past events
             futureLimit = now;
-            showPast = true;
         } else {
             // Show only future events within the specified range
-            futureLimit = new Date();
+            // Use safer date calculation to avoid rollover issues
+            futureLimit = new Date(now);
+            const originalDay = now.getDate();
             futureLimit.setMonth(now.getMonth() + monthsAhead);
-            pastLimit = now;
+            
+            // If the day rolled over due to target month having fewer days,
+            // set to the last day of the target month
+            if (futureLimit.getDate() !== originalDay) {
+                futureLimit.setDate(0); // This sets to last day of previous month
+            }
         }
 
         // Collect warranty events from assets
