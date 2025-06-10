@@ -1199,7 +1199,7 @@ export class DashboardManager {
                     // Close the date picker if it's open and blur the input
                     if (specificDateInput) {
                         specificDateInput.blur();
-                        specificDateInput.classList.remove('show', 'show-above');
+                        specificDateInput.classList.remove('show');
                         // Clear the specific date input value
                         specificDateInput.value = '';
                     }
@@ -1227,21 +1227,7 @@ export class DashboardManager {
                 e.stopPropagation(); // Prevent triggering the click-outside handler
                 const specificDateInput = document.getElementById('eventsSpecificDate');
                 if (specificDateInput) {
-                    // Determine if we should show the date picker above or below the icon
-                    const iconRect = calendarIcon.getBoundingClientRect();
-                    const viewportHeight = window.innerHeight;
-                    const spaceBelow = viewportHeight - iconRect.bottom;
-                    const spaceAbove = iconRect.top;
-                    
-                    // Remove any existing position classes
-                    specificDateInput.classList.remove('show-above');
-                    
-                    // If there's not enough space below (less than 200px) and more space above, show above
-                    if (spaceBelow < 200 && spaceAbove > spaceBelow) {
-                        specificDateInput.classList.add('show-above');
-                    }
-                    
-                    // Show the date picker
+                    // Show the date picker (it will overlay the calendar icon)
                     specificDateInput.classList.add('show');
                     
                     // Focus the input after a small delay to ensure it's properly positioned and visible
@@ -1263,7 +1249,7 @@ export class DashboardManager {
             const eventsDateFilter = document.querySelector('.events-date-filter');
             
             if (specificDateInput && !eventsDateFilter.contains(e.target)) {
-                specificDateInput.classList.remove('show', 'show-above');
+                specificDateInput.classList.remove('show');
                 specificDateInput.blur();
             }
         });
@@ -1273,7 +1259,7 @@ export class DashboardManager {
         if (specificDateInput) {
             // Hide date picker when a date is selected
             specificDateInput.addEventListener('change', () => {
-                specificDateInput.classList.remove('show', 'show-above');
+                specificDateInput.classList.remove('show');
                 
                 if (specificDateInput.value) {
                     // Save the specific date selection with prefix
@@ -1291,16 +1277,22 @@ export class DashboardManager {
                     this.currentPage = 1;
                     this.updateEventsDisplay();
                 } else {
-                    // If date is cleared, revert to default selection
+                    // If date is cleared, revert to default selection and hide calendar icon
                     eventsDateRangeSelect.value = '12';
                     localStorage.setItem('eventsDateRange', '12');
-                    
+
                     // Reset dropdown option text
                     const specificOption = eventsDateRangeSelect.querySelector('option[value="specific"]');
                     if (specificOption) {
                         specificOption.textContent = 'Specific Date';
                     }
-                    
+
+                    // Hide the calendar icon
+                    const calendarIcon = document.getElementById('eventsCalendarIcon');
+                    if (calendarIcon) {
+                        calendarIcon.classList.remove('show');
+                    }
+
                     this.currentPage = 1;
                     this.updateEventsDisplay();
                 }
@@ -1660,4 +1652,4 @@ export class DashboardManager {
             this.updateEventsDisplay();
         }
     }
-} 
+}

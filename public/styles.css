@@ -3089,6 +3089,8 @@ a:hover {
 .events-calendar-icon.show {
     display: flex;
     color: white;
+    align-items: center;
+    justify-content: center;
 }
 
 .events-calendar-icon svg {
@@ -3103,36 +3105,22 @@ a:hover {
 
 .events-date-input {
     position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 4px;
-    padding: 6px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
     background: var(--bg-color);
     color: var(--text-color);
-    font-size: 14px;
-    z-index: 1000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1002;
     display: none;
-    min-width: 150px;
     pointer-events: auto; /* Ensure date input can receive clicks */
+    cursor: pointer;
+    /* min-width: 32px; */
+    /* font-size: 12px; */
 }
 
 .events-date-input.show {
     display: block;
-}
-
-.events-date-input.show-above {
-    top: auto;
-    bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 4px;
-}
-
-[data-theme="dark"] .events-date-input {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* DEMO MODE STYLES */
