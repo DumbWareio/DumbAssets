@@ -1779,7 +1779,6 @@ a:hover {
     flex-direction: column;
     overflow: hidden;
 }
-
 .file-info .file-type {
     font-weight: bold;
     color: var(--text-color);
@@ -2143,16 +2142,31 @@ a:hover {
     max-width: 100%;
 }
 
+.dashboard-charts-section.three-col {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
 .chart-container {
     background: var(--background-color);
     border-radius: var(--app-border-radius);
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: var(--shadow);
     border: var(--app-border);
-    flex: 1 1 calc(50% - 0.75rem); /* 50% width minus half of the gap */
-    min-width: 300px; /* Minimum width before wrapping */
-    max-height: 375px;
+    min-width: 0;
+    max-height: 350px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .chart-container h3 {
@@ -2163,8 +2177,8 @@ a:hover {
 }
 
 .chart-canvas {
-    width: 100% !important; /* Force Chart.js to respect container width */
-    height: calc(100% - 40px) !important; /* Subtract space for title */
+    width: 100% !important;
+    height: calc(100% - 40px) !important;
     max-height: 290px;
 }
 
@@ -3214,6 +3228,13 @@ a:hover {
 
 /* KEEP ON BOTTOM */
 /* RESPONSIVE ADJUSTMENTS SECTION */
+@media (max-width: 1400px) and (min-width: 1101px) {
+    .dashboard-charts-section.three-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+}
+
 @media (max-width: 1200px) {
     .dashboard-card .card-value {
         font-size: 1rem;
@@ -3224,13 +3245,18 @@ a:hover {
 }
 
 @media (max-width: 1100px) {
-    .dashboard-charts-section {
+    .dashboard-charts-section,
+    .dashboard-charts-section.three-col {
         flex-direction: column;
+        display: flex;
+        grid-template-columns: none;
     }
     
     .chart-container {
         flex: 1 1 100%;
         margin-bottom: 1rem;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .event-row {

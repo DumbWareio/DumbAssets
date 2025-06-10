@@ -242,7 +242,7 @@ export class DashboardManager {
             <fieldset class="dashboard-legend">
                 <legend class="dashboard-legend-title">Analytics</legend>
                 <div class="dashboard-section" data-section="analytics">
-                    <div class="dashboard-charts-section">
+                    <div class="dashboard-charts-section three-col">
                         <div class="chart-container">
                             <h3>Warranty Status</h3>
                             <canvas id="warrantyPieChart" class="chart-canvas"></canvas>
@@ -250,6 +250,10 @@ export class DashboardManager {
                         <div class="chart-container">
                             <h3>Warranties Expiring Over Time</h3>
                             <canvas id="warrantyLineChart" class="chart-canvas"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Upcoming Maintenance Events</h3>
+                            <canvas id="maintenanceLineChart" class="chart-canvas"></canvas>
                         </div>
                     </div>
                 </div>

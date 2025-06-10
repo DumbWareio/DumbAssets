@@ -117,7 +117,7 @@ export class ChartManager {
             }
         });
 
-        // Prepare line chart data
+        // Prepare line chart data for warranties
         const now = new Date();
         const sixMonthsLater = new Date();
         sixMonthsLater.setMonth(now.getMonth() + 6);
@@ -146,7 +146,7 @@ export class ChartManager {
             }
         });
 
-        // Create line chart
+        // Create line chart for warranties
         this.createOrUpdateChart('warrantyLineChart', {
             type: 'line',
             data: {
@@ -167,13 +167,13 @@ export class ChartManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                aspectRatio: 1.5,
+                aspectRatio: 1.2,
                 layout: {
                     padding: {
                         top: 5,
-                        right: 10,
-                        bottom: 10,
-                        left: 10
+                        right: 5,
+                        bottom: 5,
+                        left: 5
                     }
                 },
                 scales: {
@@ -213,8 +213,123 @@ export class ChartManager {
             }
         });
 
+        // Create maintenance events chart
+        this.createMaintenanceChart(months, animate);
+
         // Set up theme change listener
         this.setupThemeChangeListener();
+    }
+
+    /**
+     * Creates maintenance events line chart
+     * @param {Array} months - Array of month labels for x-axis
+     * @param {boolean} animate - Whether to animate the chart
+     */
+    createMaintenanceChart(months, animate = true) {
+        const now = new Date();
+        
+        // Gather all maintenance events for the next 6 months
+        const maintenanceEvents = [];
+        if (window.dashboardManager && typeof window.dashboardManager.collectEventsInRange === 'function') {
+            // Use the dashboardManager to get all events (assets + sub-assets)
+            // We want only maintenance events in the next 6 months
+            const allEvents = window.dashboardManager.collectEventsInRange(6, null);
+            // console.log('All events collected:', allEvents.length);
+            
+            allEvents.forEach(ev => {
+                if (ev.type === 'maintenance') {
+                    maintenanceEvents.push(ev);
+                }
+            });
+            
+            // console.log('Maintenance events found:', maintenanceEvents.length, maintenanceEvents);
+        } else {
+            console.warn('dashboardManager not available or collectEventsInRange method not found');
+        }
+
+        // Count maintenance events per month
+        const maintenanceMonthData = new Array(6).fill(0);
+        maintenanceEvents.forEach(ev => {
+            // console.log('Processing event:', ev.date, ev.name);
+            for (let i = 0; i < 6; i++) {
+                const start = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                const end = new Date(now.getFullYear(), now.getMonth() + i + 1, 0, 23, 59, 59, 999);
+                if (ev.date >= start && ev.date <= end) {
+                    maintenanceMonthData[i]++;
+                    // console.log(`Event on ${ev.date} falls in month ${i} (${months[i]})`);
+                    break;
+                }
+            }
+        });
+        
+        // console.log('Maintenance chart data:', maintenanceMonthData);
+
+        // Create the maintenance line chart
+        this.createOrUpdateChart('maintenanceLineChart', {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Upcoming Maintenance',
+                    data: maintenanceMonthData,
+                    borderColor: '#10b981', // Green (same as maintenance tag)
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                aspectRatio: 1.2,
+                layout: {
+                    padding: {
+                        top: 5,
+                        right: 5,
+                        bottom: 5,
+                        left: 5
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            color: this.getTextColor(),
+                            font: { size: 10 }
+                        },
+                        grid: {
+                            color: 'rgba(160, 160, 160, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: this.getTextColor(),
+                            font: { size: 10 }
+                        },
+                        grid: {
+                            color: 'rgba(160, 160, 160, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (context) => `${context[0].label}`,
+                            label: (context) => `${context.raw} maintenance events`
+                        }
+                    }
+                },
+                animation: animate ? { duration: 1000 } : false
+            }
+        });
     }
 
     /**

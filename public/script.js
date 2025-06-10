@@ -162,6 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 getSelectedAssetId: () => selectedAssetId
             });
             
+            // Expose dashboardManager to global scope for chart access
+            window.dashboardManager = dashboardManager;
+            
             // After data is loaded, check for URL parameters
             if (!handleUrlParameters()) {
                 // No URL parameters, show empty state as normal
