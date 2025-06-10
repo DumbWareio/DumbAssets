@@ -327,8 +327,26 @@ export class DashboardManager {
         const savedDateRange = localStorage.getItem('eventsDateRange') || '12';
         
         // Convert range value to the appropriate parameter for collectEventsInRange
-        const monthsAhead = savedDateRange === 'all' ? 'all' : savedDateRange === 'past' ? 'past' : parseInt(savedDateRange);
-        const events = this.collectEventsInRange(monthsAhead);
+        let monthsAhead;
+        let specificDate = null;
+        let specificDateDisplay = '';
+        
+        if (savedDateRange === 'all') {
+            monthsAhead = 'all';
+        } else if (savedDateRange === 'past') {
+            monthsAhead = 'past';
+        } else if (savedDateRange.startsWith && savedDateRange.startsWith('specific:')) {
+            monthsAhead = 'specific';
+            specificDate = savedDateRange.substring(9); // Remove 'specific:' prefix
+            // Format the date for display using formatDate utility
+            if (specificDate) {
+                specificDateDisplay = this.formatDate(specificDate);
+            }
+        } else {
+            monthsAhead = parseInt(savedDateRange);
+        }
+        
+        const events = this.collectEventsInRange(monthsAhead, specificDate);
         
         return `
             <fieldset class="dashboard-legend">
@@ -363,13 +381,23 @@ export class DashboardManager {
                         </div>
                         <div class="events-sort">
                             <div class="events-date-filter">
+                                <div class="events-calendar-icon${savedDateRange.startsWith && savedDateRange.startsWith('specific:') ? ' show' : ''}" id="eventsCalendarIcon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    <input type="date" id="eventsSpecificDate" class="events-date-input" value="${specificDate || ''}">
+                                </div>
                                 <select id="eventsDateRange" class="events-date-select">
+                                    <option value="past"${savedDateRange === 'past' ? ' selected' : ''}>Past Events</option>
                                     <option value="1"${savedDateRange === '1' ? ' selected' : ''}>1 Month</option>
                                     <option value="3"${savedDateRange === '3' ? ' selected' : ''}>3 Months</option>
                                     <option value="6"${savedDateRange === '6' ? ' selected' : ''}>6 Months</option>
                                     <option value="12"${savedDateRange === '12' ? ' selected' : ''}>1 Year</option>
-                                    <option value="all"${savedDateRange === 'all' ? ' selected' : ''}>All</option>
-                                    <option value="past"${savedDateRange === 'past' ? ' selected' : ''}>Past</option>
+                                    <option value="all"${savedDateRange === 'all' ? ' selected' : ''}>All Future</option>
+                                    <option value="specific"${savedDateRange.startsWith && savedDateRange.startsWith('specific:') ? ' selected' : ''}>${specificDateDisplay ? specificDateDisplay : 'Specific Date'}</option>
                                 </select>
                             </div>
                             <button class="events-sort-btn" data-sort="date" data-direction="asc">
@@ -595,7 +623,7 @@ export class DashboardManager {
         return { filteredAssets, filteredSubAssets };
     }
     
-    collectEventsInRange(monthsAhead = 12) {
+    collectEventsInRange(monthsAhead = 12, specificDate = null) {
         const assets = this.getAssets();
         const subAssets = this.getSubAssets();
         const events = [];
@@ -612,6 +640,16 @@ export class DashboardManager {
         } else if (monthsAhead === 'past') {
             // Show only past events
             futureLimit = now;
+        } else if (monthsAhead === 'specific' && specificDate) {
+            // Show events for a specific date
+            // Use formatDate to properly parse the date without timezone issues
+            const targetDate = new Date(this.formatDate(specificDate));
+            // Set to start and end of the day for the target date
+            const startOfDay = new Date(targetDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(targetDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            futureLimit = { start: startOfDay, end: endOfDay, isSpecific: true };
         } else {
             // Show only future events within the specified range
             // Use safer date calculation to avoid rollover issues
@@ -626,23 +664,26 @@ export class DashboardManager {
             }
         }
 
+        // Helper function to check if an event should be included based on date filtering
+        const shouldIncludeEvent = (eventDate) => {
+            if (monthsAhead === 'all') {
+                return eventDate >= now; // Only future events for "All Events"
+            } else if (monthsAhead === 'past') {
+                return eventDate < now; // Only past events
+            } else if (monthsAhead === 'specific' && futureLimit && futureLimit.isSpecific) {
+                return eventDate >= futureLimit.start && eventDate <= futureLimit.end; // Events on specific date
+            } else {
+                return eventDate >= now && eventDate <= futureLimit; // Only future events in range
+            }
+        };
+
         // Collect warranty events from filtered assets
         filteredAssets.forEach(asset => {
             // Primary warranty
             if (asset.warranty && asset.warranty.expirationDate && !asset.warranty.isLifetime) {
                 const expDate = new Date(formatDate(asset.warranty.expirationDate));
                 
-                // Apply date filtering logic
-                let includeEvent = false;
-                if (monthsAhead === 'all') {
-                    includeEvent = expDate >= now; // Only future events for "All Events"
-                } else if (monthsAhead === 'past') {
-                    includeEvent = expDate < now; // Only past events
-                } else {
-                    includeEvent = expDate >= now && expDate <= futureLimit; // Only future events in range
-                }
-                
-                if (includeEvent) {
+                if (shouldIncludeEvent(expDate)) {
                     events.push({
                         type: 'warranty',
                         date: expDate,
@@ -660,17 +701,7 @@ export class DashboardManager {
             if (asset.secondaryWarranty && asset.secondaryWarranty.expirationDate && !asset.secondaryWarranty.isLifetime) {
                 const expDate = new Date(formatDate(asset.secondaryWarranty.expirationDate));
                 
-                // Apply date filtering logic
-                let includeEvent = false;
-                if (monthsAhead === 'all') {
-                    includeEvent = expDate >= now; // Only future events for "All Events"
-                } else if (monthsAhead === 'past') {
-                    includeEvent = expDate < now; // Only past events
-                } else {
-                    includeEvent = expDate >= now && expDate <= futureLimit; // Only future events in range
-                }
-                
-                if (includeEvent) {
+                if (shouldIncludeEvent(expDate)) {
                     events.push({
                         type: 'warranty',
                         date: expDate,
@@ -713,17 +744,7 @@ export class DashboardManager {
                     } else if (event.type === 'specific' && event.specificDate) {
                         const eventDate = new Date(formatDate(event.specificDate));
                         
-                        // Apply date filtering logic
-                        let includeEvent = false;
-                        if (monthsAhead === 'all') {
-                            includeEvent = eventDate >= now; // Only future events for "All Events"
-                        } else if (monthsAhead === 'past') {
-                            includeEvent = eventDate < now; // Only past events
-                        } else {
-                            includeEvent = eventDate >= now && eventDate <= futureLimit; // Only future events in range
-                        }
-                        
-                        if (includeEvent) {
+                        if (shouldIncludeEvent(eventDate)) {
                             events.push({
                                 type: 'maintenance',
                                 date: eventDate,
@@ -908,6 +929,33 @@ export class DashboardManager {
                  eventCount++;
              }
              return events;
+        } else if (monthsAhead === 'specific' && futureLimit && futureLimit.isSpecific) {
+            // For specific date, check if any recurring events fall on that date
+            const targetStart = futureLimit.start;
+            const targetEnd = futureLimit.end;
+            
+            // Generate events from the next due date forward until we're past the target date
+            // or we've checked enough occurrences
+            const maxCheckLimit = new Date(targetEnd);
+            maxCheckLimit.setFullYear(maxCheckLimit.getFullYear() + 10); // Check up to 10 years ahead
+            
+            while (currentDate <= maxCheckLimit && eventCount < maxEvents) {
+                // Check if this occurrence falls on the target date
+                if (currentDate >= targetStart && currentDate <= targetEnd) {
+                    events.push(new Date(currentDate));
+                }
+                
+                // Move to next occurrence
+                currentDate = this.addTimePeriod(currentDate, numericFrequency, frequencyUnit);
+                if (!currentDate) break; // Safety check
+                eventCount++;
+                
+                // If we're past the target date and haven't found any matches recently, stop
+                if (currentDate > targetEnd && events.length === 0) {
+                    break;
+                }
+            }
+            return events;
         } else {
             endLimit = futureLimit;
         }
@@ -1007,12 +1055,12 @@ export class DashboardManager {
         
         return events.map(event => {
             const daysUntil = Math.ceil((event.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            const isOverdue = daysUntil < 0;
+            const isPast = daysUntil < 0;
             const isUrgent = daysUntil <= 30 && daysUntil >= 0;
             const isWarning = daysUntil <= 60 && daysUntil > 30;
 
             let urgencyClass = '';
-            if (isOverdue) urgencyClass = 'overdue';
+            if (isPast) urgencyClass = 'overdue';
             else if (isUrgent) urgencyClass = 'urgent';
             else if (isWarning) urgencyClass = 'warning';
 
@@ -1036,7 +1084,7 @@ export class DashboardManager {
                     </div>
                     <div class="event-date">
                         <span class="event-date-text">${this.formatDate(event.date)}</span>
-                        <span class="event-days-until">${isOverdue ? `${Math.abs(daysUntil)} days overdue` : `${daysUntil} days`}</span>
+                        <span class="event-days-until">${isPast ? `${Math.abs(daysUntil)} days past` : `${daysUntil} days`}</span>
                     </div>
                     <div class="event-details">
                         <div class="event-name">${event.name}</div>
@@ -1058,8 +1106,38 @@ export class DashboardManager {
         // Load saved date range from localStorage, default to '12' (1 Year)
         const savedDateRange = localStorage.getItem('eventsDateRange') || '12';
         const eventsDateRangeSelect = document.getElementById('eventsDateRange');
+        
         if (eventsDateRangeSelect) {
-            eventsDateRangeSelect.value = savedDateRange;
+            // Handle specific date dropdown selection on page load
+            if (savedDateRange.startsWith && savedDateRange.startsWith('specific:')) {
+                eventsDateRangeSelect.value = 'specific';
+                const specificDate = savedDateRange.substring(9);
+                const specificDateInput = document.getElementById('eventsSpecificDate');
+                const calendarIcon = document.getElementById('eventsCalendarIcon');
+                
+                if (specificDateInput) {
+                    specificDateInput.value = specificDate;
+                }
+                
+                // Show calendar icon for specific date selection
+                if (calendarIcon) {
+                    calendarIcon.classList.add('show');
+                }
+                
+                // Update the dropdown option text to show the selected date
+                const specificOption = eventsDateRangeSelect.querySelector('option[value="specific"]');
+                if (specificOption && specificDate) {
+                    // Use formatDate utility to properly handle the date without timezone issues
+                    specificOption.textContent = formatDate(specificDate);
+                }
+            } else {
+                eventsDateRangeSelect.value = savedDateRange;
+                // Ensure calendar icon stays hidden
+                const calendarIcon = document.getElementById('eventsCalendarIcon');
+                if (calendarIcon) {
+                    calendarIcon.classList.remove('show');
+                }
+            }
         }
 
         // Filter buttons
@@ -1096,12 +1174,136 @@ export class DashboardManager {
         // Date range dropdown with localStorage persistence
         if (eventsDateRangeSelect) {
             eventsDateRangeSelect.addEventListener('change', () => {
-                // Save the selected value to localStorage
-                localStorage.setItem('eventsDateRange', eventsDateRangeSelect.value);
+                const selectedValue = eventsDateRangeSelect.value;
+                const specificDateInput = document.getElementById('eventsSpecificDate');
+                const calendarIcon = document.getElementById('eventsCalendarIcon');
                 
-                // Reset to first page when date range changes
-                this.currentPage = 1;
-                this.updateEventsDisplay();
+                if (selectedValue === 'specific') {
+                    // Show the calendar icon
+                    if (calendarIcon) {
+                        calendarIcon.classList.add('show');
+                    }
+                    
+                    // Automatically click the calendar icon to open the date picker
+                    setTimeout(() => {
+                        if (calendarIcon && calendarIcon.classList.contains('show')) {
+                            calendarIcon.click();
+                        }
+                    }, 50); // Small delay to ensure the icon is visible
+                } else {
+                    // Hide the calendar icon
+                    if (calendarIcon) {
+                        calendarIcon.classList.remove('show');
+                    }
+                    
+                    // Close the date picker if it's open and blur the input
+                    if (specificDateInput) {
+                        specificDateInput.blur();
+                        specificDateInput.classList.remove('show', 'show-above');
+                        // Clear the specific date input value
+                        specificDateInput.value = '';
+                    }
+                    
+                    // Reset the "Specific Date" option text back to default
+                    const specificOption = eventsDateRangeSelect.querySelector('option[value="specific"]');
+                    if (specificOption) {
+                        specificOption.textContent = 'Specific Date';
+                    }
+                    
+                    // Save the selection and update display
+                    localStorage.setItem('eventsDateRange', selectedValue);
+                    
+                    // Reset to first page when date range changes
+                    this.currentPage = 1;
+                    this.updateEventsDisplay();
+                }
+            });
+        }
+        
+        // Calendar icon click handler
+        const calendarIcon = document.getElementById('eventsCalendarIcon');
+        if (calendarIcon) {
+            calendarIcon.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent triggering the click-outside handler
+                const specificDateInput = document.getElementById('eventsSpecificDate');
+                if (specificDateInput) {
+                    // Determine if we should show the date picker above or below the icon
+                    const iconRect = calendarIcon.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    const spaceBelow = viewportHeight - iconRect.bottom;
+                    const spaceAbove = iconRect.top;
+                    
+                    // Remove any existing position classes
+                    specificDateInput.classList.remove('show-above');
+                    
+                    // If there's not enough space below (less than 200px) and more space above, show above
+                    if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+                        specificDateInput.classList.add('show-above');
+                    }
+                    
+                    // Show the date picker
+                    specificDateInput.classList.add('show');
+                    
+                    // Focus the input after a small delay to ensure it's properly positioned and visible
+                    setTimeout(() => {
+                        specificDateInput.focus();
+                        // Try to use showPicker if available (modern browsers)
+                        if (specificDateInput.showPicker) {
+                            specificDateInput.showPicker();
+                        }
+                    }, 10);
+                }
+            });
+        }
+        
+        // Click outside to close date picker
+        document.addEventListener('click', (e) => {
+            const specificDateInput = document.getElementById('eventsSpecificDate');
+            const calendarIcon = document.getElementById('eventsCalendarIcon');
+            const eventsDateFilter = document.querySelector('.events-date-filter');
+            
+            if (specificDateInput && !eventsDateFilter.contains(e.target)) {
+                specificDateInput.classList.remove('show', 'show-above');
+                specificDateInput.blur();
+            }
+        });
+        
+        // Specific date input handling
+        const specificDateInput = document.getElementById('eventsSpecificDate');
+        if (specificDateInput) {
+            // Hide date picker when a date is selected
+            specificDateInput.addEventListener('change', () => {
+                specificDateInput.classList.remove('show', 'show-above');
+                
+                if (specificDateInput.value) {
+                    // Save the specific date selection with prefix
+                    const specificDateValue = `specific:${specificDateInput.value}`;
+                    localStorage.setItem('eventsDateRange', specificDateValue);
+                    
+                    // Update the dropdown option text to show the selected date
+                    const specificOption = eventsDateRangeSelect.querySelector('option[value="specific"]');
+                    if (specificOption) {
+                        // Use formatDate utility to properly handle the date without timezone issues
+                        specificOption.textContent = formatDate(specificDateInput.value);
+                    }
+                    
+                    // Reset to first page when date changes
+                    this.currentPage = 1;
+                    this.updateEventsDisplay();
+                } else {
+                    // If date is cleared, revert to default selection
+                    eventsDateRangeSelect.value = '12';
+                    localStorage.setItem('eventsDateRange', '12');
+                    
+                    // Reset dropdown option text
+                    const specificOption = eventsDateRangeSelect.querySelector('option[value="specific"]');
+                    if (specificOption) {
+                        specificOption.textContent = 'Specific Date';
+                    }
+                    
+                    this.currentPage = 1;
+                    this.updateEventsDisplay();
+                }
             });
         }
         
@@ -1148,9 +1350,26 @@ export class DashboardManager {
             // Get current date range selection for pagination calculation
             const dateRangeSelect = document.getElementById('eventsDateRange');
             const selectedRange = dateRangeSelect ? dateRangeSelect.value : '12';
-            const monthsAhead = selectedRange === 'all' ? 'all' : selectedRange === 'past' ? 'past' : parseInt(selectedRange);
             
-            const allEvents = this.collectEventsInRange(monthsAhead);
+            // Get the saved date range from localStorage to handle specific dates
+            const savedDateRange = localStorage.getItem('eventsDateRange') || '12';
+            
+            // Convert range value to the appropriate parameters for collectEventsInRange
+            let monthsAhead;
+            let specificDate = null;
+            
+            if (savedDateRange === 'all') {
+                monthsAhead = 'all';
+            } else if (savedDateRange === 'past') {
+                monthsAhead = 'past';
+            } else if (savedDateRange.startsWith && savedDateRange.startsWith('specific:')) {
+                monthsAhead = 'specific';
+                specificDate = savedDateRange.substring(9); // Remove 'specific:' prefix
+            } else {
+                monthsAhead = parseInt(savedDateRange);
+            }
+            
+            const allEvents = this.collectEventsInRange(monthsAhead, specificDate);
             const filteredEvents = this.currentFilter !== 'all' ? allEvents.filter(event => event.type === this.currentFilter) : allEvents;
             const totalPages = Math.ceil(filteredEvents.length / this.eventsPerPage);
             console.log('Total pages:', totalPages);
@@ -1166,10 +1385,25 @@ export class DashboardManager {
         const dateRangeSelect = document.getElementById('eventsDateRange');
         const selectedRange = dateRangeSelect ? dateRangeSelect.value : '12';
         
-        // Convert range value to the appropriate parameter for collectEventsInRange
-        const monthsAhead = selectedRange === 'all' ? 'all' : selectedRange === 'past' ? 'past' : parseInt(selectedRange);
+        // Get the saved date range from localStorage to handle specific dates
+        const savedDateRange = localStorage.getItem('eventsDateRange') || '12';
         
-        let events = this.collectEventsInRange(monthsAhead);
+        // Convert range value to the appropriate parameters for collectEventsInRange
+        let monthsAhead;
+        let specificDate = null;
+        
+        if (savedDateRange === 'all') {
+            monthsAhead = 'all';
+        } else if (savedDateRange === 'past') {
+            monthsAhead = 'past';
+        } else if (savedDateRange.startsWith && savedDateRange.startsWith('specific:')) {
+            monthsAhead = 'specific';
+            specificDate = savedDateRange.substring(9); // Remove 'specific:' prefix
+        } else {
+            monthsAhead = parseInt(savedDateRange);
+        }
+        
+        let events = this.collectEventsInRange(monthsAhead, specificDate);
 
         // Apply local events filter (all, warranty, maintenance)
         if (this.currentFilter !== 'all') {

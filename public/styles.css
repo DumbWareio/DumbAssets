@@ -3063,6 +3063,78 @@ a:hover {
     justify-content: center;
 }
 
+/* Events Date Filter */
+.events-date-filter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--app-border-radius);
+}
+
+.events-calendar-icon {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1001; /* Ensure calendar icon stays above the date input */
+}
+
+.events-calendar-icon.show {
+    display: flex;
+    color: white;
+}
+
+.events-calendar-icon svg {
+    width: 16px;
+    height: 16px;
+    /* pointer-events: none; Prevent SVG from blocking clicks */
+}
+
+.events-calendar-icon:hover svg {
+    stroke: var(--primary-color);
+}
+
+.events-date-input {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 4px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: none;
+    min-width: 150px;
+    pointer-events: auto; /* Ensure date input can receive clicks */
+}
+
+.events-date-input.show {
+    display: block;
+}
+
+.events-date-input.show-above {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+[data-theme="dark"] .events-date-input {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 /* DEMO MODE STYLES */
 .header-top {
     display: flex;
