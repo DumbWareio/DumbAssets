@@ -155,6 +155,42 @@ input[type="date"] {
     -moz-appearance: none;
 }
 
+/* Theme-aware Date Input & Calendar Styling */
+input[type="date"],
+.date-input-wrapper input[type="date"] {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: var(--app-border);
+    border-radius: var(--app-border-radius);
+    font-size: 0.8rem;
+    transition: background 0.2s, color 0.2s;
+    color-scheme: light;
+}
+
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] .date-input-wrapper input[type="date"] {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    color-scheme: dark;
+}
+
+/* Webkit calendar popup indicator (icon) color for theme */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none;
+}
+
+/* Firefox: force color-scheme for calendar popup */
+@media (prefers-color-scheme: dark) {
+  [data-theme="dark"] input[type="date"] {
+    color-scheme: dark;
+  }
+}
+@media (prefers-color-scheme: light) {
+  [data-theme="light"] input[type="date"] {
+    color-scheme: light;
+  }
+}
+
 /* Custom calendar icon */
 input[type="date"]::-webkit-calendar-picker-indicator {
     position: absolute;
@@ -3083,7 +3119,7 @@ a:hover {
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    z-index: 1001; /* Ensure calendar icon stays above the date input */
+    z-index: 500; /* Ensure calendar icon stays above the date input */
 }
 
 .events-calendar-icon.show {
@@ -3096,6 +3132,8 @@ a:hover {
 .events-calendar-icon svg {
     width: 16px;
     height: 16px;
+    stroke: var(--text-color);
+    transition: stroke 0.2s ease;
     /* pointer-events: none; Prevent SVG from blocking clicks */
 }
 
