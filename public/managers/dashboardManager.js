@@ -484,17 +484,32 @@ export class DashboardManager {
             // Maintenance events
             if (asset.maintenanceEvents && asset.maintenanceEvents.length > 0) {
                 asset.maintenanceEvents.forEach(event => {
-                    let eventDate = null;
-                    let eventDetails = event.name;
-
                     if (event.type === 'frequency' && event.nextDueDate) {
-                        eventDate = new Date(formatDate(event.nextDueDate));
-                        eventDetails += ` (Every ${event.frequency} ${event.frequencyUnit})`;
+                        // Generate multiple recurring events within the date range
+                        const recurringEvents = this.generateRecurringEvents(
+                            event.nextDueDate, 
+                            event.frequency, 
+                            event.frequencyUnit, 
+                            now, 
+                            futureLimit, 
+                            monthsAhead
+                        );
+                        
+                        recurringEvents.forEach(eventDate => {
+                            events.push({
+                                type: 'maintenance',
+                                date: eventDate,
+                                name: asset.name,
+                                details: `${event.name} (Every ${event.frequency} ${event.frequencyUnit})`,
+                                assetType: 'Asset',
+                                notes: event.notes,
+                                id: asset.id,
+                                isSubAsset: false
+                            });
+                        });
                     } else if (event.type === 'specific' && event.specificDate) {
-                        eventDate = new Date(formatDate(event.specificDate));
-                    }
-
-                    if (eventDate) {
+                        const eventDate = new Date(formatDate(event.specificDate));
+                        
                         // Apply date filtering logic
                         let includeEvent = false;
                         if (monthsAhead === 'all') {
@@ -510,7 +525,7 @@ export class DashboardManager {
                                 type: 'maintenance',
                                 date: eventDate,
                                 name: asset.name,
-                                details: eventDetails,
+                                details: event.name,
                                 assetType: 'Asset',
                                 notes: event.notes,
                                 id: asset.id,
@@ -577,17 +592,33 @@ export class DashboardManager {
             // Maintenance events for sub-assets (including sub-sub-assets)
             if (subAsset.maintenanceEvents && subAsset.maintenanceEvents.length > 0) {
                 subAsset.maintenanceEvents.forEach(event => {
-                    let eventDate = null;
-                    let eventDetails = event.name;
-
                     if (event.type === 'frequency' && event.nextDueDate) {
-                        eventDate = new Date(formatDate(event.nextDueDate));
-                        eventDetails += ` (Every ${event.frequency} ${event.frequencyUnit})`;
+                        // Generate multiple recurring events within the date range
+                        const recurringEvents = this.generateRecurringEvents(
+                            event.nextDueDate, 
+                            event.frequency, 
+                            event.frequencyUnit, 
+                            now, 
+                            futureLimit, 
+                            monthsAhead
+                        );
+                        
+                        recurringEvents.forEach(eventDate => {
+                            events.push({
+                                type: 'maintenance',
+                                date: eventDate,
+                                name: subAsset.name,
+                                details: `${event.name} (Every ${event.frequency} ${event.frequencyUnit})`,
+                                assetType: assetType,
+                                parentAsset: parentName,
+                                notes: event.notes,
+                                id: subAsset.id,
+                                isSubAsset: true
+                            });
+                        });
                     } else if (event.type === 'specific' && event.specificDate) {
-                        eventDate = new Date(formatDate(event.specificDate));
-                    }
-
-                    if (eventDate) {
+                        const eventDate = new Date(formatDate(event.specificDate));
+                        
                         // Apply date filtering logic
                         let includeEvent = false;
                         if (monthsAhead === 'all') {
@@ -603,7 +634,7 @@ export class DashboardManager {
                                 type: 'maintenance',
                                 date: eventDate,
                                 name: subAsset.name,
-                                details: eventDetails,
+                                details: event.name,
                                 assetType: assetType,
                                 parentAsset: parentName,
                                 notes: event.notes,
@@ -620,6 +651,140 @@ export class DashboardManager {
         events.sort((a, b) => a.date.getTime() - b.date.getTime());
 
         return events;
+    }
+    
+    /**
+     * Generate recurring events within a date range
+     * @param {string} nextDueDate - The next due date for the recurring event
+     * @param {number} frequency - How often the event recurs (e.g., 1, 2, 3)
+     * @param {string} frequencyUnit - The unit of recurrence (days, weeks, months, years)
+     * @param {Date} now - Current date
+     * @param {Date} futureLimit - The end date limit for generating events
+     * @param {string|number} monthsAhead - The range specification ('all', 'past', or number of months)
+     * @returns {Array} Array of Date objects for recurring events
+     */
+    generateRecurringEvents(nextDueDate, frequency, frequencyUnit, now, futureLimit, monthsAhead) {
+        const events = [];
+        
+        // Validate inputs
+        if (!nextDueDate || !frequency || !frequencyUnit) {
+            return events;
+        }
+        
+        const numericFrequency = parseInt(frequency);
+        if (isNaN(numericFrequency) || numericFrequency <= 0) {
+            return events;
+        }
+        
+        // Parse the next due date
+        let currentDate = new Date(formatDate(nextDueDate));
+        if (isNaN(currentDate)) {
+            return events;
+        }
+        
+                 // Determine the end limit for event generation
+         let endLimit = null;
+         const maxEvents = 100; // Safety limit to prevent infinite loops
+         let eventCount = 0;
+         
+         if (monthsAhead === 'all') {
+            // For "all", generate events for the next 5 years to avoid infinite generation
+            endLimit = new Date(now);
+            endLimit.setFullYear(now.getFullYear() + 5);
+                 } else if (monthsAhead === 'past') {
+             // For past events, we need to generate ALL occurrences from the nextDueDate up to today
+             // This includes both past and current/overdue events
+             endLimit = new Date(now);
+             endLimit.setHours(23, 59, 59, 999); // Include events due today
+             
+             // Generate all occurrences from nextDueDate forward until today
+             while (currentDate <= endLimit && eventCount < maxEvents) {
+                 events.push(new Date(currentDate));
+                 currentDate = this.addTimePeriod(currentDate, numericFrequency, frequencyUnit);
+                 if (!currentDate) break; // Safety check
+                 eventCount++;
+             }
+             return events;
+        } else {
+            endLimit = futureLimit;
+        }
+        
+        if (!endLimit) {
+            return events;
+        }
+                 
+         // Generate future events within the range
+        
+        while (currentDate <= endLimit && eventCount < maxEvents) {
+            // Only include events that match the filtering criteria
+            let includeEvent = false;
+            if (monthsAhead === 'all') {
+                includeEvent = currentDate >= now; // Only future events for "All Events"
+            } else {
+                includeEvent = currentDate >= now && currentDate <= endLimit; // Only future events in range
+            }
+            
+            if (includeEvent) {
+                events.push(new Date(currentDate));
+            }
+            
+            // Move to next occurrence
+            currentDate = this.addTimePeriod(currentDate, numericFrequency, frequencyUnit);
+            if (!currentDate) break; // Safety check
+            eventCount++;
+        }
+        
+        return events;
+    }
+    
+    /**
+     * Add time periods to a date (JavaScript implementation, similar to Luxon's addTimePeriod)
+     * @param {Date} baseDate - The base date to add to
+     * @param {number} amount - The amount to add (can be negative)
+     * @param {string} unit - The unit (days, weeks, months, years)
+     * @returns {Date|null} - The calculated date or null if invalid
+     */
+    addTimePeriod(baseDate, amount, unit) {
+        if (!baseDate || isNaN(baseDate)) return null;
+        
+        try {
+            const result = new Date(baseDate);
+            const numericAmount = parseInt(amount);
+            if (isNaN(numericAmount)) return null;
+            
+            switch (unit.toLowerCase()) {
+                case 'days':
+                case 'day':
+                    result.setDate(result.getDate() + numericAmount);
+                    break;
+                case 'weeks':
+                case 'week':
+                    result.setDate(result.getDate() + (numericAmount * 7));
+                    break;
+                case 'months':
+                case 'month':
+                    // Use safer month calculation to avoid rollover issues
+                    const originalDay = result.getDate();
+                    result.setMonth(result.getMonth() + numericAmount);
+                    
+                    // If the day rolled over due to target month having fewer days,
+                    // set to the last day of the target month
+                    if (result.getDate() !== originalDay) {
+                        result.setDate(0); // This sets to last day of previous month
+                    }
+                    break;
+                case 'years':
+                case 'year':
+                    result.setFullYear(result.getFullYear() + numericAmount);
+                    break;
+                default:
+                    return null;
+            }
+            
+            return result;
+        } catch (error) {
+            return null;
+        }
     }
     
     generateEventsTableHTML(events) {
