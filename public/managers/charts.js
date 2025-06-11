@@ -93,7 +93,7 @@ export class ChartManager {
                         position: 'bottom',
                         labels: {
                             usePointStyle: true,
-                            padding: 15,
+                            padding: 10,
                             boxWidth: 10,
                             boxHeight: 10,
                             font: { size: 11 },
@@ -146,6 +146,10 @@ export class ChartManager {
             }
         });
 
+        const maxWarranties = Math.max(...monthData);
+        const minWarranties = Math.min(...monthData);
+        const stepSize = maxWarranties <= 10 ? 1 : Math.ceil(maxWarranties / 10);
+
         // Create line chart for warranties
         this.createOrUpdateChart('warrantyLineChart', {
             type: 'line',
@@ -170,17 +174,19 @@ export class ChartManager {
                 aspectRatio: 1.2,
                 layout: {
                     padding: {
-                        top: 5,
-                        right: 5,
-                        bottom: 5,
-                        left: 5
+                        top: 2,
+                        right: 2,
+                        bottom: 2,
+                        left: 2
                     }
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
+                        beginAtZero: false,
+                        min: minWarranties >= stepSize ? minWarranties - stepSize : 0,
+                        max: maxWarranties + stepSize,
                         ticks: {
-                            stepSize: 1,
+                            stepSize: stepSize,
                             color: this.getTextColor(),
                             font: { size: 10 }
                         },
@@ -261,7 +267,12 @@ export class ChartManager {
                 }
             }
         });
-        
+
+        // get the max / min value in maintenanceMonthData for y-axis step size
+        const maxMaintenance = Math.max(...maintenanceMonthData);
+        const minMaintenance = Math.min(...maintenanceMonthData);
+        const stepSize = maxMaintenance <= 10 ? 1 : Math.ceil(maxMaintenance / 10);
+
         // console.log('Maintenance chart data:', maintenanceMonthData);
 
         // Create the maintenance line chart
@@ -288,17 +299,19 @@ export class ChartManager {
                 aspectRatio: 1.2,
                 layout: {
                     padding: {
-                        top: 5,
-                        right: 5,
-                        bottom: 5,
-                        left: 5
+                        top: 2,
+                        right: 2,
+                        bottom: 2,
+                        left: 2
                     }
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
+                        beginAtZero: false,
+                        min: minMaintenance >= stepSize ? minMaintenance - stepSize : 0,
+                        max: maxMaintenance + stepSize,
                         ticks: {
-                            stepSize: 1,
+                            stepSize: stepSize,
                             color: this.getTextColor(),
                             font: { size: 10 }
                         },
