@@ -188,6 +188,12 @@ function generateAssetInfoHTML(asset) {
             <div class="info-label">Quantity</div>
             <div>${asset.quantity || 1}</div>
         </div>
+        ${(asset.quantity > 1 && (asset.price || asset.purchasePrice)) ? `
+        <div class="info-item">
+            <div class="info-label">Total Value</div>
+            <div>${formatCurrency((asset.price || asset.purchasePrice) * asset.quantity)}</div>
+        </div>
+        ` : ''}
         ${asset.warranty?.expirationDate || asset.warranty?.isLifetime ? `
         <div class="info-item">
             <div class="info-label">Warranty</div>
