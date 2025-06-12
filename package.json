@@ -1,6 +1,6 @@
 {
   "name": "dumbassets",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Asset tracking application for managing assets and their components",
   "main": "server.js",
   "scripts": {
