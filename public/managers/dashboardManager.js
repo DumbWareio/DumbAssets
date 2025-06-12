@@ -180,6 +180,7 @@ export class DashboardManager {
                 expired++;
             } else if (diff <= 30) {
                 within30++;
+                active++;
             } else if (diff <= 60) {
                 within60++;
                 active++;
