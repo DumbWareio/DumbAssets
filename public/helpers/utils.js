@@ -31,8 +31,8 @@ export function formatDate(dateString, forSearch = false) {
 }
 
 export function formatCurrency(amount, forSearch = false) {
-    if (amount === null || amount === undefined) return 'N/A';
-    else if (!amount && !forSearch) return '';
+    if ((amount === null || amount === undefined) && !forSearch) return 'N/A';
+    else if (amount === null || amount === undefined) return '';
     
     // Get currency configuration from global app config
     const currencyCode = window.appConfig?.currency?.code || 'USD';

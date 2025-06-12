@@ -196,7 +196,9 @@ export class MaintenanceManager {
                 const typeSelect = eventElement.querySelector('[name="eventType"]');
                 if (typeSelect) {
                     typeSelect.addEventListener('change', (e) => this.handleEventTypeChange(e.target));
+                    this.handleEventTypeChange(typeSelect);
                 }
+
             }
         });
 
@@ -216,14 +218,14 @@ export class MaintenanceManager {
         const eventElement = select.closest('.maintenance-event');
         if (!eventElement) return;
 
-        const frequencyFields = eventElement.querySelector('.frequency-fields');
+        const frequencyFields = eventElement.querySelectorAll('.frequency-fields');
         const specificDateFields = eventElement.querySelector('.specific-date-fields');
 
         if (select.value === 'frequency') {
-            frequencyFields.style.display = 'flex';
+            frequencyFields.forEach(field => field.style.display = 'flex');
             specificDateFields.style.display = 'none';
         } else {
-            frequencyFields.style.display = 'none';
+            frequencyFields.forEach(field => field.style.display = 'none');
             specificDateFields.style.display = 'flex';
         }
 
