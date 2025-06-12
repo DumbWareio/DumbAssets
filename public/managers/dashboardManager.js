@@ -910,29 +910,30 @@ export class DashboardManager {
             return events;
         }
         
-                 // Determine the end limit for event generation
-         let endLimit = null;
-         const maxEvents = 100; // Safety limit to prevent infinite loops
-         let eventCount = 0;
-         
-         if (monthsAhead === 'all') {
+        // Determine the end limit for event generation
+        let endLimit = null;
+        let maxEvents = 100 * 31 * (isNaN(monthsAhead) ? 12 : monthsAhead); // Safety limit to prevent infinite loops
+        let eventCount = 0;
+        
+        if (monthsAhead === 'all') {
             // For "all", generate events for the next 5 years to avoid infinite generation
             endLimit = new Date(now);
             endLimit.setFullYear(now.getFullYear() + 5);
-                 } else if (monthsAhead === 'past') {
-             // For past events, we need to generate ALL occurrences from the nextDueDate up to today
-             // This includes both past and current/overdue events
-             endLimit = new Date(now);
-             endLimit.setHours(23, 59, 59, 999); // Include events due today
-             
-             // Generate all occurrences from nextDueDate forward until today
-             while (currentDate <= endLimit && eventCount < maxEvents) {
-                 events.push(new Date(currentDate));
-                 currentDate = this.addTimePeriod(currentDate, numericFrequency, frequencyUnit);
-                 if (!currentDate) break; // Safety check
-                 eventCount++;
-             }
-             return events;
+            maxEvents = 100 * 365 * 5; // Up to 5 years worth of monthly events - 100 events per day
+        } else if (monthsAhead === 'past') {
+            // For past events, we need to generate ALL occurrences from the nextDueDate up to today
+            // This includes both past and current/overdue events
+            endLimit = new Date(now);
+            endLimit.setHours(23, 59, 59, 999); // Include events due today
+            
+            // Generate all occurrences from nextDueDate forward until today
+            while (currentDate <= endLimit && eventCount < maxEvents) {
+                events.push(new Date(currentDate));
+                currentDate = this.addTimePeriod(currentDate, numericFrequency, frequencyUnit);
+                if (!currentDate) break; // Safety check
+                eventCount++;
+            }
+            return events;
         } else if (monthsAhead === 'specific' && futureLimit && futureLimit.isSpecific) {
             // For specific date, check if any recurring events fall on that date
             const targetStart = futureLimit.start;

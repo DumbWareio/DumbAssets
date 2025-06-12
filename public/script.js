@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let settingsManager;
     let modalManager;
     let dashboardManager;
-    const chartManager = new ChartManager();
+    const chartManager = new ChartManager({formatDate});
 
     // Acts as constructor for the app
     // will be called at the very end of the file

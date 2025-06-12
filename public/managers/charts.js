@@ -1,12 +1,10 @@
 /**
  * Chart Manager class for handling chart creation and updates
  */
-import { formatDate } from '../helpers/utils.js';
 
 export class ChartManager {
-    constructor(settingsManager) {
+    constructor({formatDate}) {
         this.charts = new Map();
-        this.settingsManager = settingsManager;
         this.formatDate = formatDate;
     }
 
