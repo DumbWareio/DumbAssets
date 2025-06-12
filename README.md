@@ -3,13 +3,9 @@ A stupid simple asset tracker for keeping track of your physical assets, their c
 
 <p align="center">
   <img src="https://img.shields.io/github/package-json/v/dumbwareio/dumbassets" alt="GitHub package.json version" />
-  <a href="https://hub.docker.com/r/dumbwareio/dumbassets">
-    <img src="https://img.shields.io/docker/v/dumbwareio/dumbassets?logo=docker&label=Docker" alt="Docker Image Version" />
-  </a>
+  <a href="https://hub.docker.com/r/dumbwareio/dumbassets" target="_blank"><img src="https://img.shields.io/docker/v/dumbwareio/dumbassets?logo=docker&label=Docker" alt="Docker Image Version" /></a>
   <img src="https://img.shields.io/docker/pulls/dumbwareio/dumbassets" alt="Docker Pulls" />
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License" />
-  </a>
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License" />
   <img src="https://img.shields.io/github/actions/workflow/status/dumbwareio/dumbassets/docker-publish.yml" alt="GitHub Actions Workflow Status" />
   <a href="https://dumbassets.dumbware.io/" target="_blank">
     <img alt="Static Badge" src="https://img.shields.io/badge/demo-site?label=dumbassets" />
