@@ -171,6 +171,10 @@
                             <input type="number" id="assetPrice" name="price" step="0.01" min="0">
                         </div>
                         <div class="form-group">
+                            <label for="assetQuantity">Quantity</label>
+                            <input type="number" id="assetQuantity" name="quantity" min="1" value="1">
+                        </div>
+                        <div class="form-group">
                             <label for="assetWarrantyScope">Warranty Scope</label>
                             <input type="text" id="assetWarrantyScope" name="warrantyScope">
                         </div>
@@ -360,6 +364,11 @@
                         </div>
                         
                         <div class="form-group">
+                            <label for="subAssetQuantity">Quantity</label>
+                            <input type="number" id="subAssetQuantity" name="quantity" min="1" value="1">
+                        </div>
+                        
+                        <div class="form-group">
                             <label for="subAssetLink">Link</label>
                             <input type="url" id="subAssetLink" name="link">
                         </div>
@@ -535,6 +544,10 @@
                                     <div class="mapping-row">
                                         <label>Purchase Price:</label>
                                         <select id="purchasePriceColumn" class="column-select"></select>
+                                    </div>
+                                    <div class="mapping-row">
+                                        <label>Quantity:</label>
+                                        <select id="quantityColumn" class="column-select"></select>
                                     </div>
                                     <div class="mapping-row">
                                         <label>Notes:</label>

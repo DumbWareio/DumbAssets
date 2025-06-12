@@ -146,7 +146,8 @@ export class ImportManager {
             const warrantyExpirationColumn = document.getElementById('warrantyExpirationColumn');
             const lifetimeColumn = document.getElementById('lifetimeColumn');
             const tagsColumn = document.getElementById('tagsColumn');
-            [urlColumn, warrantyColumn, warrantyExpirationColumn, lifetimeColumn, tagsColumn].forEach(select => {
+            const quantityColumn = document.getElementById('quantityColumn');
+            [urlColumn, warrantyColumn, warrantyExpirationColumn, lifetimeColumn, tagsColumn, quantityColumn].forEach(select => {
                 if (!select) return;
                 select.innerHTML = '<option value="">Select Column</option>';
                 headers.forEach((header, index) => {
@@ -194,7 +195,8 @@ export class ImportManager {
             lifetime: document.getElementById('lifetimeColumn').value,
             secondaryWarranty: document.getElementById('secondaryWarrantyColumn') ? document.getElementById('secondaryWarrantyColumn').value : '',
             secondaryWarrantyExpiration: document.getElementById('secondaryWarrantyExpirationColumn') ? document.getElementById('secondaryWarrantyExpirationColumn').value : '',
-            tags: document.getElementById('tagsColumn') ? document.getElementById('tagsColumn').value : ''
+            tags: document.getElementById('tagsColumn') ? document.getElementById('tagsColumn').value : '',
+            quantity: document.getElementById('quantityColumn') ? document.getElementById('quantityColumn').value : ''
         };
         if (!mappings.name) {
             globalThis.toaster.show('Please map the Name column', 'error');
@@ -286,7 +288,8 @@ export class ImportManager {
             lifetimeColumn: ["lifetime", "lifetime warranty", "is lifetime", "islifetime", "permanent"],
             secondaryWarrantyColumn: ["secondary warranty", "secondary warranty scope", "warranty 2", "warranty2", "warranty scope 2"],
             secondaryWarrantyExpirationColumn: ["secondary warranty expiration", "secondary warranty expiry", "secondary warranty end", "secondary warranty end date", "warranty 2 expiration", "warranty2 expiration", "warranty expiration 2", "warranty expiry 2"],
-            tagsColumn: ["tags", "tag", "labels", "categories"]
+            tagsColumn: ["tags", "tag", "labels", "categories"],
+            quantityColumn: ["quantity", "qty"]
         };
         function normalize(str) {
             return str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -342,7 +345,8 @@ export class ImportManager {
             'lifetimeColumn',
             'secondaryWarrantyColumn',
             'secondaryWarrantyExpirationColumn',
-            'tagsColumn'
+            'tagsColumn',
+            'quantityColumn'
         ];
         columnIds.forEach(id => {
             const select = document.getElementById(id);
@@ -373,7 +377,8 @@ export class ImportManager {
             'Lifetime',
             'Secondary Warranty',
             'Secondary Warranty Expiration',
-            'Tags'
+            'Tags',
+            'Quantity'
         ];
         // Generate test data row
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -383,6 +388,7 @@ export class ImportManager {
             if (lower === 'url') return 'https://example.com';
             if (lower === 'tags') return '"tag1,tag2,tag3"'; // CSV string for tags
             if (lower === 'purchase price') return '123.45';
+            if (lower === 'quantity') return '1'; // Default quantity
             if (lower === 'lifetime') return 'false'; // Boolean value for lifetime warranty
             return `Test ${h}`;
         });

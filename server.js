@@ -622,13 +622,27 @@ if (!fs.existsSync(subAssetsFilePath)) {
 // Get all assets
 app.get('/api/assets', (req, res) => {
     const assets = readJsonFile(assetsFilePath);
-    res.json(assets);
+    
+    // Ensure backwards compatibility for quantity field
+    const assetsWithQuantity = assets.map(asset => ({
+        ...asset,
+        quantity: asset.quantity || 1
+    }));
+    
+    res.json(assetsWithQuantity);
 });
 
 // Get all sub-assets
 app.get('/api/subassets', (req, res) => {
     const subAssets = readJsonFile(subAssetsFilePath);
-    res.json(subAssets);
+    
+    // Ensure backwards compatibility for quantity field
+    const subAssetsWithQuantity = subAssets.map(subAsset => ({
+        ...subAsset,
+        quantity: subAsset.quantity || 1
+    }));
+    
+    res.json(subAssetsWithQuantity);
 });
 
 // Create a new asset
@@ -638,6 +652,11 @@ app.post('/api/asset', async (req, res) => {
 
     // Ensure maintenanceEvents is always present (even if empty)
     newAsset.maintenanceEvents = newAsset.maintenanceEvents || [];
+    
+    // Ensure quantity is present for backwards compatibility
+    if (typeof newAsset.quantity === 'undefined' || newAsset.quantity === null) {
+        newAsset.quantity = 1;
+    }
     
     // Ensure required fields
     if (!newAsset.name) {
@@ -712,6 +731,11 @@ app.put('/api/assets/:id', async (req, res) => {
         }
 
         const existingAsset = assets[assetIndex];
+
+        // Ensure quantity is present for backwards compatibility
+        if (typeof updatedAssetData.quantity === 'undefined' || updatedAssetData.quantity === null) {
+            updatedAssetData.quantity = existingAsset.quantity || 1;
+        }
 
         if (updatedAssetData.filesToDelete && updatedAssetData.filesToDelete.length > 0) {
             await deleteAssetFiles(updatedAssetData.filesToDelete);
@@ -845,6 +869,11 @@ app.post('/api/subasset', async (req, res) => {
     // Ensure maintenanceEvents is always present (even if empty)
     newSubAsset.maintenanceEvents = newSubAsset.maintenanceEvents || [];
     
+    // Ensure quantity is present for backwards compatibility
+    if (typeof newSubAsset.quantity === 'undefined' || newSubAsset.quantity === null) {
+        newSubAsset.quantity = 1;
+    }
+    
     // Ensure required fields
     if (!newSubAsset.name || !newSubAsset.parentId) {
         return res.status(400).json({ error: 'Sub-asset name and parent ID are required' });
@@ -919,6 +948,11 @@ app.put('/api/subassets/:id', async (req, res) => {
         }
 
         const existingSubAsset = subAssets[subAssetIndex];
+
+        // Ensure quantity is present for backwards compatibility
+        if (typeof updatedSubAssetData.quantity === 'undefined' || updatedSubAssetData.quantity === null) {
+            updatedSubAssetData.quantity = existingSubAsset.quantity || 1;
+        }
 
         if (updatedSubAssetData.filesToDelete && updatedSubAssetData.filesToDelete.length > 0) {
             await deleteAssetFiles(updatedSubAssetData.filesToDelete);
@@ -1285,6 +1319,7 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
                 serialNumber: get('serial'),
                 purchaseDate: parseExcelDate(get('purchaseDate')),
                 price: get('purchasePrice'),
+                quantity: parseInt(get('quantity')) || 1,
                 description: get('notes'),
                 link: get('url'),
                 warranty: {
