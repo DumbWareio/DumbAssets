@@ -1,11 +1,13 @@
 /**
  * Chart Manager class for handling chart creation and updates
  */
+import { formatDate } from '../helpers/utils.js';
 
 export class ChartManager {
     constructor(settingsManager) {
         this.charts = new Map();
         this.settingsManager = settingsManager;
+        this.formatDate = formatDate;
     }
 
     /**
@@ -256,11 +258,18 @@ export class ChartManager {
         // Count maintenance events per month
         const maintenanceMonthData = new Array(6).fill(0);
         maintenanceEvents.forEach(ev => {
-            // console.log('Processing event:', ev.date, ev.name);
+            // Ensure ev.date is a Date object
+            const eventDate = new Date(this.formatDate(ev.date));
+            if (isNaN(eventDate)) {
+                console.warn(`Invalid date for event:`, ev);
+                return;
+            }
+            
+            // console.log('Processing event:', eventDate, ev.name);
             for (let i = 0; i < 6; i++) {
                 const start = new Date(now.getFullYear(), now.getMonth() + i, 1);
                 const end = new Date(now.getFullYear(), now.getMonth() + i + 1, 0, 23, 59, 59, 999);
-                if (ev.date >= start && ev.date <= end) {
+                if (eventDate >= start && eventDate <= end) {
                     maintenanceMonthData[i]++;
                     // console.log(`Event on ${ev.date} falls in month ${i} (${months[i]})`);
                     break;
