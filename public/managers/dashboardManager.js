@@ -147,8 +147,16 @@ export class DashboardManager {
         const totalComponents = totalSubAssets;
         
         // Calculate total value including sub-assets
-        const totalAssetsValue = assets.reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
-        const totalSubAssetsValue = subAssets.reduce((sum, sa) => sum + (parseFloat(sa.purchasePrice) || 0), 0);
+        const totalAssetsValue = assets.reduce((sum, a) => {
+            const price = parseFloat(a.price) || 0;
+            const quantity = a.quantity || 1;
+            return sum + (price * quantity);
+        }, 0);
+        const totalSubAssetsValue = subAssets.reduce((sum, sa) => {
+            const price = parseFloat(sa.purchasePrice) || 0;
+            const quantity = sa.quantity || 1;
+            return sum + (price * quantity);
+        }, 0);
         const totalValue = totalAssetsValue + totalSubAssetsValue;
         
         
