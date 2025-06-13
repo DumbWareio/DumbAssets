@@ -24,6 +24,7 @@ const { originValidationMiddleware, getCorsOptions } = require('./middleware/cor
 const { demoModeMiddleware } = require('./middleware/demo');
 const { sanitizeFileName } = require('./src/services/fileUpload/utils');
 const packageJson = require('./package.json');
+const { TOKENMASK } = require('./src/constants');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -442,7 +443,8 @@ app.use(BASE_PATH + '/styles.css', express.static('public/styles.css'));
 app.use(BASE_PATH + '/script.js', express.static('public/script.js'));
 
 // Module files (need to be accessible for imports)
-app.use(BASE_PATH + '/src/services', express.static('src/services'));
+app.use(BASE_PATH + '/src', express.static('src'));
+// app.use(BASE_PATH + '/src/services', express.static('src/services'));
 // app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
 // app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
 
@@ -1289,6 +1291,49 @@ function getAppSettings() {
     return config;
 }
 
+// Use before sending settings to frontend
+function stripIntegrationTokens(appSettings) {
+    const sanitizedSettings = { ...appSettings };
+        
+    // Replace API tokens with placeholder if they exist
+    if (sanitizedSettings.integrationSettings?.paperless?.apiToken) {
+        sanitizedSettings.integrationSettings.paperless.apiToken = TOKENMASK;
+    }
+
+    // Add more integrations here as needed
+
+    return sanitizedSettings;
+}
+
+// Validate and Handle sensitive data preservation
+function applyIntegrationSettings(serverConfig, updatedConfig) {
+    if (updatedConfig.integrationSettings?.paperless) {
+        const requestHostUrl = updatedConfig.integrationSettings.paperless.hostUrl.trim() || '';
+        const requestToken = updatedConfig.integrationSettings.paperless.apiToken.trim() || '';
+        if (requestToken === TOKENMASK) {
+            if (serverConfig.integrationSettings?.paperless?.apiToken) {
+                // If the API token is the placeholder, keep the existing token
+                updatedConfig.integrationSettings.paperless.apiToken = serverConfig.integrationSettings.paperless.apiToken;
+            } else {
+                // If there's no existing token, remove the placeholder
+                updatedConfig.integrationSettings.paperless.apiToken = '';
+            }
+        }
+        if (requestHostUrl) {
+            if (!/^https?:\/\//i.test(requestHostUrl)) { // ensure host URL is a valid url
+                throw new Error('Invalid Paperless Host URL');
+            }
+            updatedConfig.integrationSettings.paperless.hostUrl = requestHostUrl.endsWith('/') 
+                ? requestHostUrl.slice(0, -1) 
+                : requestHostUrl;
+        }
+        
+    }
+    // Add more validation for other integrations here
+
+    return updatedConfig;
+}
+
 // Import assets route
 app.post('/api/import-assets', upload.single('file'), (req, res) => {
     try {
@@ -1375,12 +1420,7 @@ app.get('/api/settings', (req, res) => {
         const appSettings = getAppSettings();
         
         // Sanitize sensitive data before sending to frontend
-        const sanitizedSettings = { ...appSettings };
-        
-        // Replace API tokens with placeholder if they exist
-        if (sanitizedSettings.integrationSettings?.paperless?.apiToken) {
-            sanitizedSettings.integrationSettings.paperless.apiToken = '*********************';
-        }
+        const sanitizedSettings = stripIntegrationTokens(appSettings);
         
         res.json(sanitizedSettings);
     } catch (err) {
@@ -1393,17 +1433,13 @@ app.post('/api/settings', (req, res) => {
     try {
         const config = getAppSettings();
         // Update settings with the new values
-        const updatedConfig = { ...config, ...req.body };
+        let updatedConfig = { ...config, ...req.body };
 
-        // Handle sensitive data preservation
-        // If the API token is the placeholder, keep the existing token
-        if (updatedConfig.integrationSettings?.paperless?.apiToken === '*********************') {
-            if (config.integrationSettings?.paperless?.apiToken) {
-                updatedConfig.integrationSettings.paperless.apiToken = config.integrationSettings.paperless.apiToken;
-            } else {
-                // If there's no existing token, remove the placeholder
-                updatedConfig.integrationSettings.paperless.apiToken = '';
-            }
+        try {
+            updatedConfig = applyIntegrationSettings(config, updatedConfig);
+        }
+        catch (error) {
+            return res.status(400).json({ error: error.message });
         }
 
         const configPath = path.join(DATA_DIR, 'config.json');
@@ -1428,7 +1464,7 @@ app.post('/api/paperless/test-connection', async (req, res) => {
         let tokenToUse = apiToken;
         
         // If no token provided or it's the placeholder, try to use saved token
-        if (!apiToken || apiToken === '*********************') {
+        if (!apiToken || apiToken === TOKENMASK) {
             const config = getAppSettings();
             const savedToken = config.integrationSettings?.paperless?.apiToken;
             
