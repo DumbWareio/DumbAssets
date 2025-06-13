@@ -266,7 +266,7 @@ function generateFileGridHTML(asset) {
             const fileName = photoInfo.originalName || photoPath.split('/').pop();
             const paperlessClass = photoInfo.isPaperlessDocument ? ' paperless-document' : '';
             const paperlessBadge = photoInfo.isPaperlessDocument ? 
-                '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
+                '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
             html += `
                 <div class="file-item photo${paperlessClass}">
                     <a href="${formatFilePath(photoPath)}" target="_blank" class="file-preview">
@@ -283,7 +283,7 @@ function generateFileGridHTML(asset) {
         const fileName = photoInfo.originalName || asset.photoPath.split('/').pop();
         const paperlessClass = photoInfo.isPaperlessDocument ? ' paperless-document' : '';
         const paperlessBadge = photoInfo.isPaperlessDocument ? 
-            '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
+            '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
         html += `
             <div class="file-item photo${paperlessClass}">
                 <a href="${formatFilePath(asset.photoPath)}" target="_blank" class="file-preview">
@@ -302,7 +302,7 @@ function generateFileGridHTML(asset) {
             const fileName = receiptInfo.originalName || receiptPath.split('/').pop();
             const paperlessClass = receiptInfo.isPaperlessDocument ? ' paperless-document' : '';
             const paperlessBadge = receiptInfo.isPaperlessDocument ? 
-                '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
+                '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
             html += `
                 <div class="file-item receipt${paperlessClass}">
                     <a href="${formatFilePath(receiptPath)}" target="_blank" class="file-preview">
@@ -322,7 +322,7 @@ function generateFileGridHTML(asset) {
         const fileName = receiptInfo.originalName || asset.receiptPath.split('/').pop();
         const paperlessClass = receiptInfo.isPaperlessDocument ? ' paperless-document' : '';
         const paperlessBadge = receiptInfo.isPaperlessDocument ? 
-            '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
+            '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
         html += `
             <div class="file-item receipt${paperlessClass}">
                 <a href="${formatFilePath(asset.receiptPath)}" target="_blank" class="file-preview">
@@ -344,7 +344,7 @@ function generateFileGridHTML(asset) {
             const fileName = manualInfo.originalName || manualPath.split('/').pop();
             const paperlessClass = manualInfo.isPaperlessDocument ? ' paperless-document' : '';
             const paperlessBadge = manualInfo.isPaperlessDocument ? 
-                '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
+                '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
             html += `
                 <div class="file-item manual${paperlessClass}">
                     <a href="${formatFilePath(manualPath)}" target="_blank" class="file-preview">
@@ -367,7 +367,7 @@ function generateFileGridHTML(asset) {
         const fileName = manualInfo.originalName || asset.manualPath.split('/').pop();
         const paperlessClass = manualInfo.isPaperlessDocument ? ' paperless-document' : '';
         const paperlessBadge = manualInfo.isPaperlessDocument ? 
-            '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
+            '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>' : '';
         html += `
             <div class="file-item manual${paperlessClass}">
                 <a href="${formatFilePath(asset.manualPath)}" target="_blank" class="file-preview">
