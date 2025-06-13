@@ -100,6 +100,36 @@ async function notifyClients() {
     }
 }
 
+const preload = async () => {
+    console.log("Preparing to install web app cache");
+    
+    // Check cache status
+    const { currentCacheExists, existingVersion } = await checkCacheVersion();
+    
+    // If current version cache already exists, no need to reinstall
+    if (currentCacheExists) {
+        console.log(`Cache ${CACHE_NAME} already exists, using existing cache`);
+        await notifyClients(); // Still check if we need to notify about updates
+        return;
+    }
+    
+    // If we have an older version, clean old caches and notify clients
+    if (existingVersion && existingVersion !== APP_VERSION) {
+        console.log(`New version ${APP_VERSION} available (current: ${existingVersion})`);
+        
+        // Clean up any old caches to prevent reload loops
+        await cleanOldCaches();
+        
+        await notifyClients();
+        return;
+    }
+    
+    // If no cache exists at all, do initial installation
+    if (!existingVersion) {
+        await installCache();
+    }
+};
+
 // Function to install or update the cache
 async function installCache() {
     console.log(`Installing/updating cache to version ${APP_VERSION}`);
@@ -155,6 +185,7 @@ self.addEventListener("install", (event) => {
     
     event.waitUntil(
         Promise.all([
+            preload(), // Preload assets and install cache
             self.skipWaiting() // Skip waiting to allow new service worker to activate immediately
         ])
     );
