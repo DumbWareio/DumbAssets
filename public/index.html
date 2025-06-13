@@ -262,20 +262,29 @@
                             <div class="collapsible-content">
                                 <div class="form-group">
                                     <label for="assetPhoto">Photo</label>
-                                    <div class="file-upload-grid">
-                                        <div class="file-upload-box" data-target="assetPhoto">
-                                            <input type="file" id="assetPhoto" accept="image/*" class="file-input" multiple>
-                                            <div class="upload-content">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                    <polyline points="17 8 12 3 7 8"/>
-                                                    <line x1="12" y1="3" x2="12" y2="15"/>
-                                                </svg>
-                                                <span>Drag & drop or click to upload photos</span>
+                                                                            <div class="file-upload-grid">
+                                            <div class="file-upload-box" data-target="assetPhoto">
+                                                <input type="file" id="assetPhoto" accept="image/*" class="file-input" multiple>
+                                                <div class="upload-content">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                        <polyline points="17 8 12 3 7 8"/>
+                                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                                    </svg>
+                                                    <span>Drag & drop or click to upload photos</span>
+                                                </div>
                                             </div>
+                                            <div id="photoPreview" class="preview-grid"></div>
                                         </div>
-                                        <div id="photoPreview" class="preview-grid"></div>
-                                    </div>
+                                        <div style="margin-top: 0.75rem;">
+                                            <button type="button" id="searchPaperlessPhotos" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
+                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                                                    <circle cx="11" cy="11" r="8"/>
+                                                    <path d="m21 21-4.35-4.35"/>
+                                                </svg>
+                                                Search Paperless Documents
+                                            </button>
+                                        </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="assetReceipt">Receipt</label>
@@ -292,6 +301,15 @@
                                         </div>
                                         <div id="receiptPreview" class="preview-grid"></div>
                                     </div>
+                                    <div style="margin-top: 0.75rem;">
+                                        <button type="button" id="searchPaperlessReceipts" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            Search Paperless Documents
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="assetManual">Manual</label>
@@ -307,6 +325,15 @@
                                             </div>
                                         </div>
                                         <div id="manualPreview" class="preview-grid"></div>
+                                    </div>
+                                    <div style="margin-top: 0.75rem;">
+                                        <button type="button" id="searchPaperlessManuals" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            Search Paperless Documents
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -459,6 +486,15 @@
                                         </div>
                                         <div id="subPhotoPreview" class="preview-grid"></div>
                                     </div>
+                                    <div style="margin-top: 0.75rem;">
+                                        <button type="button" id="searchPaperlessSubPhotos" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            Search Paperless Documents
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="subAssetReceipt">Receipt</label>
@@ -475,6 +511,15 @@
                                         </div>
                                         <div id="subReceiptPreview" class="preview-grid"></div>
                                     </div>
+                                    <div style="margin-top: 0.75rem;">
+                                        <button type="button" id="searchPaperlessSubReceipts" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            Search Paperless Documents
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="subAssetManual">Manual</label>
@@ -490,6 +535,15 @@
                                             </div>
                                         </div>
                                         <div id="subManualPreview" class="preview-grid"></div>
+                                    </div>
+                                    <div style="margin-top: 0.75rem;">
+                                        <button type="button" id="searchPaperlessSubManuals" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            Search Paperless Documents
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -906,6 +960,39 @@
                                                         </button>
                                                     </div>
                                                 </div>
+                                        </fieldset>
+                                        
+                                        <fieldset>
+                                            <legend>Integrations</legend>
+                                            <div class="integrations-section">
+                                                <h4 style="margin: 0 0 1rem 0; color: var(--primary-color); font-size: 1rem;">Paperless NGX</h4>
+                                                <div class="settings-grid">
+                                                    <div class="toggle-row">
+                                                        <span>Enable Paperless Integration</span>
+                                                        <label class="toggle-switch">
+                                                            <input type="checkbox" id="paperlessEnabled">
+                                                            <span class="slider"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div id="paperlessConfig" class="integration-config" style="margin-top: 1rem;">
+                                                    <div class="form-group" style="margin-bottom: 1rem;">
+                                                        <label for="paperlessHost" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Paperless Host URL</label>
+                                                        <input type="url" id="paperlessHost" placeholder="https://paperless.example.com" style="width: 100%; padding: 0.5rem; border: var(--app-border); border-radius: var(--app-border-radius); background: var(--background-color); color: var(--text-color);">
+                                                    </div>
+                                                    <div class="form-group" style="margin-bottom: 1rem;">
+                                                        <label for="paperlessToken" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">API Token</label>
+                                                        <input type="password" id="paperlessToken" placeholder="Enter your Paperless API token" style="width: 100%; padding: 0.5rem; border: var(--app-border); border-radius: var(--app-border-radius); background: var(--background-color); color: var(--text-color);">
+                                                    </div>
+                                                    <div class="form-group" style="display: flex; align-items: center; gap: 1rem;">
+                                                        <button type="button" id="testPaperlessConnection" class="action-button" style="background: var(--success-color);">
+                                                            Test Connection
+                                                            <div class="spinner"></div>
+                                                        </button>
+                                                        <span id="paperlessConnectionStatus" class="connection-status"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </fieldset>
                                     </form>
                                 </div>

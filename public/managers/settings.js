@@ -83,6 +83,17 @@ export class SettingsManager {
             exportSimpleDataBtn.addEventListener('click', () => this._exportSimpleData());
         }
         
+        // Paperless integration
+        const testPaperlessConnection = document.getElementById('testPaperlessConnection');
+        if (testPaperlessConnection) {
+            testPaperlessConnection.addEventListener('click', () => this._testPaperlessConnection());
+        }
+        
+        const paperlessEnabled = document.getElementById('paperlessEnabled');
+        if (paperlessEnabled) {
+            paperlessEnabled.addEventListener('change', (e) => this._togglePaperlessConfig(e.target.checked));
+        }
+        
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tabId = btn.getAttribute('data-tab');
@@ -207,6 +218,17 @@ export class SettingsManager {
             document.getElementById('toggleWarranties').checked = finalVisibility.warranties;
             document.getElementById('toggleAnalytics').checked = finalVisibility.analytics;
             document.getElementById('toggleEvents').checked = finalVisibility.events;
+            
+            // Paperless integration settings
+            const integrationSettings = settings.integrationSettings || {};
+            const paperlessSettings = integrationSettings.paperless || {};
+            
+            document.getElementById('paperlessEnabled').checked = paperlessSettings.enabled || false;
+            document.getElementById('paperlessHost').value = paperlessSettings.hostUrl || '';
+            document.getElementById('paperlessToken').value = paperlessSettings.apiToken || '';
+            
+            this._togglePaperlessConfig(paperlessSettings.enabled || false);
+            
             // Card visibility toggles
             if (typeof window.renderCardVisibilityToggles === 'function') {
                 window.renderCardVisibilityToggles(settings);
@@ -258,6 +280,13 @@ export class SettingsManager {
                     within30: document.getElementById('toggleCardWarrantiesWithin30')?.checked !== false,
                     expired: document.getElementById('toggleCardWarrantiesExpired')?.checked !== false,
                     active: document.getElementById('toggleCardWarrantiesActive')?.checked !== false
+                }
+            },
+            integrationSettings: {
+                paperless: {
+                    enabled: document.getElementById('paperlessEnabled')?.checked || false,
+                    hostUrl: document.getElementById('paperlessHost')?.value || '',
+                    apiToken: document.getElementById('paperlessToken')?.value || ''
                 }
             }
         };
@@ -817,5 +846,57 @@ export class SettingsManager {
         
         // Convert to CSV string
         return rows.map(row => row.join(',')).join('\n');
+    }
+
+    _togglePaperlessConfig(enabled) {
+        const configDiv = document.getElementById('paperlessConfig');
+        if (configDiv) {
+            configDiv.style.display = enabled ? 'block' : 'none';
+        }
+    }
+
+    async _testPaperlessConnection() {
+        const testBtn = document.getElementById('testPaperlessConnection');
+        const statusSpan = document.getElementById('paperlessConnectionStatus');
+        const hostUrl = document.getElementById('paperlessHost').value;
+        const apiToken = document.getElementById('paperlessToken').value;
+
+        if (!hostUrl || !apiToken) {
+            statusSpan.textContent = 'Please enter both host URL and API token';
+            statusSpan.className = 'connection-status error';
+            return;
+        }
+
+        this.setButtonLoading(testBtn, true);
+        statusSpan.textContent = 'Testing connection...';
+        statusSpan.className = 'connection-status testing';
+
+        try {
+            const response = await fetch('/api/paperless/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hostUrl, apiToken }),
+                credentials: 'include'
+            });
+
+            const responseValidation = await globalThis.validateResponse(response);
+            if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
+
+            const result = await response.json();
+            
+            if (result.success) {
+                statusSpan.textContent = `✓ Connected successfully (${result.documentsCount} documents available)`;
+                statusSpan.className = 'connection-status success';
+                globalThis.toaster.show('Paperless connection successful!', 'success');
+            } else {
+                throw new Error(result.error || 'Connection failed');
+            }
+        } catch (error) {
+            statusSpan.textContent = `✗ Connection failed: ${error.message}`;
+            statusSpan.className = 'connection-status error';
+            globalThis.logError('Paperless connection test failed:', error.message);
+        } finally {
+            this.setButtonLoading(testBtn, false);
+        }
     }
 }

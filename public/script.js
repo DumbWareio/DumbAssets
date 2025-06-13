@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Acts as constructor for the app
     // will be called at the very end of the file
-    function initialize() {
+    async function initialize() {
         // Display demo banner if in demo mode
         if (window.appConfig?.demoMode) {
             document.getElementById('demo-banner').style.display = 'block';
@@ -293,7 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Global state
             getAssets: () => assets,
-            getSubAssets: () => subAssets
+            getSubAssets: () => subAssets,
+            
+            // Paperless integration
+            paperlessManager
         });
 
         // Initialize SettingsManager after DashboardManager is ready
@@ -327,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addElementEventListeners();
         setupDragIcons();
         addShortcutEventListeners();
+        setupPaperlessEventListeners(paperlessManager);
 
         registerServiceWorker();
     }
@@ -1918,6 +1922,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 pageTitleElem.textContent = window.appConfig.siteTitle || 'DumbAssets';
             }
             siteTitleElem.addEventListener('click', () => goHome());
+        }
+    }
+
+    function setupPaperlessEventListeners(paperlessManager) {
+        // Asset modal search buttons
+        const searchPaperlessPhotos = document.getElementById('searchPaperlessPhotos');
+        const searchPaperlessReceipts = document.getElementById('searchPaperlessReceipts');
+        const searchPaperlessManuals = document.getElementById('searchPaperlessManuals');
+
+        // Sub-asset modal search buttons
+        const searchPaperlessSubPhotos = document.getElementById('searchPaperlessSubPhotos');
+        const searchPaperlessSubReceipts = document.getElementById('searchPaperlessSubReceipts');
+        const searchPaperlessSubManuals = document.getElementById('searchPaperlessSubManuals');
+
+        // Asset modal handlers
+        if (searchPaperlessPhotos) {
+            searchPaperlessPhotos.addEventListener('click', () => {
+                paperlessManager.openSearchModal((attachment) => {
+                    return modalManager.attachPaperlessDocument(attachment, 'photo', false);
+                });
+            });
+        }
+
+        if (searchPaperlessReceipts) {
+            searchPaperlessReceipts.addEventListener('click', () => {
+                paperlessManager.openSearchModal((attachment) => {
+                    return modalManager.attachPaperlessDocument(attachment, 'receipt', false);
+                });
+            });
+        }
+
+        if (searchPaperlessManuals) {
+            searchPaperlessManuals.addEventListener('click', () => {
+                paperlessManager.openSearchModal((attachment) => {
+                    return modalManager.attachPaperlessDocument(attachment, 'manual', false);
+                });
+            });
+        }
+
+        // Sub-asset modal handlers
+        if (searchPaperlessSubPhotos) {
+            searchPaperlessSubPhotos.addEventListener('click', () => {
+                paperlessManager.openSearchModal((attachment) => {
+                    return modalManager.attachPaperlessDocument(attachment, 'photo', true);
+                });
+            });
+        }
+
+        if (searchPaperlessSubReceipts) {
+            searchPaperlessSubReceipts.addEventListener('click', () => {
+                paperlessManager.openSearchModal((attachment) => {
+                    return modalManager.attachPaperlessDocument(attachment, 'receipt', true);
+                });
+            });
+        }
+
+        if (searchPaperlessSubManuals) {
+            searchPaperlessSubManuals.addEventListener('click', () => {
+                paperlessManager.openSearchModal((attachment) => {
+                    return modalManager.attachPaperlessDocument(attachment, 'manual', true);
+                });
+            });
         }
     }
 });

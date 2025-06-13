@@ -1035,4 +1035,171 @@ export class ModalManager {
             this.duplicationManager.openDuplicateModal(type, itemId);
         }
     }
+
+    /**
+     * Attach a Paperless document to the current asset/sub-asset
+     * @param {Object} attachment - The attachment object from PaperlessManager
+     * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
+     * @param {boolean} isSubAsset - Whether this is for a sub-asset
+     */
+    async attachPaperlessDocument(attachment, attachmentType, isSubAsset) {
+        try {
+            // Generate preview for the Paperless document
+            const previewId = isSubAsset ? 
+                `sub${attachmentType.charAt(0).toUpperCase() + attachmentType.slice(1)}Preview` :
+                `${attachmentType}Preview`;
+            
+            const previewContainer = document.getElementById(previewId);
+            if (!previewContainer) {
+                throw new Error(`Preview container ${previewId} not found`);
+            }
+
+            // Create a preview element for the Paperless document
+            const previewElement = this._createPaperlessPreview(attachment, attachmentType);
+            previewContainer.appendChild(previewElement);
+
+            // Store the attachment data for saving
+            const targetAsset = isSubAsset ? this.currentSubAsset : this.currentAsset;
+            if (!targetAsset) {
+                throw new Error('No asset currently being edited');
+            }
+
+            // Initialize arrays if they don't exist
+            const pathsKey = `${attachmentType}Paths`;
+            const infoKey = `${attachmentType}Info`;
+            
+            if (!targetAsset[pathsKey]) targetAsset[pathsKey] = [];
+            if (!targetAsset[infoKey]) targetAsset[infoKey] = [];
+
+            // Add the Paperless document as a "file"
+            targetAsset[pathsKey].push(attachment.downloadUrl);
+            targetAsset[infoKey].push({
+                originalName: attachment.title,
+                size: attachment.fileSize,
+                isPaperlessDocument: true,
+                paperlessId: attachment.paperlessId,
+                mimeType: attachment.mimeType,
+                attachedAt: attachment.attachedAt
+            });
+
+            console.log(`Attached Paperless document to ${isSubAsset ? 'sub-asset' : 'asset'}:`, {
+                type: attachmentType,
+                title: attachment.title,
+                paperlessId: attachment.paperlessId
+            });
+
+        } catch (error) {
+            globalThis.logError('Failed to attach Paperless document:', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a preview element for a Paperless document
+     * @param {Object} attachment - The attachment object
+     * @param {string} type - The attachment type
+     * @returns {HTMLElement} - The preview element
+     */
+    _createPaperlessPreview(attachment, type) {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'file-preview-item paperless-document';
+        
+        // Determine file type icon
+        let icon = `
+            <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+        `;
+
+        if (attachment.mimeType && attachment.mimeType.startsWith('image/')) {
+            icon = `
+                <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+            `;
+        }
+
+        previewItem.innerHTML = `
+            <div class="file-type-icon">${icon}</div>
+            <div class="file-info">
+                <span class="file-name" title="${this._escapeHtml(attachment.title)}">${this._escapeHtml(attachment.title)}</span>
+                ${attachment.fileSize ? `<span class="file-size">${this.formatFileSize(attachment.fileSize)}</span>` : ''}
+                <span class="file-source">From Paperless NGX</span>
+            </div>
+            <div class="file-actions">
+                <button type="button" class="preview-btn" data-url="${attachment.downloadUrl}" title="Preview/Download">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+                <button type="button" class="delete-file-btn" title="Remove attachment">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        // Add event listeners
+        const previewBtn = previewItem.querySelector('.preview-btn');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', () => {
+                // Use DumbAssets proxy for authenticated download
+                window.open(attachment.downloadUrl, '_blank');
+            });
+        }
+
+        const deleteBtn = previewItem.querySelector('.delete-file-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                this._removePaperlessAttachment(previewItem, attachment, type);
+            });
+        }
+
+        return previewItem;
+    }
+
+    /**
+     * Remove a Paperless document attachment
+     * @param {HTMLElement} previewElement - The preview element to remove
+     * @param {Object} attachment - The attachment object
+     * @param {string} type - The attachment type
+     */
+    _removePaperlessAttachment(previewElement, attachment, type) {
+        const targetAsset = this.currentSubAsset || this.currentAsset;
+        if (!targetAsset) return;
+
+        const pathsKey = `${type}Paths`;
+        const infoKey = `${type}Info`;
+
+        if (targetAsset[pathsKey] && targetAsset[infoKey]) {
+            // Find and remove the attachment
+            const index = targetAsset[pathsKey].indexOf(attachment.downloadUrl);
+            if (index > -1) {
+                targetAsset[pathsKey].splice(index, 1);
+                targetAsset[infoKey].splice(index, 1);
+            }
+        }
+
+        // Remove the preview element
+        previewElement.remove();
+
+        globalThis.toaster.show(`Removed "${attachment.title}" from attachments`, 'success');
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} - Escaped text
+     */
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 }
