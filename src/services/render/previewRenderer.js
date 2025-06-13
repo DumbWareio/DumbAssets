@@ -10,7 +10,7 @@
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
  */
-export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null) {
+export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null, isPaperlessDocument = false) {
     const previewItem = document.createElement('div');
     previewItem.className = 'file-preview-item';
     
@@ -19,12 +19,16 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
         fileName = filePath.split('/').pop();
     }
     
+    const paperlessBadge = isPaperlessDocument ? 
+        '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
+    
     previewItem.innerHTML = `
         <div class="file-preview">
             <div class="preview-content">
                 <img src="${filePath}" alt="Photo Preview">
             </div>
         </div>
+        ${paperlessBadge}
         <button type="button" class="delete-preview-btn" title="Delete Image">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -54,7 +58,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
  */
-export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null) {
+export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null, isPaperlessDocument = false) {
     const previewItem = document.createElement('div');
     previewItem.className = 'file-preview-item';
     
@@ -93,12 +97,16 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
         fileName = filePath.split('/').pop();
     }
     
+    const paperlessBadge = isPaperlessDocument ? 
+        '<div class="paperless-badge"><img src="/assets/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
+    
     previewItem.innerHTML = `
         <div class="file-preview">
             <div class="preview-content">
                 ${fileIcon}
             </div>
         </div>
+        ${paperlessBadge}
         <button type="button" class="delete-preview-btn" title="${title}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -174,8 +182,9 @@ export function setupFilePreview(container, type, displayPath, originalPath, fil
  * @param {Object} modalManager - The instance of the modal manager to update delete flags
  * @param {string} fileName - The name of the file
  * @param {string} fileSize - The size of the file (in bytes)
+ * @param {Object} fileInfo - Additional file information (e.g., isPaperlessDocument)
  */
-export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null) {
+export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null, fileInfo = {}) {
     if (!container || !displayPath || !fileInput) return;
 
     // Extract file name from path if not provided
@@ -217,10 +226,11 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
     let previewElement;
     
     // Create the preview element directly with the server path (not mock file)
+    const isPaperlessDocument = fileInfo.isPaperlessDocument || false;
     if (type === 'photo') {
-        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize);
+        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize, isPaperlessDocument);
     } else {
-        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize);
+        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize, isPaperlessDocument);
     }
     
     // Add the preview to the container
