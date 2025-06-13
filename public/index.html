@@ -964,33 +964,13 @@
                                         
                                         <fieldset>
                                             <legend>Integrations</legend>
-                                            <div class="integrations-section">
-                                                <h4 style="margin: 0 0 1rem 0; color: var(--primary-color); font-size: 1rem;">Paperless NGX</h4>
-                                                <div class="settings-grid">
-                                                    <div class="toggle-row">
-                                                        <span>Enable Paperless Integration</span>
-                                                        <label class="toggle-switch">
-                                                            <input type="checkbox" id="paperlessEnabled">
-                                                            <span class="slider"></span>
-                                                        </label>
-                                                    </div>
+                                            <div id="integrationsContainer" class="integrations-section">
+                                                <!-- Dynamic integration sections will be rendered here -->
+                                                <div id="integrationsLoading" style="text-align: center; padding: 2rem; color: var(--text-color-secondary);">
+                                                    Loading integrations...
                                                 </div>
-                                                <div id="paperlessConfig" class="integration-config" style="margin-top: 1rem;">
-                                                    <div class="form-group" style="margin-bottom: 1rem;">
-                                                        <label for="paperlessHost" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Paperless Host URL</label>
-                                                        <input type="url" id="paperlessHost" placeholder="https://paperless.example.com" style="width: 100%; padding: 0.5rem; border: var(--app-border); border-radius: var(--app-border-radius); background: var(--background-color); color: var(--text-color);">
-                                                    </div>
-                                                    <div class="form-group" style="margin-bottom: 1rem;">
-                                                        <label for="paperlessToken" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">API Token</label>
-                                                        <input type="password" id="paperlessToken" placeholder="Enter your Paperless API token" style="width: 100%; padding: 0.5rem; border: var(--app-border); border-radius: var(--app-border-radius); background: var(--background-color); color: var(--text-color);">
-                                                    </div>
-                                                    <div class="form-group" style="display: flex; align-items: center; gap: 1rem;">
-                                                        <button type="button" id="testPaperlessConnection" class="action-button" style="background: var(--success-color);">
-                                                            Test Connection
-                                                            <div class="spinner"></div>
-                                                        </button>
-                                                        <span id="paperlessConnectionStatus" class="connection-status"></span>
-                                                    </div>
+                                                <div id="integrationsError" style="display: none; text-align: center; padding: 2rem; color: var(--error-color);">
+                                                    Failed to load integrations
                                                 </div>
                                             </div>
                                         </fieldset>

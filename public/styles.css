@@ -12,6 +12,7 @@
   --secondary-color: #64748b;
   --background-color: #ffffff;
   --text-color: #1a1a1a;
+  --text-color-secondary: #64748b;
   --border-color: #e2e8f0;
   --hover-color: #f8fafc;
   --modal-overlay: rgba(0, 0, 0, 0.5);
@@ -35,6 +36,7 @@
   --secondary-color: #94a3b8;
   --background-color: #2d2d2d;
   --text-color: #ffffff;
+  --text-color-secondary: #94a3b8;
   --border-color: #334155;
   --hover-color: #1e293b;
   --link-color: #60a5fa;
@@ -729,7 +731,6 @@ input[type="date"][data-has-value="true"] {
   justify-content: flex-end;
 }
 
-/* Edit and Delete Icon Buttons */
 .asset-actions button,
 .sub-asset-actions button {
   padding: 0.3rem 0.5rem;
@@ -1578,185 +1579,186 @@ input[type="date"][data-has-value="true"] {
 }
 
 /* Integration Settings Styles */
-.integrations-section {
-    margin-top: 0.5rem;
+/* Integration Settings Styles */
+.integration-section {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--app-border-radius);
+  background: var(--container);
 }
 
-.integration-config {
-    padding: 1rem;
-    background: var(--file-label-color);
-    border-radius: var(--app-border-radius);
-    border: 1px solid var(--border-color);
+.integration-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 1rem;
 }
 
-.connection-status {
-    font-size: 0.875rem;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--app-border-radius);
+.integration-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
-.connection-status.success {
-    color: var(--success-color);
-    background: rgba(16, 185, 129, 0.1);
+.integration-description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
 }
 
-.connection-status.error {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+.integration-toggle {
+  margin-left: 1rem;
 }
 
-.connection-status.testing {
-    color: var(--primary-color);
-    background: rgba(37, 99, 235, 0.1);
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  border: none;
+  width: 100%;
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* Paperless Document Styles */
-.paperless-document {
-    position: relative;
+.collapsible-header:hover {
+  background: var(--hover-color);
 }
 
-.paperless-badge {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
+.collapsible-arrow {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  margin-right: 1rem;
+  transition: transform 0.2s ease;
 }
 
-/* Position badge relative to file-preview-item in modals */
-.file-preview-item .paperless-badge {
-    top: 14px;
-    left: 8px;
+.collapsible-content {
+  padding: 1rem;
 }
 
-/* Position badge relative to file-item in asset details */
-.file-item .paperless-badge {
-    top: 8px;
-    left: 8px;
+.integration-fields-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.paperless-badge img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+.integration-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-
-
-.paperless-search-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
+.integration-field label {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.875rem;
 }
 
-.paperless-search-content {
-    background: var(--background-color);
-    border-radius: var(--app-border-radius);
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+.integration-field input[type="text"],
+.integration-field input[type="url"],
+.integration-field input[type="password"] {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--background-color);
+  color: var(--text-color);
+  font-size: 0.875rem;
 }
 
-.paperless-search-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.integration-field input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
-.paperless-search-body {
-    padding: 1rem;
-    flex: 1;
-    overflow-y: auto;
+.field-description {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
 }
 
-.paperless-search-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: var(--app-border);
-    border-radius: var(--app-border-radius);
-    background: var(--file-label-color);
-    color: var(--text-color);
-    margin-bottom: 1rem;
+.test-integration-btn {
+  margin-top: 1rem;
+  align-self: flex-start;
 }
 
-.paperless-results {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+/* Integration field visibility based on dependencies */
+.integration-field.depends-on-enabled {
+  transition: opacity 0.2s ease, max-height 0.3s ease;
 }
 
-.paperless-document-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--app-border-radius);
-    background: var(--file-label-color);
-    cursor: pointer;
-    transition: all 0.2s ease;
+.integration-field.depends-on-enabled[style*="display: none"] {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
 }
 
-.paperless-document-item:hover {
-    border-color: var(--primary-color);
-    background: rgba(37, 99, 235, 0.05);
+/* Integration category styles */
+.integration-category {
+  margin-bottom: 1.5rem;
 }
 
-.paperless-doc-info {
-    flex: 1;
+.integration-category:last-child {
+  margin-bottom: 0;
 }
 
-.paperless-doc-title {
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-    color: var(--text-color);
+/* Switch styles for integration toggles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
 }
 
-.paperless-doc-meta {
-    font-size: 0.875rem;
-    color: var(--text-light);
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
-.paperless-attach-btn {
-    padding: 0.5rem 1rem;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: var(--app-border-radius);
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: background 0.2s ease;
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-color);
+  transition: 0.4s;
+  border-radius: 24px;
 }
 
-.paperless-attach-btn:hover {
-    background: #1d4ed8;
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
 }
 
 /* File source styling */
 .file-source {
-    font-size: 0.75rem;
-    color: var(--primary-color);
-    font-style: italic;
-    margin-top: 0.25rem;
-    display: block;
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  font-style: italic;
+  margin-top: 0.25rem;
+  display: block;
 }
 
 .toast-container {
@@ -3520,27 +3522,19 @@ a:hover {
   /* font-size: 12px; */
 }
 
-.events-date-input.show {
-  display: block;
-}
-
-/* DEMO MODE STYLES */
-.header-top {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
+/* Paperless Search Modal Styles */
+.paperless-search-modal {
+  display: none;
+  position: fixed;
   top: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  /* padding: 0.5rem; */
-  color: var(--text-color);
-  border-radius: 8px;
-  transition: var(--input-element-transition);
-  font-size: 1.5rem;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--modal-overlay);
+  z-index: 1000;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
 }
 .demo-banner {
   background: linear-gradient(135deg, #ff6b6b 0%, #ff8383 100%);
@@ -3561,6 +3555,115 @@ a:hover {
   /* border: 1px solid rgba(255, 255, 255, 0.1); */
 }
 
+.paperless-search-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+  background-color: var(--container);
+}
+
+.paperless-search-header .close-btn {
+  font-size: 1.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.paperless-search-header .close-btn:hover {
+  background-color: var(--hover-color);
+}
+
+.paperless-search-body {
+  padding: 1.5rem;
+  background-color: var(--background-color);
+}
+
+.paperless-search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--container);
+  color: var(--text-color);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.paperless-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.paperless-results {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--container);
+}
+
+.paperless-document-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.paperless-document-item:last-child {
+  border-bottom: none;
+}
+
+.paperless-document-item:hover {
+  background-color: var(--hover-color);
+}
+
+.paperless-document-info {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.paperless-document-title {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+.paperless-document-meta {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+}
+
+.paperless-attach-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.paperless-attach-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Paperless Document Badge Styles */
 .demo-banner span {
   display: flex;
   align-items: center;
