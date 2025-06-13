@@ -14,9 +14,6 @@ new GlobalHandlers();
 import { initializeFileUploads, handleFileUploads } from '/src/services/fileUpload/index.js';
 import { formatFileSize } from '/src/services/fileUpload/utils.js';
 
-// Import Integrations
-import { PaperlessIntegration } from '/src/integrations/paperless.js';
-
 // Import asset renderer module
 import { 
     initRenderer, 
@@ -118,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let settingsManager;
     let modalManager;
     let dashboardManager;
-    let paperlessIntegration;
     const chartManager = new ChartManager({formatDate});
 
     // Acts as constructor for the app
@@ -302,9 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderDashboard: (animate = true) => dashboardManager.renderDashboard(animate),
             });
         }
-
-        // Initialize Paperless integration
-        paperlessIntegration = new PaperlessIntegration(modalManager);
 
         addElementEventListeners();
         setupDragIcons();
