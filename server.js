@@ -2088,11 +2088,20 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
     }
 });
 
-// Get all settings
+// Get all settings (sanitized for frontend)
 app.get('/api/settings', (req, res) => {
     try {
         const appSettings = getAppSettings();
-        res.json(appSettings);
+        
+        // Sanitize sensitive data before sending to frontend
+        const sanitizedSettings = { ...appSettings };
+        
+        // Replace API tokens with placeholder if they exist
+        if (sanitizedSettings.integrationSettings?.paperless?.apiToken) {
+            sanitizedSettings.integrationSettings.paperless.apiToken = '*********************';
+        }
+        
+        res.json(sanitizedSettings);
     } catch (err) {
         res.status(500).json({ error: 'Failed to load settings' });
     }
@@ -2104,6 +2113,17 @@ app.post('/api/settings', (req, res) => {
         const config = getAppSettings();
         // Update settings with the new values
         const updatedConfig = { ...config, ...req.body };
+
+        // Handle sensitive data preservation
+        // If the API token is the placeholder, keep the existing token
+        if (updatedConfig.integrationSettings?.paperless?.apiToken === '*********************') {
+            if (config.integrationSettings?.paperless?.apiToken) {
+                updatedConfig.integrationSettings.paperless.apiToken = config.integrationSettings.paperless.apiToken;
+            } else {
+                // If there's no existing token, remove the placeholder
+                updatedConfig.integrationSettings.paperless.apiToken = '';
+            }
+        }
 
         const configPath = path.join(DATA_DIR, 'config.json');
         fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
@@ -2120,8 +2140,25 @@ app.post('/api/paperless/test-connection', async (req, res) => {
     try {
         const { hostUrl, apiToken } = req.body;
         
-        if (!hostUrl || !apiToken) {
-            return res.status(400).json({ error: 'Host URL and API token are required' });
+        if (!hostUrl) {
+            return res.status(400).json({ error: 'Host URL is required' });
+        }
+
+        let tokenToUse = apiToken;
+        
+        // If no token provided or it's the placeholder, try to use saved token
+        if (!apiToken || apiToken === '*********************') {
+            const config = getAppSettings();
+            const savedToken = config.integrationSettings?.paperless?.apiToken;
+            
+            if (!savedToken) {
+                return res.status(400).json({ error: 'No API token available. Please enter a new token.' });
+            }
+            
+            tokenToUse = savedToken;
+            debugLog('Using saved API token for connection test');
+        } else {
+            debugLog('Using provided API token for connection test');
         }
 
         // Normalize the URL
@@ -2130,7 +2167,7 @@ app.post('/api/paperless/test-connection', async (req, res) => {
         // Test connection by fetching documents count
         const testResponse = await fetch(`${normalizedUrl}/api/documents/?page_size=1`, {
             headers: {
-                'Authorization': `Token ${apiToken}`,
+                'Authorization': `Token ${tokenToUse}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -2146,7 +2183,8 @@ app.post('/api/paperless/test-connection', async (req, res) => {
         
         res.json({ 
             success: true, 
-            documentsCount: data.count || 0 
+            documentsCount: data.count || 0,
+            message: `Connection successful! Found ${data.count || 0} documents.`
         });
     } catch (error) {
         debugLog('Paperless connection test error:', error);

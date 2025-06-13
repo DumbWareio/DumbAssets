@@ -35,7 +35,12 @@ export class PaperlessIntegration {
 
             const settings = await response.json();
             const paperlessConfig = settings.integrationSettings?.paperless;
-            return paperlessConfig?.enabled && paperlessConfig?.hostUrl && paperlessConfig?.apiToken;
+            
+            // Check if enabled and has host URL
+            // For API token, accept both actual tokens and the placeholder (indicates saved token exists)
+            return paperlessConfig?.enabled && 
+                   paperlessConfig?.hostUrl && 
+                   (paperlessConfig?.apiToken && paperlessConfig.apiToken.length > 0);
         } catch (error) {
             if (this.DEBUG) console.error('Failed to check Paperless config:', error);
             return false;

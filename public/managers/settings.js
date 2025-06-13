@@ -94,6 +94,13 @@ export class SettingsManager {
             paperlessEnabled.addEventListener('change', (e) => this._togglePaperlessConfig(e.target.checked));
         }
         
+        // Handle token field changes
+        const paperlessToken = document.getElementById('paperlessToken');
+        if (paperlessToken) {
+            paperlessToken.addEventListener('input', (e) => this._handleTokenFieldChange(e.target));
+            paperlessToken.addEventListener('focus', (e) => this._handleTokenFieldFocus(e.target));
+        }
+        
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tabId = btn.getAttribute('data-tab');
@@ -225,7 +232,26 @@ export class SettingsManager {
             
             document.getElementById('paperlessEnabled').checked = paperlessSettings.enabled || false;
             document.getElementById('paperlessHost').value = paperlessSettings.hostUrl || '';
-            document.getElementById('paperlessToken').value = paperlessSettings.apiToken || '';
+            
+            // Handle API token - show placeholder if token exists, empty if not
+            const tokenField = document.getElementById('paperlessToken');
+            if (paperlessSettings.apiToken) {
+                if (paperlessSettings.apiToken === '*********************') {
+                    // Already a placeholder, keep it
+                    tokenField.value = paperlessSettings.apiToken;
+                    tokenField.setAttribute('data-has-saved-token', 'true');
+                    tokenField.placeholder = 'Saved token hidden - focus to enter new token';
+                } else {
+                    // This shouldn't happen with the backend fix, but handle it for safety
+                    tokenField.value = '*********************';
+                    tokenField.setAttribute('data-has-saved-token', 'true');
+                    tokenField.placeholder = 'Saved token hidden - focus to enter new token';
+                }
+            } else {
+                tokenField.value = '';
+                tokenField.removeAttribute('data-has-saved-token');
+                tokenField.placeholder = 'Enter your Paperless API token';
+            }
             
             this._togglePaperlessConfig(paperlessSettings.enabled || false);
             
@@ -855,14 +881,45 @@ export class SettingsManager {
         }
     }
 
+    _handleTokenFieldFocus(tokenField) {
+        // Clear placeholder when user focuses to enter new token
+        if (tokenField.value === '*********************') {
+            tokenField.value = '';
+            tokenField.placeholder = 'Enter new API token to replace existing one';
+        }
+    }
+
+    _handleTokenFieldChange(tokenField) {
+        // Reset connection status when token changes
+        const statusSpan = document.getElementById('paperlessConnectionStatus');
+        if (statusSpan) {
+            statusSpan.textContent = '';
+            statusSpan.className = 'connection-status';
+        }
+        
+        // Update data attribute based on whether we have content
+        if (tokenField.value && tokenField.value !== '*********************') {
+            tokenField.removeAttribute('data-has-saved-token');
+        }
+    }
+
     async _testPaperlessConnection() {
         const testBtn = document.getElementById('testPaperlessConnection');
         const statusSpan = document.getElementById('paperlessConnectionStatus');
         const hostUrl = document.getElementById('paperlessHost').value;
-        const apiToken = document.getElementById('paperlessToken').value;
+        const tokenField = document.getElementById('paperlessToken');
+        const apiToken = tokenField.value;
+        const hasSavedToken = tokenField.hasAttribute('data-has-saved-token');
 
-        if (!hostUrl || !apiToken) {
-            statusSpan.textContent = 'Please enter both host URL and API token';
+        if (!hostUrl) {
+            statusSpan.textContent = 'Please enter host URL';
+            statusSpan.className = 'connection-status error';
+            return;
+        }
+
+        // Check if we need a new token
+        if (!apiToken || (apiToken === '*********************' && !hasSavedToken)) {
+            statusSpan.textContent = 'Please enter API token';
             statusSpan.className = 'connection-status error';
             return;
         }
@@ -872,6 +929,7 @@ export class SettingsManager {
         statusSpan.className = 'connection-status testing';
 
         try {
+            // Send the token even if it's the placeholder - backend will handle it
             const response = await fetch('/api/paperless/test-connection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -885,7 +943,7 @@ export class SettingsManager {
             const result = await response.json();
             
             if (result.success) {
-                statusSpan.textContent = `✓ Connected successfully (${result.documentsCount} documents available)`;
+                statusSpan.textContent = `✓ ${result.message || `Connected successfully (${result.documentsCount} documents available)`}`;
                 statusSpan.className = 'connection-status success';
                 globalThis.toaster.show('Paperless connection successful!', 'success');
             } else {
