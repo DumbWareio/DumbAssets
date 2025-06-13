@@ -2,13 +2,26 @@
  * PaperlessManager handles all Paperless NGX integration functionality
  * including document search, attachment, and configuration management
  */
-export class PaperlessManager {
-    constructor() {
+export class PaperlessIntegration {
+    constructor(modalManager) {
         this.searchModal = null;
         this.currentSearchQuery = '';
         this.searchTimeout = null;
         this.DEBUG = false;
         this._createSearchModal();
+
+        this.modalManager = modalManager;
+
+        // Asset modal search buttons
+        this.searchPaperlessPhotos = document.getElementById('searchPaperlessPhotos');
+        this.searchPaperlessReceipts = document.getElementById('searchPaperlessReceipts');
+        this.searchPaperlessManuals = document.getElementById('searchPaperlessManuals');
+
+        // Sub-asset modal search buttons
+        this.searchPaperlessSubPhotos = document.getElementById('searchPaperlessSubPhotos');
+        this.searchPaperlessSubReceipts = document.getElementById('searchPaperlessSubReceipts');
+        this.searchPaperlessSubManuals = document.getElementById('searchPaperlessSubManuals');
+        this.setupPaperlessEventListeners();
     }
 
     /**
@@ -269,6 +282,58 @@ export class PaperlessManager {
             this._renderSearchResults(results, `Search Results for "${query}"`);
         } catch (error) {
             this._renderError(`Search failed: ${error.message}`);
+        }
+    }
+
+    setupPaperlessEventListeners() {
+        // Asset modal handlers
+        if (searchPaperlessPhotos) {
+            searchPaperlessPhotos.addEventListener('click', () => {
+                this.openSearchModal((attachment) => {
+                    return this.modalManager.attachPaperlessDocument(attachment, 'photo', false);
+                });
+            });
+        }
+
+        if (searchPaperlessReceipts) {
+            searchPaperlessReceipts.addEventListener('click', () => {
+                this.openSearchModal((attachment) => {
+                    return this.modalManager.attachPaperlessDocument(attachment, 'receipt', false);
+                });
+            });
+        }
+
+        if (searchPaperlessManuals) {
+            searchPaperlessManuals.addEventListener('click', () => {
+                this.openSearchModal((attachment) => {
+                    return this.modalManager.attachPaperlessDocument(attachment, 'manual', false);
+                });
+            });
+        }
+
+        // Sub-asset modal handlers
+        if (searchPaperlessSubPhotos) {
+            searchPaperlessSubPhotos.addEventListener('click', () => {
+                this.openSearchModal((attachment) => {
+                    return this.modalManager.attachPaperlessDocument(attachment, 'photo', true);
+                });
+            });
+        }
+
+        if (searchPaperlessSubReceipts) {
+            searchPaperlessSubReceipts.addEventListener('click', () => {
+                this.openSearchModal((attachment) => {
+                    return this.modalManager.attachPaperlessDocument(attachment, 'receipt', true);
+                });
+            });
+        }
+
+        if (searchPaperlessSubManuals) {
+            searchPaperlessSubManuals.addEventListener('click', () => {
+                this.openSearchModal((attachment) => {
+                    return this.modalManager.attachPaperlessDocument(attachment, 'manual', true);
+                });
+            });
         }
     }
 

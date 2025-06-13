@@ -13,6 +13,10 @@ new GlobalHandlers();
 // Import file upload module
 import { initializeFileUploads, handleFileUploads } from '/src/services/fileUpload/index.js';
 import { formatFileSize } from '/src/services/fileUpload/utils.js';
+
+// Import Integrations
+import { PaperlessIntegration } from '/src/integrations/paperless.js';
+
 // Import asset renderer module
 import { 
     initRenderer, 
@@ -114,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let settingsManager;
     let modalManager;
     let dashboardManager;
+    let paperlessIntegration;
     const chartManager = new ChartManager({formatDate});
 
     // Acts as constructor for the app
@@ -232,10 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const assetTagManager = setupTagInput('assetTags', 'assetTagsContainer');
         const subAssetTagManager = setupTagInput('subAssetTags', 'subAssetTagsContainer');
 
-        // Initialize Paperless integration
-        const { PaperlessManager } = await import('./managers/paperlessManager.js');
-        const paperlessManager = new PaperlessManager();
-
         modalManager = new ModalManager({
             // DOM elements
             assetModal,
@@ -272,9 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Global state
             getAssets: () => assets,
             getSubAssets: () => subAssets,
-            
-            // Paperless integration
-            paperlessManager
         });
 
         // Initialize SettingsManager after DashboardManager is ready
@@ -305,10 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Initialize Paperless integration
+        paperlessIntegration = new PaperlessIntegration(modalManager);
+
         addElementEventListeners();
         setupDragIcons();
         addShortcutEventListeners();
-        setupPaperlessEventListeners(paperlessManager);
 
         registerServiceWorker();
     }
@@ -1560,68 +1560,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 pageTitleElem.textContent = window.appConfig.siteTitle || 'DumbAssets';
             }
             siteTitleElem.addEventListener('click', () => goHome());
-        }
-    }
-
-    function setupPaperlessEventListeners(paperlessManager) {
-        // Asset modal search buttons
-        const searchPaperlessPhotos = document.getElementById('searchPaperlessPhotos');
-        const searchPaperlessReceipts = document.getElementById('searchPaperlessReceipts');
-        const searchPaperlessManuals = document.getElementById('searchPaperlessManuals');
-
-        // Sub-asset modal search buttons
-        const searchPaperlessSubPhotos = document.getElementById('searchPaperlessSubPhotos');
-        const searchPaperlessSubReceipts = document.getElementById('searchPaperlessSubReceipts');
-        const searchPaperlessSubManuals = document.getElementById('searchPaperlessSubManuals');
-
-        // Asset modal handlers
-        if (searchPaperlessPhotos) {
-            searchPaperlessPhotos.addEventListener('click', () => {
-                paperlessManager.openSearchModal((attachment) => {
-                    return modalManager.attachPaperlessDocument(attachment, 'photo', false);
-                });
-            });
-        }
-
-        if (searchPaperlessReceipts) {
-            searchPaperlessReceipts.addEventListener('click', () => {
-                paperlessManager.openSearchModal((attachment) => {
-                    return modalManager.attachPaperlessDocument(attachment, 'receipt', false);
-                });
-            });
-        }
-
-        if (searchPaperlessManuals) {
-            searchPaperlessManuals.addEventListener('click', () => {
-                paperlessManager.openSearchModal((attachment) => {
-                    return modalManager.attachPaperlessDocument(attachment, 'manual', false);
-                });
-            });
-        }
-
-        // Sub-asset modal handlers
-        if (searchPaperlessSubPhotos) {
-            searchPaperlessSubPhotos.addEventListener('click', () => {
-                paperlessManager.openSearchModal((attachment) => {
-                    return modalManager.attachPaperlessDocument(attachment, 'photo', true);
-                });
-            });
-        }
-
-        if (searchPaperlessSubReceipts) {
-            searchPaperlessSubReceipts.addEventListener('click', () => {
-                paperlessManager.openSearchModal((attachment) => {
-                    return modalManager.attachPaperlessDocument(attachment, 'receipt', true);
-                });
-            });
-        }
-
-        if (searchPaperlessSubManuals) {
-            searchPaperlessSubManuals.addEventListener('click', () => {
-                paperlessManager.openSearchModal((attachment) => {
-                    return modalManager.attachPaperlessDocument(attachment, 'manual', true);
-                });
-            });
         }
     }
 });

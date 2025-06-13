@@ -442,8 +442,9 @@ app.use(BASE_PATH + '/styles.css', express.static('public/styles.css'));
 app.use(BASE_PATH + '/script.js', express.static('public/script.js'));
 
 // Module files (need to be accessible for imports)
-app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
-app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
+app.use(BASE_PATH + '/src/services', express.static('src/services'));
+// app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
+// app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
 
 // Serve Chart.js from node_modules
 app.use(BASE_PATH + '/js/chart.js', express.static('node_modules/chart.js/dist/chart.umd.js'));
@@ -452,6 +453,9 @@ app.use(BASE_PATH + '/js/chart.js', express.static('node_modules/chart.js/dist/c
 app.use(BASE_PATH + '/Images', express.static('data/Images'));
 app.use(BASE_PATH + '/Receipts', express.static('data/Receipts'));
 app.use(BASE_PATH + '/Manuals', express.static('data/Manuals'));
+
+// INTEGRATIONS
+app.use(BASE_PATH + '/src/integrations', express.static('src/integrations'));
 
 // Protected API routes
 app.use('/api', (req, res, next) => {
