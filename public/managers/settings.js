@@ -647,7 +647,7 @@ export class SettingsManager {
                 asset.currency || '',
                 asset.location || '',
                 asset.url || '',
-                asset.notes || '',
+                asset.description || asset.notes || '',
                 (asset.tags && asset.tags.length > 0) ? asset.tags.join('; ') : '',
                 asset.warranty?.scope || '',
                 asset.warranty?.expirationDate || '',
@@ -681,7 +681,7 @@ export class SettingsManager {
                 subAsset.currency || '',
                 subAsset.location || '',
                 subAsset.url || '',
-                subAsset.notes || '',
+                subAsset.notes || subAsset.description || '',
                 (subAsset.tags && subAsset.tags.length > 0) ? subAsset.tags.join('; ') : '',
                 subAsset.warranty?.scope || '',
                 subAsset.warranty?.expirationDate || '',
@@ -794,7 +794,7 @@ export class SettingsManager {
                 asset.serialNumber || '',
                 asset.purchaseDate || '',
                 asset.price || '',
-                asset.notes || '',
+                asset.description || asset.notes || '',
                 asset.url || ''
             ];
             rows.push(row.map(escapeCsvValue));
@@ -809,7 +809,7 @@ export class SettingsManager {
                 subAsset.serialNumber || '',
                 subAsset.purchaseDate || '',
                 subAsset.purchasePrice || '',
-                subAsset.notes || '',
+                subAsset.notes || subAsset.description || '',
                 subAsset.url || ''
             ];
             rows.push(row.map(escapeCsvValue));
