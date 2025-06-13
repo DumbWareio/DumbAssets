@@ -59,6 +59,8 @@ export class PaperlessIntegration {
 
         this.onAttachCallback = onAttach;
         this.searchModal.style.display = 'flex';
+        this.searchModal.style.alignItems = 'center';
+        this.searchModal.style.justifyContent = 'center';
         this._clearSearch();
         this._focusSearchInput();
         this._loadRecentDocuments();
@@ -155,7 +157,7 @@ export class PaperlessIntegration {
                             autocomplete="off"
                         >
                         <div id="paperlessSearchResults" class="paperless-results">
-                            <div style="text-align: center; color: var(--text-light); padding: 2rem;">
+                            <div style="text-align: center; color: var(--text-color-secondary); padding: 2rem;">
                                 Start typing to search documents...
                             </div>
                         </div>
@@ -247,7 +249,7 @@ export class PaperlessIntegration {
         if (searchInput) searchInput.value = '';
         if (resultsDiv) {
             resultsDiv.innerHTML = `
-                <div style="text-align: center; color: var(--text-light); padding: 2rem;">
+                <div style="text-align: center; color: var(--text-color-secondary); padding: 2rem;">
                     Start typing to search documents...
                 </div>
             `;
@@ -276,7 +278,7 @@ export class PaperlessIntegration {
         
         // Show loading state
         resultsDiv.innerHTML = `
-            <div style="text-align: center; color: var(--text-light); padding: 2rem;">
+            <div style="text-align: center; color: var(--text-color-secondary); padding: 2rem;">
                 <div class="spinner" style="display: inline-block; margin-right: 0.5rem;"></div>
                 Searching...
             </div>
@@ -350,7 +352,7 @@ export class PaperlessIntegration {
         
         if (!data.results || data.results.length === 0) {
             resultsDiv.innerHTML = `
-                <div style="text-align: center; color: var(--text-light); padding: 2rem;">
+                <div style="text-align: center; color: var(--text-color-secondary); padding: 2rem;">
                     No documents found
                 </div>
             `;
@@ -361,7 +363,7 @@ export class PaperlessIntegration {
             <h4 style="margin: 0 0 1rem 0; color: var(--text-color);">${title} (${data.count})</h4>
             ${data.results.map(doc => this._renderDocumentItem(doc)).join('')}
             ${data.count > data.results.length ? `
-                <div style="text-align: center; margin-top: 1rem; color: var(--text-light);">
+                <div style="text-align: center; margin-top: 1rem; color: var(--text-color-secondary);">
                     Showing ${data.results.length} of ${data.count} documents
                 </div>
             ` : ''}
