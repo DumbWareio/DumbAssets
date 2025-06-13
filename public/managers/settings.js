@@ -1,4 +1,6 @@
 // SettingsManager handles all settings modal logic, loading, saving, and dashboard order drag/drop
+import { TOKENMASK } from '../../src/constants.js';
+
 export class SettingsManager {
     constructor({
         settingsBtn,
@@ -236,14 +238,14 @@ export class SettingsManager {
             // Handle API token - show placeholder if token exists, empty if not
             const tokenField = document.getElementById('paperlessToken');
             if (paperlessSettings.apiToken) {
-                if (paperlessSettings.apiToken === '*********************') {
+                if (paperlessSettings.apiToken === TOKENMASK) {
                     // Already a placeholder, keep it
                     tokenField.value = paperlessSettings.apiToken;
                     tokenField.setAttribute('data-has-saved-token', 'true');
                     tokenField.placeholder = 'Saved token hidden - focus to enter new token';
                 } else {
                     // This shouldn't happen with the backend fix, but handle it for safety
-                    tokenField.value = '*********************';
+                    tokenField.value = TOKENMASK;
                     tokenField.setAttribute('data-has-saved-token', 'true');
                     tokenField.placeholder = 'Saved token hidden - focus to enter new token';
                 }
@@ -883,7 +885,7 @@ export class SettingsManager {
 
     _handleTokenFieldFocus(tokenField) {
         // Clear placeholder when user focuses to enter new token
-        if (tokenField.value === '*********************') {
+        if (tokenField.value === TOKENMASK) {
             tokenField.value = '';
             tokenField.placeholder = 'Enter new API token to replace existing one';
         }
@@ -898,7 +900,7 @@ export class SettingsManager {
         }
         
         // Update data attribute based on whether we have content
-        if (tokenField.value && tokenField.value !== '*********************') {
+        if (tokenField.value && tokenField.value !== TOKENMASK) {
             tokenField.removeAttribute('data-has-saved-token');
         }
     }
@@ -918,7 +920,7 @@ export class SettingsManager {
         }
 
         // Check if we need a new token
-        if (!apiToken || (apiToken === '*********************' && !hasSavedToken)) {
+        if (!apiToken || (apiToken === TOKENMASK && !hasSavedToken)) {
             statusSpan.textContent = 'Please enter API token';
             statusSpan.className = 'connection-status error';
             return;
