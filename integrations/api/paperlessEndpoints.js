@@ -3,7 +3,7 @@
  * Handles all server-side functionality for Paperless NGX integration
  */
 
-const { TOKENMASK } = require('../constants.js');
+const { TOKENMASK } = require('../../src/constants.js');
 
 class PaperlessEndpoints {
     
