@@ -3,7 +3,7 @@
  * Handles registration, configuration, and endpoint management for all integrations
  */
 
-const { TOKENMASK } = require('../constants');
+const { TOKENMASK } = require('../src/constants');
 
 class IntegrationManager {
     constructor() {
@@ -242,7 +242,7 @@ class IntegrationManager {
                 
                 try {
                     // This would be implemented by the specific integration
-                    const PaperlessIntegration = require('./paperlessEndpoints');
+                    const PaperlessIntegration = require('./api/paperlessEndpoints');
                     return await PaperlessIntegration.testConnection(config);
                 } catch (error) {
                     return { status: 'error', message: error.message };

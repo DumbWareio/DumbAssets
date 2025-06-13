@@ -25,8 +25,8 @@ const { demoModeMiddleware } = require('./middleware/demo');
 const { sanitizeFileName } = require('./src/services/fileUpload/utils');
 const packageJson = require('./package.json');
 const { TOKENMASK } = require('./src/constants');
-const { integrationManager } = require('./src/integrations/integrationManager');
-const PaperlessEndpoints = require('./src/integrations/paperlessEndpoints');
+const { integrationManager } = require('./integrations/integrationManager');
+const PaperlessEndpoints = require('./integrations/api/paperlessEndpoints');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
