@@ -1556,6 +1556,12 @@ app.get('/api/paperless/document/:id/download', async (req, res) => {
         });
 
         console.log('🔍 Step 5: Paperless response status:', paperlessResponse.status);
+        
+        // Debug all response headers
+        console.log('🔍 Response Headers:');
+        for (const [key, value] of paperlessResponse.headers) {
+            console.log(`  ${key}: ${value}`);
+        }
 
         if (!paperlessResponse.ok) {
             console.log('🔍 ERROR: Paperless response not OK:', paperlessResponse.status, paperlessResponse.statusText);
@@ -1569,24 +1575,51 @@ app.get('/api/paperless/document/:id/download', async (req, res) => {
         const contentType = paperlessResponse.headers.get('content-type');
         const contentLength = paperlessResponse.headers.get('content-length');
         const contentDisposition = paperlessResponse.headers.get('content-disposition');
+        const contentEncoding = paperlessResponse.headers.get('content-encoding');
+        
+        console.log('🔍 Key headers:', { contentType, contentLength, contentDisposition, contentEncoding });
 
         if (contentType) res.setHeader('Content-Type', contentType);
-        if (contentLength) res.setHeader('Content-Length', contentLength);
         if (contentDisposition) res.setHeader('Content-Disposition', contentDisposition);
+        
+        // Don't forward Content-Length or Content-Encoding when compressed
+        // Let the browser handle the decompressed content length
+        if (contentLength && !contentEncoding) {
+            res.setHeader('Content-Length', contentLength);
+            console.log('🔍 Setting Content-Length:', contentLength);
+        } else if (contentEncoding) {
+            console.log('🔍 Skipping Content-Length and Content-Encoding due to compression:', contentEncoding);
+        }
+        
+        // Debug: Log all headers we're sending to the browser
+        console.log('🔍 Headers being sent to browser:');
+        const responseHeaders = res.getHeaders();
+        for (const [key, value] of Object.entries(responseHeaders)) {
+            console.log(`  ${key}: ${value}`);
+        }
 
         console.log('🔍 Step 7: Starting to stream response...');
         // Stream the response directly to the client using Web Streams API
         const reader = paperlessResponse.body.getReader();
+        let totalBytes = 0;
+        let chunkCount = 0;
         
         const pump = async () => {
             try {
                 while (true) {
                     const { done, value } = await reader.read();
-                    if (done) break;
+                    if (done) {
+                        console.log(`🔍 Streaming complete: ${chunkCount} chunks, ${totalBytes} bytes total`);
+                        break;
+                    }
+                    chunkCount++;
+                    totalBytes += value.length;
+                    console.log(`🔍 Chunk ${chunkCount}: ${value.length} bytes (total: ${totalBytes})`);
                     res.write(value);
                 }
                 res.end();
             } catch (error) {
+                console.log('🔍 Streaming error:', error.message);
                 res.destroy(error);
             }
         };
