@@ -288,8 +288,11 @@ app.get(BASE_PATH + '/config.js', async (req, res) => {
 app.get(BASE_PATH + '/service-worker.js', async (req, res) => {
     debugLog('Serving service-worker.js with version:', VERSION);
     
-    // Set proper MIME type
+    // Set proper MIME type and cache headers to prevent caching
     res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
     try {
         let swContent = await fs.promises.readFile(path.join(PUBLIC_DIR, 'service-worker.js'), 'utf8');

@@ -21,13 +21,6 @@ function getVersionFromURL() {
     return null;
 }
 
-// Check URL for version parameter during initialization
-const urlVersion = getVersionFromURL();
-if (urlVersion) {
-    APP_VERSION = urlVersion;
-    CACHE_NAME = `DUMBASSETS_CACHE_V${APP_VERSION}`;
-}
-
 // Log the version we're using on initialization
 console.log(`Service worker initializing with version: ${APP_VERSION}`);
 
@@ -107,42 +100,15 @@ async function notifyClients() {
     }
 }
 
-const preload = async () => {
-    console.log("Preparing to install web app cache");
-    
-    // Check cache status
-    const { currentCacheExists, existingVersion } = await checkCacheVersion();
-    
-    // If current version cache already exists, no need to reinstall
-    if (currentCacheExists) {
-        console.log(`Cache ${CACHE_NAME} already exists, using existing cache`);
-        await notifyClients(); // Still check if we need to notify about updates
-        return;
-    }
-    
-    // If we have an older version, clean old caches and notify clients
-    if (existingVersion && existingVersion !== APP_VERSION) {
-        console.log(`New version ${APP_VERSION} available (current: ${existingVersion})`);
-        
-        // Clean up any old caches to prevent reload loops
-        await cleanOldCaches();
-        
-        await notifyClients();
-        return;
-    }
-    
-    // If no cache exists at all, do initial installation
-    if (!existingVersion) {
-        await installCache();
-    }
-};
-
 // Function to install or update the cache
 async function installCache() {
     console.log(`Installing/updating cache to version ${APP_VERSION}`);
     const cache = await caches.open(CACHE_NAME);
     
     try {
+        // Clear old caches
+        await cleanOldCaches();
+
         console.log("Fetching asset manifest...");
         const response = await fetch(getAssetPath("assets/asset-manifest.json"));
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -157,8 +123,6 @@ async function installCache() {
         await cache.addAll(ASSETS_TO_CACHE);
         console.log("Assets cached successfully");
         
-        // Clear old caches after successful installation
-        await cleanOldCaches();
 
         // Notify clients of successful update
         self.clients.matchAll().then(clients => {
@@ -189,17 +153,8 @@ async function installCache() {
 self.addEventListener("install", (event) => {
     console.log(`Service Worker installing with version ${APP_VERSION}...`);
     
-    // Double check if we can get version from URL
-    const urlVersion = getVersionFromURL();
-    if (urlVersion && urlVersion !== APP_VERSION) {
-        console.log(`Updating version from URL: ${urlVersion} (was: ${APP_VERSION})`);
-        APP_VERSION = urlVersion;
-        CACHE_NAME = `DUMBASSETS_CACHE_V${APP_VERSION}`;
-    }
-    
     event.waitUntil(
         Promise.all([
-            preload(),
             self.skipWaiting() // Skip waiting to allow new service worker to activate immediately
         ])
     );
@@ -304,25 +259,13 @@ self.addEventListener('message', async (event) => {
     }
     // Handle PERFORM_UPDATE message type
     else if (event.data && event.data.type === 'PERFORM_UPDATE') {
+        // DEPRECATED: This is no longer needed as we clear old caches and install new cache on installCache() call
         // If version was provided with the update message, use it
-        if (event.data.version) {
-            updateCacheName(event.data.version);
-        }
-        
-        // First check and clean up any old caches
-        await cleanOldCaches();
+        // if (event.data.version)
+        //     updateCacheName(event.data.version);
         
         // User has confirmed they want to update
-        await installCache();
-        // Notify clients that update is complete
-        self.clients.matchAll().then(clients => {
-            clients.forEach(client => {
-                client.postMessage({
-                    type: 'UPDATE_COMPLETE',
-                    version: APP_VERSION
-                });
-            });
-        });
+        await installCache(); // Notify clients of the update completion is done inside installCache
     } 
     // Handle LIST_CACHED_URLS message type
     else if (event.data && event.data.type === 'LIST_CACHED_URLS') {

@@ -43,8 +43,8 @@ export const registerServiceWorker = () => {
             console.log(`Update complete to version: ${event.data.version}`);
             // Only reload if update was successful
             if (event.data.success !== false) {
-              console.log("Reloading page to apply new cache");
-              window.location.reload();
+                console.log("Reloading page to apply new cache");
+                window.location.reload();
             }
           }
       });
