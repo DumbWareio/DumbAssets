@@ -4,6 +4,7 @@
  */
 
 const { TOKENMASK } = require('../src/constants');
+const PaperlessIntegration = require('./paperless'); // Import Paperless schema
 
 class IntegrationManager {
     constructor() {
@@ -156,105 +157,7 @@ class IntegrationManager {
      */
     registerBuiltInIntegrations() {
         // Register Paperless NGX integration
-        this.registerIntegration('paperless', {
-            name: 'Paperless NGX',
-            description: 'Document management system integration for attaching documents to assets',
-            version: '1.0.0',
-            icon: 'document',
-            category: 'document-management',
-            
-            configSchema: {
-                enabled: {
-                    type: 'boolean',
-                    label: 'Enable Paperless Integration',
-                    description: 'Enable integration with Paperless NGX document management system',
-                    default: false,
-                    required: false
-                },
-                hostUrl: {
-                    type: 'url',
-                    label: 'Paperless Host URL',
-                    description: 'The base URL of your Paperless NGX instance (e.g., https://paperless.example.com)',
-                    placeholder: 'https://paperless.example.com',
-                    required: true,
-                    dependsOn: 'enabled'
-                },
-                apiToken: {
-                    type: 'password',
-                    label: 'API Token',
-                    description: 'Your Paperless NGX API token (found in your user settings)',
-                    placeholder: 'Enter your API token',
-                    required: true,
-                    sensitive: true,
-                    dependsOn: 'enabled'
-                }
-            },
-            
-            defaultConfig: {
-                enabled: false,
-                hostUrl: '',
-                apiToken: ''
-            },
-            
-            endpoints: [
-                'GET /api/paperless/test-connection',
-                'GET /api/paperless/search',
-                'GET /api/paperless/document/:id/info',
-                'GET /api/paperless/document/:id/download',
-                'GET /api/paperless/test'
-            ],
-            
-            validators: {
-                configValidator: (config) => {
-                    const errors = [];
-                    
-                    if (config.enabled) {
-                        if (!config.hostUrl) {
-                            errors.push('Host URL is required when Paperless integration is enabled');
-                        } else {
-                            try {
-                                new URL(config.hostUrl);
-                            } catch {
-                                errors.push('Host URL must be a valid URL');
-                            }
-                        }
-                        
-                        if (!config.apiToken) {
-                            errors.push('API Token is required when Paperless integration is enabled');
-                        }
-                    }
-                    
-                    return {
-                        valid: errors.length === 0,
-                        errors
-                    };
-                }
-            },
-            
-            statusCheck: async (config) => {
-                if (!config.enabled) {
-                    return { status: 'disabled', message: 'Integration is disabled' };
-                }
-                
-                if (!config.hostUrl || !config.apiToken) {
-                    return { status: 'misconfigured', message: 'Missing required configuration' };
-                }
-                
-                try {
-                    // This would be implemented by the specific integration
-                    const PaperlessIntegration = require('./api/paperlessEndpoints');
-                    return await PaperlessIntegration.testConnection(config);
-                } catch (error) {
-                    return { status: 'error', message: error.message };
-                }
-            },
-            
-            metadata: {
-                documentationUrl: 'https://paperless-ngx.readthedocs.io/en/latest/api/',
-                supportLevel: 'community',
-                tags: ['documents', 'pdf', 'scanning', 'ocr']
-            }
-        });
+        this.registerIntegration('paperless', PaperlessIntegration.SCHEMA);
 
         // Future integrations can be added here
         // this.registerIntegration('nextcloud', { ... });
