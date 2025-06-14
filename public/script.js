@@ -1251,13 +1251,20 @@ document.addEventListener('DOMContentLoaded', () => {
             autocompleteContainer = document.createElement('div');
             autocompleteContainer.className = 'tag-autocomplete';
             autocompleteContainer.style.display = 'none';
+            autocompleteContainer.style.position = 'absolute';
+            autocompleteContainer.style.zIndex = '1000';
             
-            // Position the autocomplete container relative to the input
+            // Position the autocomplete container directly below the input
             const inputRect = input.getBoundingClientRect();
-            const parentRect = input.closest('.tag-input-wrapper').getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
             
-            // Insert after the input wrapper
-            input.closest('.tag-input-wrapper').insertAdjacentElement('afterend', autocompleteContainer);
+            autocompleteContainer.style.top = (inputRect.bottom + scrollTop) + 'px';
+            autocompleteContainer.style.left = (inputRect.left + scrollLeft) + 'px';
+            autocompleteContainer.style.width = inputRect.width + 'px';
+            
+            // Append to body for proper positioning
+            document.body.appendChild(autocompleteContainer);
         }
 
         function showAutocomplete(suggestions) {
@@ -1272,6 +1279,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideAutocomplete();
                 return;
             }
+            
+            // Update position before showing (in case input moved)
+            const inputRect = input.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            
+            autocompleteContainer.style.top = (inputRect.bottom + scrollTop) + 'px';
+            autocompleteContainer.style.left = (inputRect.left + scrollLeft) + 'px';
+            autocompleteContainer.style.width = inputRect.width + 'px';
             
             autocompleteContainer.innerHTML = suggestions.map((suggestion, index) => 
                 `<div class="tag-suggestion" data-index="${index}">${suggestion}</div>`
