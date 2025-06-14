@@ -51,6 +51,16 @@ export class ModalManager {
         this.subAssetForm = subAssetForm;
         this.subAssetSaveBtn = this.subAssetForm.querySelector('.save-btn');
         
+        // Duplicate modal elements
+        this.duplicateModal = document.getElementById('duplicateModal');
+        this.duplicateModalTitle = document.getElementById('duplicateModalTitle');
+        this.duplicateModalDescription = document.getElementById('duplicateModalDescription');
+        this.duplicateCountInput = document.getElementById('duplicateCount');
+        this.confirmDuplicateBtn = document.getElementById('confirmDuplicateBtn');
+        this.cancelDuplicateBtn = document.getElementById('cancelDuplicateBtn');
+        this.duplicateAssetBtn = document.getElementById('duplicateAssetBtn');
+        this.duplicateSubAssetBtn = document.getElementById('duplicateSubAssetBtn');
+        
         // Store utility functions
         this.formatDate = formatDate;
         this.formatCurrency = formatCurrency;
@@ -86,6 +96,10 @@ export class ModalManager {
         this.currentAsset = null;
         this.currentSubAsset = null;
         this.filesToDelete = [];
+        
+        // Duplication state
+        this.duplicateType = null; // 'asset' or 'subAsset'
+        this.duplicateSource = null; // The asset/subAsset being duplicated
         
         // File deletion flags
         this.deletePhoto = false;
@@ -952,6 +966,15 @@ export class ModalManager {
                 this.closeAssetModal();
             };
         }
+        
+        // Set up duplicate button
+        if (this.duplicateAssetBtn) {
+            this.duplicateAssetBtn.onclick = () => {
+                this.openDuplicateModal('asset');
+            };
+            // Only show duplicate button in edit mode
+            this.duplicateAssetBtn.style.display = this.isEditMode ? 'flex' : 'none';
+        }
     }
     
     setupSubAssetModalButtons() {
@@ -969,6 +992,15 @@ export class ModalManager {
             closeBtn.onclick = () => {
                 this.closeSubAssetModal();
             };
+        }
+        
+        // Set up duplicate button
+        if (this.duplicateSubAssetBtn) {
+            this.duplicateSubAssetBtn.onclick = () => {
+                this.openDuplicateModal('subAsset');
+            };
+            // Only show duplicate button in edit mode
+            this.duplicateSubAssetBtn.style.display = this.isEditMode ? 'flex' : 'none';
         }
     }
     
@@ -991,5 +1023,182 @@ export class ModalManager {
         this.deleteSubPhoto = false;
         this.deleteSubReceipt = false;
         this.deleteSubManual = false;
+    }
+    
+    // Duplication methods
+    openDuplicateModal(type) {
+        if (!this.duplicateModal) return;
+        
+        this.duplicateType = type;
+        this.duplicateSource = type === 'asset' ? this.currentAsset : this.currentSubAsset;
+        
+        if (!this.duplicateSource) return;
+        
+        // Update modal content
+        this.duplicateModalTitle.textContent = type === 'asset' ? 'Duplicate Asset' : 'Duplicate Component';
+        this.duplicateModalDescription.textContent = `How many duplicates of "${this.duplicateSource.name}" would you like to create?`;
+        
+        // Reset input
+        this.duplicateCountInput.value = '1';
+        this.duplicateCountInput.focus();
+        
+        // Set up event listeners
+        this.setupDuplicateModalButtons();
+        
+        // Show modal
+        this.duplicateModal.style.display = 'block';
+    }
+    
+    closeDuplicateModal() {
+        if (!this.duplicateModal) return;
+        
+        this.duplicateModal.style.display = 'none';
+        this.duplicateType = null;
+        this.duplicateSource = null;
+        
+        // Remove event listeners
+        if (this.confirmDuplicateBtn) {
+            this.confirmDuplicateBtn.onclick = null;
+        }
+        if (this.cancelDuplicateBtn) {
+            this.cancelDuplicateBtn.onclick = null;
+        }
+    }
+    
+    setupDuplicateModalButtons() {
+        // Set up confirm button
+        if (this.confirmDuplicateBtn) {
+            this.confirmDuplicateBtn.onclick = () => {
+                this.performDuplication();
+            };
+        }
+        
+        // Set up cancel button
+        if (this.cancelDuplicateBtn) {
+            this.cancelDuplicateBtn.onclick = () => {
+                this.closeDuplicateModal();
+            };
+        }
+        
+        // Set up close button
+        const closeBtn = this.duplicateModal.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                this.closeDuplicateModal();
+            };
+        }
+        
+        // Set up Enter key handler
+        this.duplicateCountInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.performDuplication();
+            }
+        };
+    }
+    
+    async performDuplication() {
+        const count = parseInt(this.duplicateCountInput.value);
+        
+        if (!count || count < 1 || count > 100) {
+            globalThis.toaster.show('Please enter a valid number between 1 and 100', 'error');
+            return;
+        }
+        
+        try {
+            this.setButtonLoading(this.confirmDuplicateBtn, true);
+            
+            const duplicates = [];
+            for (let i = 0; i < count; i++) {
+                const duplicate = this.createDuplicate(this.duplicateSource, this.duplicateType, i + 1);
+                duplicates.push(duplicate);
+            }
+            
+            // Send to server
+            const apiBaseUrl = globalThis.getApiBaseUrl();
+            const endpoint = this.duplicateType === 'asset' ? '/api/assets/bulk' : '/api/subassets/bulk';
+            const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ items: duplicates }),
+                credentials: 'include'
+            });
+            
+            const responseValidation = await globalThis.validateResponse(response);
+            if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
+            
+            // Close modals
+            this.closeDuplicateModal();
+            if (this.duplicateType === 'asset') {
+                this.closeAssetModal();
+            } else {
+                this.closeSubAssetModal();
+            }
+            
+            // Refresh data and show success message
+            await this.refreshData();
+            globalThis.toaster.show(`Successfully created ${count} duplicate${count > 1 ? 's' : ''}!`);
+            
+        } catch (error) {
+            globalThis.logError('Error creating duplicates:', error.message);
+        } finally {
+            this.setButtonLoading(this.confirmDuplicateBtn, false);
+        }
+    }
+    
+    createDuplicate(source, type, index) {
+        const duplicate = { ...source };
+        
+        // Generate new ID
+        duplicate.id = this.generateId();
+        
+        // Add sequential numbering to duplicate names
+        duplicate.name = `${source.name} (${index})`;
+        
+        // Clear serial number and warranty information
+        duplicate.serialNumber = '';
+        duplicate.warranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+        
+        // Clear secondary warranty for assets
+        if (type === 'asset' && duplicate.secondaryWarranty) {
+            duplicate.secondaryWarranty = {
+                scope: '',
+                expirationDate: null,
+                isLifetime: false
+            };
+        }
+        
+        // Clear file paths (duplicates won't have files)
+        duplicate.photoPath = null;
+        duplicate.receiptPath = null;
+        duplicate.manualPath = null;
+        duplicate.photoPaths = [];
+        duplicate.receiptPaths = [];
+        duplicate.manualPaths = [];
+        duplicate.photoInfo = [];
+        duplicate.receiptInfo = [];
+        duplicate.manualInfo = [];
+        
+        // Clear maintenance events
+        duplicate.maintenanceEvents = [];
+        
+        // Set new timestamps
+        duplicate.createdAt = new Date().toISOString();
+        duplicate.updatedAt = new Date().toISOString();
+        
+        return duplicate;
+    }
+    
+    async refreshData() {
+        // This should be provided by the parent script
+        if (window.refreshAllData) {
+            await window.refreshAllData();
+        }
     }
 } 

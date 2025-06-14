@@ -313,6 +313,13 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="save-btn">Save<div class="spinner"></div></button>
+                            <button type="button" class="duplicate-btn" id="duplicateAssetBtn" title="Duplicate this asset">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Duplicate
+                            </button>
                             <button type="button" class="cancel-btn">Cancel</button>
                         </div>
                     </form>
@@ -485,6 +492,13 @@
                         
                         <div class="form-actions">
                             <button type="submit" class="save-btn">Save<div class="spinner"></div></button>
+                            <button type="button" class="duplicate-btn" id="duplicateSubAssetBtn" title="Duplicate this component">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Duplicate
+                            </button>
                             <button type="button" class="cancel-btn">Cancel</button>
                         </div>
                     </form>
@@ -588,6 +602,30 @@
                                 <button id="startImportBtn" class="action-button" disabled>Start Import<div class="spinner"></div></button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duplicate Confirmation Modal -->
+            <div id="duplicateModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="duplicateModalTitle" class="modal-title">Duplicate Asset</h2>
+                        <div class="close-btn">
+                            <span>&times;</span>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <p id="duplicateModalDescription">How many duplicates would you like to create?</p>
+                        <div class="form-group">
+                            <label for="duplicateCount">Number of duplicates:</label>
+                            <input type="number" id="duplicateCount" min="1" max="100" value="1" class="duplicate-input">
+                            <small class="help-text">Duplicates will be named sequentially (e.g., "Asset Name (1)", "Asset Name (2)"). Serial numbers, maintenance events, and warranty information will be excluded.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="confirmDuplicateBtn" class="save-btn">Create Duplicates</button>
+                        <button id="cancelDuplicateBtn" class="cancel-btn">Cancel</button>
                     </div>
                 </div>
             </div>

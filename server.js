@@ -716,6 +716,90 @@ app.post('/api/asset', async (req, res) => {
     }
 });
 
+// Bulk create assets
+app.post('/api/assets/bulk', async (req, res) => {
+    try {
+        const { items } = req.body;
+        
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Items array is required' });
+        }
+        
+        if (items.length > 100) {
+            return res.status(400).json({ error: 'Cannot create more than 100 assets at once' });
+        }
+        
+        const assets = readJsonFile(assetsFilePath);
+        const newAssets = [];
+        
+        for (const item of items) {
+            // Ensure maintenanceEvents is always present (even if empty)
+            item.maintenanceEvents = item.maintenanceEvents || [];
+            
+            // Ensure quantity is present for backwards compatibility
+            if (typeof item.quantity === 'undefined' || item.quantity === null) {
+                item.quantity = 1;
+            }
+            
+            // Ensure required fields
+            if (!item.name) {
+                return res.status(400).json({ error: 'Asset name is required for all items' });
+            }
+            
+            // Generate ID if not provided
+            if (!item.id) {
+                item.id = generateId();
+            }
+            
+            // Set timestamps
+            item.createdAt = new Date().toISOString();
+            item.updatedAt = new Date().toISOString();
+            
+            newAssets.push(item);
+        }
+        
+        // Add all new assets to the array
+        assets.push(...newAssets);
+        
+        const success = writeJsonFile(assetsFilePath, assets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Bulk created ${newAssets.length} assets`);
+            }
+            
+            // Optional: Send notification for bulk creation
+            try {
+                const configPath = path.join(DATA_DIR, 'config.json');
+                let config = {};
+                if (fs.existsSync(configPath)) {
+                    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                }
+                const notificationSettings = config.notificationSettings || {};
+                const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+                
+                if (notificationSettings.notifyAdd && appriseUrl) {
+                    await sendNotification('assets_bulk_added', {
+                        count: newAssets.length,
+                        names: newAssets.map(a => a.name).join(', ')
+                    }, {
+                        appriseUrl,
+                        baseUrl: getBaseUrl(req)
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to send bulk asset added notification:', err.message);
+            }
+            
+            res.status(201).json({ success: true, created: newAssets.length, items: newAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create assets' });
+        }
+    } catch (error) {
+        console.error('Error in bulk asset creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Update an existing asset
 app.put('/api/assets/:id', async (req, res) => {
     try {
@@ -865,71 +949,193 @@ app.delete('/api/asset/:id', async (req, res) => {
 
 // Create a new sub-asset
 app.post('/api/subasset', async (req, res) => {
-    const subAssets = readJsonFile(subAssetsFilePath);
-    const newSubAsset = req.body;
-    // Remove legacy maintenanceReminder if present
-    if (newSubAsset.maintenanceReminder) delete newSubAsset.maintenanceReminder;
-    // Ensure maintenanceEvents is always present (even if empty)
-    newSubAsset.maintenanceEvents = newSubAsset.maintenanceEvents || [];
-    
-    // Ensure quantity is present for backwards compatibility
-    if (typeof newSubAsset.quantity === 'undefined' || newSubAsset.quantity === null) {
-        newSubAsset.quantity = 1;
-    }
-    
-    // Ensure required fields
-    if (!newSubAsset.name || !newSubAsset.parentId) {
-        return res.status(400).json({ error: 'Sub-asset name and parent ID are required' });
-    }
-    
-    // Generate ID if not provided
-    if (!newSubAsset.id) {
-        newSubAsset.id = generateId();
-    }
-    
-    // Set timestamps
-    newSubAsset.createdAt = new Date().toISOString();
-    newSubAsset.updatedAt = new Date().toISOString();
-    
-    subAssets.push(newSubAsset);
-    
-    if (writeJsonFile(subAssetsFilePath, subAssets)) {
-        if (DEBUG) {
-            console.log('[DEBUG] Sub-asset added:', { id: newSubAsset.id, name: newSubAsset.name, parentId: newSubAsset.parentId });
+    try {
+        const assets = readJsonFile(assetsFilePath);
+        const subAssets = readJsonFile(subAssetsFilePath);
+        const newSubAsset = req.body;
+        
+        // Ensure maintenanceEvents is always present (even if empty)
+        newSubAsset.maintenanceEvents = newSubAsset.maintenanceEvents || [];
+        
+        // Debug logging for sub-asset creation
+        console.log('Received sub-asset data:', {
+            id: newSubAsset.id,
+            name: newSubAsset.name,
+            parentId: newSubAsset.parentId,
+            parentSubId: newSubAsset.parentSubId
+        });
+        
+        // Validate required fields
+        if (!newSubAsset.name || !newSubAsset.name.trim()) {
+            console.error('Validation failed: Missing name');
+            return res.status(400).json({ error: 'Sub-asset name is required' });
         }
-        // Notification logic for sub-asset creation
-        try {
-            const configPath = path.join(DATA_DIR, 'config.json');
-            let config = {};
-            if (fs.existsSync(configPath)) {
-                config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            }
-            const notificationSettings = config.notificationSettings || {};
-            const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+        
+        if (!newSubAsset.parentId || !newSubAsset.parentId.trim()) {
+            console.error('Validation failed: Missing parentId');
+            return res.status(400).json({ error: 'Parent asset ID is required' });
+        }
+        
+        // Generate ID if not provided
+        if (!newSubAsset.id) {
+            newSubAsset.id = generateId();
+            console.log('Generated new ID for sub-asset:', newSubAsset.id);
+        }
+        
+        // Set timestamps
+        newSubAsset.createdAt = new Date().toISOString();
+        newSubAsset.updatedAt = new Date().toISOString();
+        
+        // Ensure quantity is present for backwards compatibility
+        if (typeof newSubAsset.quantity === 'undefined' || newSubAsset.quantity === null) {
+            newSubAsset.quantity = 1;
+        }
+        
+        // Process file deletions if provided
+        if (newSubAsset.filesToDelete && newSubAsset.filesToDelete.length > 0) {
+            await deleteAssetFiles(newSubAsset.filesToDelete);
+        }
+        delete newSubAsset.filesToDelete;
+        
+        subAssets.push(newSubAsset);
+        const success = writeJsonFile(subAssetsFilePath, subAssets);
+        
+        if (success) {
+            console.log('Sub-asset created successfully:', { id: newSubAsset.id, name: newSubAsset.name });
+            
             if (DEBUG) {
-                console.log('[DEBUG] Sub-asset notification settings (add):', notificationSettings, 'Apprise URL:', appriseUrl);
+                console.log('[DEBUG] Sub-asset added:', { name: newSubAsset.name, modelNumber: newSubAsset.modelNumber, parentId: newSubAsset.parentId });
             }
-            if (notificationSettings.notifyAdd && appriseUrl) {
-                await sendNotification('asset_added', {
-                    id: newSubAsset.id,
-                    parentId: newSubAsset.parentId,
-                    name: `${newSubAsset.name} (Component)`,
-                    modelNumber: newSubAsset.modelNumber,
-                    description: newSubAsset.description || newSubAsset.notes
-                }, {
-                    appriseUrl,
-                    baseUrl: getBaseUrl(req)
-                });
-                if (DEBUG) {
-                    console.log('[DEBUG] Sub-asset added notification sent.');
+            
+            // Notification logic
+            try {
+                const configPath = path.join(DATA_DIR, 'config.json');
+                let config = {};
+                if (fs.existsSync(configPath)) {
+                    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                 }
+                const notificationSettings = config.notificationSettings || {};
+                const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+                if (DEBUG) {
+                    console.log('[DEBUG] Notification settings (add sub-asset):', notificationSettings, 'Apprise URL:', appriseUrl);
+                }
+                if (notificationSettings.notifyAdd && appriseUrl) {
+                    // Find parent asset name for better notification
+                    const parentAsset = assets.find(a => a.id === newSubAsset.parentId);
+                    await sendNotification('subasset_added', {
+                        id: newSubAsset.id,
+                        name: newSubAsset.name,
+                        modelNumber: newSubAsset.modelNumber,
+                        parentName: parentAsset ? parentAsset.name : 'Unknown Asset'
+                    }, {
+                        appriseUrl,
+                        baseUrl: getBaseUrl(req)
+                    });
+                    if (DEBUG) {
+                        console.log('[DEBUG] Sub-asset added notification sent.');
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to send sub-asset added notification:', err.message);
             }
-        } catch (err) {
-            console.error('Failed to send sub-asset added notification:', err.message);
+            
+            res.status(201).json(newSubAsset);
+        } else {
+            console.error('Failed to save sub-asset to file');
+            res.status(500).json({ error: 'Failed to create sub-asset' });
         }
-        res.status(201).json(newSubAsset);
-    } else {
-        res.status(500).json({ error: 'Failed to create sub-asset' });
+    } catch (error) {
+        console.error('Error creating sub-asset:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Bulk create sub-assets
+app.post('/api/subassets/bulk', async (req, res) => {
+    try {
+        const { items } = req.body;
+        
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Items array is required' });
+        }
+        
+        if (items.length > 100) {
+            return res.status(400).json({ error: 'Cannot create more than 100 sub-assets at once' });
+        }
+        
+        const assets = readJsonFile(assetsFilePath);
+        const subAssets = readJsonFile(subAssetsFilePath);
+        const newSubAssets = [];
+        
+        for (const item of items) {
+            // Ensure maintenanceEvents is always present (even if empty)
+            item.maintenanceEvents = item.maintenanceEvents || [];
+            
+            // Validate required fields
+            if (!item.name || !item.name.trim()) {
+                return res.status(400).json({ error: 'Sub-asset name is required for all items' });
+            }
+            
+            if (!item.parentId || !item.parentId.trim()) {
+                return res.status(400).json({ error: 'Parent asset ID is required for all items' });
+            }
+            
+            // Generate ID if not provided
+            if (!item.id) {
+                item.id = generateId();
+            }
+            
+            // Set timestamps
+            item.createdAt = new Date().toISOString();
+            item.updatedAt = new Date().toISOString();
+            
+            // Ensure quantity is present for backwards compatibility
+            if (typeof item.quantity === 'undefined' || item.quantity === null) {
+                item.quantity = 1;
+            }
+            
+            newSubAssets.push(item);
+        }
+        
+        // Add all new sub-assets to the array
+        subAssets.push(...newSubAssets);
+        
+        const success = writeJsonFile(subAssetsFilePath, subAssets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Bulk created ${newSubAssets.length} sub-assets`);
+            }
+            
+            // Optional: Send notification for bulk creation
+            try {
+                const configPath = path.join(DATA_DIR, 'config.json');
+                let config = {};
+                if (fs.existsSync(configPath)) {
+                    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                }
+                const notificationSettings = config.notificationSettings || {};
+                const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+                
+                if (notificationSettings.notifyAdd && appriseUrl) {
+                    await sendNotification('subassets_bulk_added', {
+                        count: newSubAssets.length,
+                        names: newSubAssets.map(s => s.name).join(', ')
+                    }, {
+                        appriseUrl,
+                        baseUrl: getBaseUrl(req)
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to send bulk sub-asset added notification:', err.message);
+            }
+            
+            res.status(201).json({ success: true, created: newSubAssets.length, items: newSubAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create sub-assets' });
+        }
+    } catch (error) {
+        console.error('Error in bulk sub-asset creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -1414,10 +1620,9 @@ app.post('/api/notification-test', async (req, res) => {
         if (DEBUG) {
             console.log('[DEBUG] Notification settings (test):', notificationSettings, 'Apprise URL:', appriseUrl);
         }
-        if (!appriseUrl) return res.status(400).json({ error: 'No Apprise URL configured.' });
 
         // Get enabled notification types from request body
-        const { enabledTypes } = notificationSettings;;
+        const { enabledTypes } = notificationSettings;
         if (!enabledTypes || !Array.isArray(enabledTypes)) {
             return res.status(400).json({ error: 'No enabled notification types provided.' });
         }

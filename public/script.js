@@ -409,6 +409,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Expose refreshAllData to window for ModalManager access
+    window.refreshAllData = refreshAllData;
+
     async function saveAsset(asset) {
         const saveBtn = assetForm.querySelector('.save-btn');
         
@@ -1598,6 +1601,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 modalManager.closeAssetModal();
                 modalManager.closeSubAssetModal();
+                
+                // Close duplicate modal if it exists
+                if (modalManager && modalManager.closeDuplicateModal) {
+                    modalManager.closeDuplicateModal();
+                }
             }
         });
         // Add click-off-to-close for all modals on overlay click
@@ -1614,6 +1622,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
+        
+        // Add click-off-to-close for duplicate modal
+        const duplicateModal = document.getElementById('duplicateModal');
+        if (duplicateModal) {
+            duplicateModal.addEventListener('mousedown', function(e) {
+                if (e.target !== duplicateModal) return;
+                if (modalManager && modalManager.closeDuplicateModal) {
+                    modalManager.closeDuplicateModal();
+                }
+            });
+        }
     }
 
     function addElementEventListeners() {

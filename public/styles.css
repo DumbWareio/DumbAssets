@@ -1028,6 +1028,33 @@ input[type="date"][data-has-value="true"] {
   opacity: 0.9;
 }
 
+.duplicate-btn {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: var(--app-border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--app-border-radius);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.duplicate-btn:hover {
+    background-color: var(--hover-color);
+}
+
+.duplicate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.duplicate-btn svg {
+    flex-shrink: 0;
+}
+
 .cancel-btn {
   background-color: transparent;
   border: var(--app-border);
@@ -3689,4 +3716,59 @@ a:hover {
     padding: 1rem;
     margin: 1rem;
   }
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+.empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0.2rem;
+    color: var(--secondary-color);
+    min-height: 10px;
+}
+
+/* Duplicate Modal Specific Styles */
+.duplicate-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: var(--app-border);
+    border-radius: var(--app-border-radius);
+    background-color: var(--input-background);
+    color: var(--text-color);
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.duplicate-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px rgba(37, 100, 235, 0.3);
+}
+
+.help-text {
+    color: var(--secondary-color);
+    font-size: 0.8rem;
+    font-style: italic;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: var(--app-border);
+    margin-top: 1rem;
+}
+
+.modal-body p {
+    margin-bottom: 1rem;
+    color: var(--text-color);
 }
