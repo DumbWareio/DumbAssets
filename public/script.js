@@ -873,12 +873,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const filePreviewsContainer = document.createElement('div');
         filePreviewsContainer.className = 'sub-asset-files';
         
-        // Add file previews if available
-        if (subAsset.photoPath || subAsset.receiptPath || subAsset.manualPath) {
+        // Check if sub-asset has any files (both single files and arrays)
+        const hasFiles = subAsset.photoPath || subAsset.receiptPath || subAsset.manualPath ||
+                         (subAsset.photoPaths && subAsset.photoPaths.length > 0) ||
+                         (subAsset.receiptPaths && subAsset.receiptPaths.length > 0) ||
+                         (subAsset.manualPaths && subAsset.manualPaths.length > 0);
+        
+        if (hasFiles) {
             const files = document.createElement('div');
             files.className = 'compact-files-grid';
             
-            if (subAsset.photoPath) {
+            // Handle multiple photos first, then fallback to single photo
+            if (subAsset.photoPaths && Array.isArray(subAsset.photoPaths) && subAsset.photoPaths.length > 0) {
+                subAsset.photoPaths.forEach((photoPath, index) => {
+                    files.innerHTML += `
+                        <div class="compact-file-item photo">
+                            <a href="${formatFilePath(photoPath)}" target="_blank">
+                                <img src="${formatFilePath(photoPath)}" alt="${subAsset.name}" class="compact-asset-image">
+                            </a>
+                        </div>
+                    `;
+                });
+            } else if (subAsset.photoPath) {
                 files.innerHTML += `
                     <div class="compact-file-item photo">
                         <a href="${formatFilePath(subAsset.photoPath)}" target="_blank">
@@ -888,7 +904,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
             
-            if (subAsset.receiptPath) {
+            // Handle multiple receipts first, then fallback to single receipt
+            if (subAsset.receiptPaths && Array.isArray(subAsset.receiptPaths) && subAsset.receiptPaths.length > 0) {
+                subAsset.receiptPaths.forEach((receiptPath, index) => {
+                    files.innerHTML += `
+                        <div class="compact-file-item receipt">
+                            <a href="${formatFilePath(receiptPath)}" target="_blank">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/>
+                                    <path d="M14 8h-8"/>
+                                    <path d="M15 12h-9"/>
+                                    <path d="M15 16h-9"/>
+                                </svg>
+                            </a>
+                        </div>
+                    `;
+                });
+            } else if (subAsset.receiptPath) {
                 files.innerHTML += `
                     <div class="compact-file-item receipt">
                         <a href="${formatFilePath(subAsset.receiptPath)}" target="_blank">
@@ -904,7 +937,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
             
-            if (subAsset.manualPath) {
+            // Handle multiple manuals first, then fallback to single manual
+            if (subAsset.manualPaths && Array.isArray(subAsset.manualPaths) && subAsset.manualPaths.length > 0) {
+                subAsset.manualPaths.forEach((manualPath, index) => {
+                    files.innerHTML += `
+                        <div class="compact-file-item manual">
+                            <a href="${formatFilePath(manualPath)}" target="_blank">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <path d="M14 2v6h6"/>
+                                    <path d="M16 13H8"/>
+                                    <path d="M16 17H8"/>
+                                    <path d="M10 9H8"/>
+                                </svg>
+                            </a>
+                        </div>
+                    `;
+                });
+            } else if (subAsset.manualPath) {
                 files.innerHTML += `
                     <div class="compact-file-item manual">
                         <a href="${formatFilePath(subAsset.manualPath)}" target="_blank">
@@ -1025,11 +1075,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     const childFilePreviewsContainer = document.createElement('div');
                     childFilePreviewsContainer.className = 'sub-asset-files';
                     
-                    if (child.photoPath || child.receiptPath || child.manualPath) {
+                    // Check if child has any files (both single files and arrays)
+                    const childHasFiles = child.photoPath || child.receiptPath || child.manualPath ||
+                                         (child.photoPaths && child.photoPaths.length > 0) ||
+                                         (child.receiptPaths && child.receiptPaths.length > 0) ||
+                                         (child.manualPaths && child.manualPaths.length > 0);
+                    
+                    if (childHasFiles) {
                         const childFiles = document.createElement('div');
                         childFiles.className = 'compact-files-grid';
                         
-                        if (child.photoPath) {
+                        // Handle multiple photos first, then fallback to single photo
+                        if (child.photoPaths && Array.isArray(child.photoPaths) && child.photoPaths.length > 0) {
+                            child.photoPaths.forEach((photoPath, index) => {
+                                childFiles.innerHTML += `
+                                    <div class="compact-file-item photo">
+                                        <a href="${formatFilePath(photoPath)}" target="_blank">
+                                            <img src="${formatFilePath(photoPath)}" alt="${child.name}" class="compact-asset-image">
+                                        </a>
+                                    </div>
+                                `;
+                            });
+                        } else if (child.photoPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item photo">
                                     <a href="${formatFilePath(child.photoPath)}" target="_blank">
@@ -1039,7 +1106,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             `;
                         }
                         
-                        if (child.receiptPath) {
+                        // Handle multiple receipts first, then fallback to single receipt
+                        if (child.receiptPaths && Array.isArray(child.receiptPaths) && child.receiptPaths.length > 0) {
+                            child.receiptPaths.forEach((receiptPath, index) => {
+                                childFiles.innerHTML += `
+                                    <div class="compact-file-item receipt">
+                                        <a href="${formatFilePath(receiptPath)}" target="_blank">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/>
+                                                <path d="M14 8h-8"/>
+                                                <path d="M15 12h-9"/>
+                                                <path d="M15 16h-9"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                `;
+                            });
+                        } else if (child.receiptPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item receipt">
                                     <a href="${formatFilePath(child.receiptPath)}" target="_blank">
@@ -1055,7 +1139,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             `;
                         }
                         
-                        if (child.manualPath) {
+                        // Handle multiple manuals first, then fallback to single manual
+                        if (child.manualPaths && Array.isArray(child.manualPaths) && child.manualPaths.length > 0) {
+                            child.manualPaths.forEach((manualPath, index) => {
+                                childFiles.innerHTML += `
+                                    <div class="compact-file-item manual">
+                                        <a href="${formatFilePath(manualPath)}" target="_blank">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <path d="M14 2v6h6"/>
+                                                <path d="M16 13H8"/>
+                                                <path d="M16 17H8"/>
+                                                <path d="M10 9H8"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                `;
+                            });
+                        } else if (child.manualPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item manual">
                                     <a href="${formatFilePath(child.manualPath)}" target="_blank">
