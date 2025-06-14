@@ -24,6 +24,7 @@ const { originValidationMiddleware, getCorsOptions } = require('./middleware/cor
 const { demoModeMiddleware } = require('./middleware/demo');
 const { sanitizeFileName } = require('./src/services/fileUpload/utils');
 const packageJson = require('./package.json');
+const { TOKENMASK } = require('./src/constants');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +62,13 @@ const DEFAULT_SETTINGS = {
             active: true
         }
     },
+    integrationSettings: {
+        paperless: {
+            enabled: false,
+            hostUrl: '',
+            apiToken: ''
+        }
+    }
 };
 
 // Currency configuration from environment variables
@@ -435,8 +443,10 @@ app.use(BASE_PATH + '/styles.css', express.static('public/styles.css'));
 app.use(BASE_PATH + '/script.js', express.static('public/script.js'));
 
 // Module files (need to be accessible for imports)
-app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
-app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
+app.use(BASE_PATH + '/src', express.static('src'));
+// app.use(BASE_PATH + '/src/services', express.static('src/services'));
+// app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
+// app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
 
 // Serve Chart.js from node_modules
 app.use(BASE_PATH + '/js/chart.js', express.static('node_modules/chart.js/dist/chart.umd.js'));
@@ -445,6 +455,9 @@ app.use(BASE_PATH + '/js/chart.js', express.static('node_modules/chart.js/dist/c
 app.use(BASE_PATH + '/Images', express.static('data/Images'));
 app.use(BASE_PATH + '/Receipts', express.static('data/Receipts'));
 app.use(BASE_PATH + '/Manuals', express.static('data/Manuals'));
+
+// INTEGRATIONS
+app.use(BASE_PATH + '/src/integrations', express.static('src/integrations'));
 
 // Protected API routes
 app.use('/api', (req, res, next) => {
@@ -1278,6 +1291,49 @@ function getAppSettings() {
     return config;
 }
 
+// Use before sending settings to frontend
+function stripIntegrationTokens(appSettings) {
+    const sanitizedSettings = { ...appSettings };
+        
+    // Replace API tokens with placeholder if they exist
+    if (sanitizedSettings.integrationSettings?.paperless?.apiToken) {
+        sanitizedSettings.integrationSettings.paperless.apiToken = TOKENMASK;
+    }
+
+    // Add more integrations here as needed
+
+    return sanitizedSettings;
+}
+
+// Validate and Handle sensitive data preservation
+function applyIntegrationSettings(serverConfig, updatedConfig) {
+    if (updatedConfig.integrationSettings?.paperless) {
+        const requestHostUrl = updatedConfig.integrationSettings.paperless.hostUrl.trim() || '';
+        const requestToken = updatedConfig.integrationSettings.paperless.apiToken.trim() || '';
+        if (requestToken === TOKENMASK) {
+            if (serverConfig.integrationSettings?.paperless?.apiToken) {
+                // If the API token is the placeholder, keep the existing token
+                updatedConfig.integrationSettings.paperless.apiToken = serverConfig.integrationSettings.paperless.apiToken;
+            } else {
+                // If there's no existing token, remove the placeholder
+                updatedConfig.integrationSettings.paperless.apiToken = '';
+            }
+        }
+        if (requestHostUrl) {
+            if (!/^https?:\/\//i.test(requestHostUrl)) { // ensure host URL is a valid url
+                throw new Error('Invalid Paperless Host URL');
+            }
+            updatedConfig.integrationSettings.paperless.hostUrl = requestHostUrl.endsWith('/') 
+                ? requestHostUrl.slice(0, -1) 
+                : requestHostUrl;
+        }
+        
+    }
+    // Add more validation for other integrations here
+
+    return updatedConfig;
+}
+
 // Import assets route
 app.post('/api/import-assets', upload.single('file'), (req, res) => {
     try {
@@ -1358,11 +1414,15 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
     }
 });
 
-// Get all settings
+// Get all settings (sanitized for frontend)
 app.get('/api/settings', (req, res) => {
     try {
         const appSettings = getAppSettings();
-        res.json(appSettings);
+        
+        // Sanitize sensitive data before sending to frontend
+        const sanitizedSettings = stripIntegrationTokens(appSettings);
+        
+        res.json(sanitizedSettings);
     } catch (err) {
         res.status(500).json({ error: 'Failed to load settings' });
     }
@@ -1373,13 +1433,281 @@ app.post('/api/settings', (req, res) => {
     try {
         const config = getAppSettings();
         // Update settings with the new values
-        const updatedConfig = { ...config, ...req.body };
+        let updatedConfig = { ...config, ...req.body };
+
+        try {
+            updatedConfig = applyIntegrationSettings(config, updatedConfig);
+        }
+        catch (error) {
+            return res.status(400).json({ error: error.message });
+        }
 
         const configPath = path.join(DATA_DIR, 'config.json');
         fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to save settings' });
+    }
+});
+
+// --- PAPERLESS NGX INTEGRATION ---
+
+// Test Paperless connection
+app.post('/api/paperless/test-connection', async (req, res) => {
+    try {
+        const { hostUrl, apiToken } = req.body;
+        
+        if (!hostUrl) {
+            return res.status(400).json({ error: 'Host URL is required' });
+        }
+
+        let tokenToUse = apiToken;
+        
+        // If no token provided or it's the placeholder, try to use saved token
+        if (!apiToken || apiToken === TOKENMASK) {
+            const config = getAppSettings();
+            const savedToken = config.integrationSettings?.paperless?.apiToken;
+            
+            if (!savedToken) {
+                return res.status(400).json({ error: 'No API token available. Please enter a new token.' });
+            }
+            
+            tokenToUse = savedToken;
+            debugLog('Using saved API token for connection test');
+        } else {
+            debugLog('Using provided API token for connection test');
+        }
+
+        // Normalize the URL
+        const normalizedUrl = hostUrl.endsWith('/') ? hostUrl.slice(0, -1) : hostUrl;
+        
+        // Test connection by fetching documents count
+        const testResponse = await fetch(`${normalizedUrl}/api/documents/?page_size=1`, {
+            headers: {
+                'Authorization': `Token ${tokenToUse}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!testResponse.ok) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `Connection failed: ${testResponse.status} ${testResponse.statusText}` 
+            });
+        }
+
+        const data = await testResponse.json();
+        
+        res.json({ 
+            success: true, 
+            documentsCount: data.count || 0,
+            message: `Connection successful! Found ${data.count || 0} documents.`
+        });
+    } catch (error) {
+        debugLog('Paperless connection test error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message || 'Connection test failed' 
+        });
+    }
+});
+
+// Search Paperless documents
+app.get('/api/paperless/search', async (req, res) => {
+    try {
+        const config = getAppSettings();
+        const paperlessConfig = config.integrationSettings?.paperless;
+        
+        if (!paperlessConfig?.enabled || !paperlessConfig?.hostUrl || !paperlessConfig?.apiToken) {
+            return res.status(400).json({ error: 'Paperless integration not configured' });
+        }
+
+        const query = req.query.q || '';
+        const page = req.query.page || 1;
+        const pageSize = req.query.page_size || 25;
+
+        const normalizedUrl = paperlessConfig.hostUrl.endsWith('/') 
+            ? paperlessConfig.hostUrl.slice(0, -1) 
+            : paperlessConfig.hostUrl;
+
+        let searchUrl = `${normalizedUrl}/api/documents/?page=${page}&page_size=${pageSize}`;
+        if (query) {
+            searchUrl += `&query=${encodeURIComponent(query)}`;
+        }
+
+        const paperlessResponse = await fetch(searchUrl, {
+            headers: {
+                'Authorization': `Token ${paperlessConfig.apiToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!paperlessResponse.ok) {
+            return res.status(paperlessResponse.status).json({ 
+                error: 'Failed to search Paperless documents' 
+            });
+        }
+
+        const data = await paperlessResponse.json();
+        res.json(data);
+    } catch (error) {
+        debugLog('Paperless search error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get Paperless document info
+app.get('/api/paperless/document/:id/info', async (req, res) => {
+    try {
+        const config = getAppSettings();
+        const paperlessConfig = config.integrationSettings?.paperless;
+        
+        if (!paperlessConfig?.enabled || !paperlessConfig?.hostUrl || !paperlessConfig?.apiToken) {
+            return res.status(400).json({ error: 'Paperless integration not configured' });
+        }
+
+        const normalizedUrl = paperlessConfig.hostUrl.endsWith('/') 
+            ? paperlessConfig.hostUrl.slice(0, -1) 
+            : paperlessConfig.hostUrl;
+
+        const paperlessResponse = await fetch(`${normalizedUrl}/api/documents/${req.params.id}/`, {
+            headers: {
+                'Authorization': `Token ${paperlessConfig.apiToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!paperlessResponse.ok) {
+            return res.status(paperlessResponse.status).json({ 
+                error: 'Failed to fetch document info' 
+            });
+        }
+
+        const data = await paperlessResponse.json();
+        res.json(data);
+    } catch (error) {
+        debugLog('Paperless document info error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Test endpoint for debugging
+app.get('/api/paperless/test', (req, res) => {
+    res.json({ message: 'Paperless routes are working!' });
+});
+
+// Proxy Paperless document download
+app.get('/api/paperless/document/:id/download', async (req, res) => {
+    console.log('🔍 PAPERLESS DOWNLOAD ROUTE HIT');
+    console.log('🔍 Document ID:', req.params.id);
+    console.log('🔍 Full URL:', req.originalUrl);
+    
+    try {
+        console.log('🔍 Step 1: Getting config...');
+        debugLog('Paperless download request received for document ID:', req.params.id);
+        const config = getAppSettings();
+        console.log('🔍 Step 2: Config retrieved');
+        
+        const paperlessConfig = config.integrationSettings?.paperless;
+        console.log('🔍 Step 3: Paperless config:', { 
+            enabled: paperlessConfig?.enabled, 
+            hasHost: !!paperlessConfig?.hostUrl, 
+            hasToken: !!paperlessConfig?.apiToken 
+        });
+        
+        if (!paperlessConfig?.enabled || !paperlessConfig?.hostUrl || !paperlessConfig?.apiToken) {
+            console.log('🔍 ERROR: Paperless not configured properly');
+            return res.status(400).json({ error: 'Paperless integration not configured' });
+        }
+
+        const normalizedUrl = paperlessConfig.hostUrl.endsWith('/') 
+            ? paperlessConfig.hostUrl.slice(0, -1) 
+            : paperlessConfig.hostUrl;
+        
+        const fetchUrl = `${normalizedUrl}/api/documents/${req.params.id}/download/`;
+        console.log('🔍 Step 4: About to fetch from:', fetchUrl);
+
+        const paperlessResponse = await fetch(fetchUrl, {
+            headers: {
+                'Authorization': `Token ${paperlessConfig.apiToken}`
+            }
+        });
+
+        console.log('🔍 Step 5: Paperless response status:', paperlessResponse.status);
+        
+        // Debug all response headers
+        console.log('🔍 Response Headers:');
+        for (const [key, value] of paperlessResponse.headers) {
+            console.log(`  ${key}: ${value}`);
+        }
+
+        if (!paperlessResponse.ok) {
+            console.log('🔍 ERROR: Paperless response not OK:', paperlessResponse.status, paperlessResponse.statusText);
+            return res.status(paperlessResponse.status).json({ 
+                error: 'Failed to download document' 
+            });
+        }
+
+        console.log('🔍 Step 6: Setting headers...');
+        // Forward the content type and other relevant headers
+        const contentType = paperlessResponse.headers.get('content-type');
+        const contentLength = paperlessResponse.headers.get('content-length');
+        const contentDisposition = paperlessResponse.headers.get('content-disposition');
+        const contentEncoding = paperlessResponse.headers.get('content-encoding');
+        
+        console.log('🔍 Key headers:', { contentType, contentLength, contentDisposition, contentEncoding });
+
+        if (contentType) res.setHeader('Content-Type', contentType);
+        if (contentDisposition) res.setHeader('Content-Disposition', contentDisposition);
+        
+        // Don't forward Content-Length or Content-Encoding when compressed
+        // Let the browser handle the decompressed content length
+        if (contentLength && !contentEncoding) {
+            res.setHeader('Content-Length', contentLength);
+            console.log('🔍 Setting Content-Length:', contentLength);
+        } else if (contentEncoding) {
+            console.log('🔍 Skipping Content-Length and Content-Encoding due to compression:', contentEncoding);
+        }
+        
+        // Debug: Log all headers we're sending to the browser
+        console.log('🔍 Headers being sent to browser:');
+        const responseHeaders = res.getHeaders();
+        for (const [key, value] of Object.entries(responseHeaders)) {
+            console.log(`  ${key}: ${value}`);
+        }
+
+        console.log('🔍 Step 7: Starting to stream response...');
+        // Stream the response directly to the client using Web Streams API
+        const reader = paperlessResponse.body.getReader();
+        let totalBytes = 0;
+        let chunkCount = 0;
+        
+        const pump = async () => {
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        console.log(`🔍 Streaming complete: ${chunkCount} chunks, ${totalBytes} bytes total`);
+                        break;
+                    }
+                    chunkCount++;
+                    totalBytes += value.length;
+                    console.log(`🔍 Chunk ${chunkCount}: ${value.length} bytes (total: ${totalBytes})`);
+                    res.write(value);
+                }
+                res.end();
+            } catch (error) {
+                console.log('🔍 Streaming error:', error.message);
+                res.destroy(error);
+            }
+        };
+        
+        await pump();
+        console.log('🔍 Step 8: Response streamed successfully');
+    } catch (error) {
+        console.log('🔍 ERROR in catch block:', error.message);
+        debugLog('Paperless document download error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

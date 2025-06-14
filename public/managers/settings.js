@@ -1,4 +1,6 @@
 // SettingsManager handles all settings modal logic, loading, saving, and dashboard order drag/drop
+import { TOKENMASK } from '../../src/constants.js';
+
 export class SettingsManager {
     constructor({
         settingsBtn,
@@ -81,6 +83,24 @@ export class SettingsManager {
         const exportSimpleDataBtn = document.getElementById('exportSimpleDataBtn');
         if (exportSimpleDataBtn) {
             exportSimpleDataBtn.addEventListener('click', () => this._exportSimpleData());
+        }
+        
+        // Paperless integration
+        const testPaperlessConnection = document.getElementById('testPaperlessConnection');
+        if (testPaperlessConnection) {
+            testPaperlessConnection.addEventListener('click', () => this._testPaperlessConnection());
+        }
+        
+        const paperlessEnabled = document.getElementById('paperlessEnabled');
+        if (paperlessEnabled) {
+            paperlessEnabled.addEventListener('change', (e) => this._togglePaperlessConfig(e.target.checked));
+        }
+        
+        // Handle token field changes
+        const paperlessToken = document.getElementById('paperlessToken');
+        if (paperlessToken) {
+            paperlessToken.addEventListener('input', (e) => this._handleTokenFieldChange(e.target));
+            paperlessToken.addEventListener('focus', (e) => this._handleTokenFieldFocus(e.target));
         }
         
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -207,6 +227,36 @@ export class SettingsManager {
             document.getElementById('toggleWarranties').checked = finalVisibility.warranties;
             document.getElementById('toggleAnalytics').checked = finalVisibility.analytics;
             document.getElementById('toggleEvents').checked = finalVisibility.events;
+            
+            // Paperless integration settings
+            const integrationSettings = settings.integrationSettings || {};
+            const paperlessSettings = integrationSettings.paperless || {};
+            
+            document.getElementById('paperlessEnabled').checked = paperlessSettings.enabled || false;
+            document.getElementById('paperlessHost').value = paperlessSettings.hostUrl || '';
+            
+            // Handle API token - show placeholder if token exists, empty if not
+            const tokenField = document.getElementById('paperlessToken');
+            if (paperlessSettings.apiToken) {
+                if (paperlessSettings.apiToken === TOKENMASK) {
+                    // Already a placeholder, keep it
+                    tokenField.value = paperlessSettings.apiToken;
+                    tokenField.setAttribute('data-has-saved-token', 'true');
+                    tokenField.placeholder = 'Saved token hidden - focus to enter new token';
+                } else {
+                    // This shouldn't happen with the backend fix, but handle it for safety
+                    tokenField.value = TOKENMASK;
+                    tokenField.setAttribute('data-has-saved-token', 'true');
+                    tokenField.placeholder = 'Saved token hidden - focus to enter new token';
+                }
+            } else {
+                tokenField.value = '';
+                tokenField.removeAttribute('data-has-saved-token');
+                tokenField.placeholder = 'Enter your Paperless API token';
+            }
+            
+            this._togglePaperlessConfig(paperlessSettings.enabled || false);
+            
             // Card visibility toggles
             if (typeof window.renderCardVisibilityToggles === 'function') {
                 window.renderCardVisibilityToggles(settings);
@@ -258,6 +308,13 @@ export class SettingsManager {
                     within30: document.getElementById('toggleCardWarrantiesWithin30')?.checked !== false,
                     expired: document.getElementById('toggleCardWarrantiesExpired')?.checked !== false,
                     active: document.getElementById('toggleCardWarrantiesActive')?.checked !== false
+                }
+            },
+            integrationSettings: {
+                paperless: {
+                    enabled: document.getElementById('paperlessEnabled')?.checked || false,
+                    hostUrl: document.getElementById('paperlessHost')?.value || '',
+                    apiToken: document.getElementById('paperlessToken')?.value || ''
                 }
             }
         };
@@ -817,5 +874,89 @@ export class SettingsManager {
         
         // Convert to CSV string
         return rows.map(row => row.join(',')).join('\n');
+    }
+
+    _togglePaperlessConfig(enabled) {
+        const configDiv = document.getElementById('paperlessConfig');
+        if (configDiv) {
+            configDiv.style.display = enabled ? 'block' : 'none';
+        }
+    }
+
+    _handleTokenFieldFocus(tokenField) {
+        // Clear placeholder when user focuses to enter new token
+        if (tokenField.value === TOKENMASK) {
+            tokenField.value = '';
+            tokenField.placeholder = 'Enter new API token to replace existing one';
+        }
+    }
+
+    _handleTokenFieldChange(tokenField) {
+        // Reset connection status when token changes
+        const statusSpan = document.getElementById('paperlessConnectionStatus');
+        if (statusSpan) {
+            statusSpan.textContent = '';
+            statusSpan.className = 'connection-status';
+        }
+        
+        // Update data attribute based on whether we have content
+        if (tokenField.value && tokenField.value !== TOKENMASK) {
+            tokenField.removeAttribute('data-has-saved-token');
+        }
+    }
+
+    async _testPaperlessConnection() {
+        const testBtn = document.getElementById('testPaperlessConnection');
+        const statusSpan = document.getElementById('paperlessConnectionStatus');
+        const hostUrl = document.getElementById('paperlessHost').value;
+        const tokenField = document.getElementById('paperlessToken');
+        const apiToken = tokenField.value;
+        const hasSavedToken = tokenField.hasAttribute('data-has-saved-token');
+
+        if (!hostUrl) {
+            statusSpan.textContent = 'Please enter host URL';
+            statusSpan.className = 'connection-status error';
+            return;
+        }
+
+        // Check if we need a new token
+        if (!apiToken || (apiToken === TOKENMASK && !hasSavedToken)) {
+            statusSpan.textContent = 'Please enter API token';
+            statusSpan.className = 'connection-status error';
+            return;
+        }
+
+        this.setButtonLoading(testBtn, true);
+        statusSpan.textContent = 'Testing connection...';
+        statusSpan.className = 'connection-status testing';
+
+        try {
+            // Send the token even if it's the placeholder - backend will handle it
+            const response = await fetch('/api/paperless/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hostUrl, apiToken }),
+                credentials: 'include'
+            });
+
+            const responseValidation = await globalThis.validateResponse(response);
+            if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
+
+            const result = await response.json();
+            
+            if (result.success) {
+                statusSpan.textContent = `✓ ${result.message || `Connected successfully (${result.documentsCount} documents available)`}`;
+                statusSpan.className = 'connection-status success';
+                globalThis.toaster.show('Paperless connection successful!', 'success');
+            } else {
+                throw new Error(result.error || 'Connection failed');
+            }
+        } catch (error) {
+            statusSpan.textContent = `✗ Connection failed: ${error.message}`;
+            statusSpan.className = 'connection-status error';
+            globalThis.logError('Paperless connection test failed:', error.message);
+        } finally {
+            this.setButtonLoading(testBtn, false);
+        }
     }
 }

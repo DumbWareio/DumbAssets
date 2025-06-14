@@ -515,7 +515,8 @@ export class ModalManager {
                     photoInput, 
                     this,
                     photoInfo.originalName || photoPath.split('/').pop(),
-                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                    photoInfo
                 );
             });
             containsExistingFiles = true;
@@ -530,7 +531,8 @@ export class ModalManager {
                 photoInput, 
                 this,
                 photoInfo.originalName || asset.photoPath.split('/').pop(),
-                photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                photoInfo
             );
             containsExistingFiles = true;
         }
@@ -547,7 +549,8 @@ export class ModalManager {
                     receiptInput, 
                     this,
                     receiptInfo.originalName || receiptPath.split('/').pop(),
-                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                    receiptInfo
                 );
             });
             containsExistingFiles = true;
@@ -562,7 +565,8 @@ export class ModalManager {
                 receiptInput, 
                 this,
                 receiptInfo.originalName || asset.receiptPath.split('/').pop(),
-                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                receiptInfo
             );
             containsExistingFiles = true;
         }
@@ -579,7 +583,8 @@ export class ModalManager {
                     manualInput, 
                     this,
                     manualInfo.originalName || manualPath.split('/').pop(),
-                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                    manualInfo
                 );
             });
             containsExistingFiles = true;
@@ -594,7 +599,8 @@ export class ModalManager {
                 manualInput, 
                 this,
                 manualInfo.originalName || asset.manualPath.split('/').pop(),
-                manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                manualInfo
             );
             containsExistingFiles = true;
         }
@@ -628,7 +634,8 @@ export class ModalManager {
                     photoInput, 
                     this,
                     photoInfo.originalName || photoPath.split('/').pop(),
-                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                    photoInfo
                 );
             });
             containsExistingFiles = true;
@@ -643,7 +650,8 @@ export class ModalManager {
                 photoInput, 
                 this,
                 photoInfo.originalName || subAsset.photoPath.split('/').pop(),
-                photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                photoInfo
             );
             containsExistingFiles = true;
         }
@@ -660,7 +668,8 @@ export class ModalManager {
                     receiptInput, 
                     this,
                     receiptInfo.originalName || receiptPath.split('/').pop(),
-                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                    receiptInfo
                 );
             });
             containsExistingFiles = true;
@@ -675,7 +684,8 @@ export class ModalManager {
                 receiptInput, 
                 this,
                 receiptInfo.originalName || subAsset.receiptPath.split('/').pop(),
-                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                receiptInfo
             );
             containsExistingFiles = true;
         }
@@ -692,7 +702,8 @@ export class ModalManager {
                     manualInput, 
                     this,
                     manualInfo.originalName || manualPath.split('/').pop(),
-                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                    manualInfo
                 );
             });
             containsExistingFiles = true;
@@ -707,7 +718,8 @@ export class ModalManager {
                 manualInput, 
                 this,
                 manualInfo.originalName || subAsset.manualPath.split('/').pop(),
-                manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                manualInfo
             );
             containsExistingFiles = true;
         }
@@ -991,5 +1003,186 @@ export class ModalManager {
         this.deleteSubPhoto = false;
         this.deleteSubReceipt = false;
         this.deleteSubManual = false;
+    }
+
+    /**
+     * Attach a Paperless document to the current asset/sub-asset
+     * @param {Object} attachment - The attachment object from PaperlessManager
+     * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
+     * @param {boolean} isSubAsset - Whether this is for a sub-asset
+     */
+    async attachPaperlessDocument(attachment, attachmentType, isSubAsset) {
+        try {
+            // Generate preview for the Paperless document
+            const previewId = isSubAsset ? 
+                `sub${attachmentType.charAt(0).toUpperCase() + attachmentType.slice(1)}Preview` :
+                `${attachmentType}Preview`;
+            
+            const previewContainer = document.getElementById(previewId);
+            if (!previewContainer) {
+                throw new Error(`Preview container ${previewId} not found`);
+            }
+
+            // Create a preview element for the Paperless document
+            const previewElement = this._createPaperlessPreview(attachment, attachmentType);
+            previewContainer.appendChild(previewElement);
+
+            // Store the attachment data for saving
+            const targetAsset = isSubAsset ? this.currentSubAsset : this.currentAsset;
+            if (!targetAsset) {
+                throw new Error('No asset currently being edited');
+            }
+
+            // Initialize arrays if they don't exist
+            const pathsKey = `${attachmentType}Paths`;
+            const infoKey = `${attachmentType}Info`;
+            
+            if (!targetAsset[pathsKey]) targetAsset[pathsKey] = [];
+            if (!targetAsset[infoKey]) targetAsset[infoKey] = [];
+
+            // Add the Paperless document as a "file"
+            targetAsset[pathsKey].push(attachment.downloadUrl);
+            targetAsset[infoKey].push({
+                originalName: attachment.title,
+                size: attachment.fileSize,
+                isPaperlessDocument: true,
+                paperlessId: attachment.paperlessId,
+                mimeType: attachment.mimeType,
+                attachedAt: attachment.attachedAt
+            });
+
+            console.log(`Attached Paperless document to ${isSubAsset ? 'sub-asset' : 'asset'}:`, {
+                type: attachmentType,
+                title: attachment.title,
+                paperlessId: attachment.paperlessId
+            });
+
+        } catch (error) {
+            globalThis.logError('Failed to attach Paperless document:', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a preview element for a Paperless document
+     * @param {Object} attachment - The attachment object
+     * @param {string} type - The attachment type
+     * @returns {HTMLElement} - The preview element
+     */
+    _createPaperlessPreview(attachment, type) {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'file-preview-item paperless-document';
+        
+        // Determine if this is an image or document
+        const isImage = attachment.mimeType && attachment.mimeType.startsWith('image/');
+        
+        // For images, show actual preview if possible, otherwise show document icon
+        let previewContent;
+        if (isImage) {
+            // Try to show image preview, fall back to document icon
+            previewContent = `
+                <img src="${attachment.downloadUrl}" alt="Paperless Document Preview" 
+                     style="max-width: 100%; max-height: 85px; object-fit: contain; border-radius: var(--app-border-radius);"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="preview-content" style="display:none;">
+                    <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                </div>`;
+        } else {
+            // Show document icon
+            previewContent = `
+                <div class="preview-content">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+            `;
+        }
+
+        previewItem.innerHTML = `
+            <div class="file-preview">
+                ${previewContent}
+                <div class="paperless-badge">
+                    <img src="/assets/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX">
+                </div>
+            </div>
+            <button type="button" class="delete-preview-btn" title="Remove attachment">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+            </button>
+            <div class="file-info-pill">
+                <span class="file-name" title="${this._escapeHtml(attachment.title)}">${this._escapeHtml(attachment.title)}</span>
+                ${attachment.fileSize ? `<span class="file-size">${this.formatFileSize(attachment.fileSize)}</span>` : ''}
+            </div>
+        `;
+
+        // Add click handler for preview/download
+        const filePreview = previewItem.querySelector('.file-preview');
+        if (filePreview) {
+            filePreview.addEventListener('click', () => {
+                window.open(attachment.downloadUrl, '_blank');
+            });
+            filePreview.style.cursor = 'pointer';
+        }
+
+        // Add delete button handler
+        const deleteBtn = previewItem.querySelector('.delete-preview-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                this._removePaperlessAttachment(previewItem, attachment, type);
+            });
+        }
+
+        return previewItem;
+    }
+
+    /**
+     * Remove a Paperless document attachment
+     * @param {HTMLElement} previewElement - The preview element to remove
+     * @param {Object} attachment - The attachment object
+     * @param {string} type - The attachment type
+     */
+    _removePaperlessAttachment(previewElement, attachment, type) {
+        const targetAsset = this.currentSubAsset || this.currentAsset;
+        if (!targetAsset) return;
+
+        const pathsKey = `${type}Paths`;
+        const infoKey = `${type}Info`;
+
+        if (targetAsset[pathsKey] && targetAsset[infoKey]) {
+            // Find and remove the attachment
+            const index = targetAsset[pathsKey].indexOf(attachment.downloadUrl);
+            if (index > -1) {
+                targetAsset[pathsKey].splice(index, 1);
+                targetAsset[infoKey].splice(index, 1);
+            }
+        }
+
+        // Remove the preview element
+        previewElement.remove();
+
+        globalThis.toaster.show(`Removed "${attachment.title}" from attachments`, 'success');
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} - Escaped text
+     */
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 } 

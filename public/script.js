@@ -13,6 +13,10 @@ new GlobalHandlers();
 // Import file upload module
 import { initializeFileUploads, handleFileUploads } from '/src/services/fileUpload/index.js';
 import { formatFileSize } from '/src/services/fileUpload/utils.js';
+
+// Import Integrations
+import { PaperlessIntegration } from '/src/integrations/paperless.js';
+
 // Import asset renderer module
 import { 
     initRenderer, 
@@ -114,11 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let settingsManager;
     let modalManager;
     let dashboardManager;
+    let paperlessIntegration;
     const chartManager = new ChartManager({formatDate});
 
     // Acts as constructor for the app
     // will be called at the very end of the file
-    function initialize() {
+    async function initialize() {
         // Display demo banner if in demo mode
         if (window.appConfig?.demoMode) {
             document.getElementById('demo-banner').style.display = 'block';
@@ -267,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Global state
             getAssets: () => assets,
-            getSubAssets: () => subAssets
+            getSubAssets: () => subAssets,
         });
 
         // Initialize SettingsManager after DashboardManager is ready
@@ -297,6 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderDashboard: (animate = true) => dashboardManager.renderDashboard(animate),
             });
         }
+
+        // Initialize Paperless integration
+        paperlessIntegration = new PaperlessIntegration(modalManager);
 
         addElementEventListeners();
         setupDragIcons();
