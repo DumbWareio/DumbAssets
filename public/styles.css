@@ -2479,7 +2479,7 @@ a:hover {
     left: 0;
     z-index: 1000;
     background-color: #ffffff !important; /* Fallback for light theme */
-    background: var(--bg-color) !important;
+    background: var(--background-color) !important;
     border: 1px solid var(--border-color);
     border-radius: var(--app-border-radius);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
