@@ -1425,12 +1425,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     e.stopPropagation();
-                    const tag = input.value.trim();
-                    if (tag && !tags.has(tag)) {
-                        tags.add(tag);
-                        input.value = '';
-                        renderTags();
-                        hideAutocomplete();
+                    
+                    // If there's a selected suggestion, use it
+                    if (selectedSuggestionIndex >= 0 && currentSuggestions.length > 0) {
+                        selectSuggestion(selectedSuggestionIndex);
+                    } else {
+                        // Otherwise, add the current input value
+                        const tag = input.value.trim();
+                        if (tag && !tags.has(tag)) {
+                            tags.add(tag);
+                            input.value = '';
+                            renderTags();
+                            hideAutocomplete();
+                        }
                     }
                 }
             });
