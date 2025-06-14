@@ -1,6 +1,6 @@
 // IntegrationsManager handles all integration-related functionality including loading,
 // rendering, configuration, and testing of integrations in the settings modal
-import { TOKENMASK } from '../src/constants.js';
+import { API_TEST_SUCCESS, TOKENMASK } from '../src/constants.js';
 
 export class IntegrationsManager {
     constructor({
@@ -382,8 +382,8 @@ export class IntegrationsManager {
 
             const result = await response.json();
             
-            if (result.status === 'success') {
-                globalThis.toaster.show(`${integrationId} connection test successful!`, 'success');
+            if (result.status === API_TEST_SUCCESS) {
+                globalThis.toaster.show(result.message || `${integrationId} connection test successful!`);
             } else {
                 throw new Error(result.message || 'Connection test failed');
             }

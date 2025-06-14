@@ -29,3 +29,5 @@ export const FIELD_TYPES = {
   SELECT: 'select',
   TEXTAREA: 'textarea'
 };
+
+export const API_TEST_SUCCESS = 'connected';
