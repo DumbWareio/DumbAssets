@@ -2478,7 +2478,7 @@ a:hover {
     top: 100%;
     left: 0;
     z-index: 1000;
-    background-color: #ffffff !important; /* Fallback for light theme */
+    background-color: var(--background-color) !important; /* Fallback for light theme */
     background: var(--background-color) !important;
     border: 1px solid var(--border-color);
     border-radius: var(--app-border-radius);
@@ -2523,7 +2523,7 @@ a:hover {
 }
 
 /* Position the autocomplete relative to the form group */
-.form-group {
+.tag-input-wrapper .form-group {
     position: relative;
 }
 
