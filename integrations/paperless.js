@@ -3,7 +3,7 @@
  * Combined integration schema and endpoint functionality for Paperless NGX document management system
  */
 
-const { TOKENMASK } = require('../src/constants.js');
+const { API_TEST_SUCCESS, TOKENMASK } = require('../src/constants.js');
 
 class PaperlessIntegration {
   /**
@@ -151,7 +151,7 @@ class PaperlessIntegration {
 
       const data = await response.json();
       return {
-        status: 'connected',
+        status: API_TEST_SUCCESS,
         message: `Successfully connected to Paperless NGX (${data.count} documents available)`,
         documentCount: data.count
       };

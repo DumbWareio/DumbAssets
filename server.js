@@ -2156,7 +2156,7 @@ app.post('/api/integrations/:id/test', async (req, res) => {
         );
         
         const result = await integrationManager.checkIntegrationStatus(integrationId, preparedConfig);
-        res.json(result);
+        res.status(200).json(result);
     } catch (error) {
         console.error(`Failed to test integration ${req.params.id}:`, error);
         res.status(400).json({ 
