@@ -60,6 +60,45 @@ export class ModalManager {
         this.cancelDuplicateBtn = document.getElementById('cancelDuplicateBtn');
         this.duplicateAssetBtn = document.getElementById('duplicateAssetBtn');
         this.duplicateSubAssetBtn = document.getElementById('duplicateSubAssetBtn');
+        this.duplicatePropertiesSection = document.getElementById('duplicatePropertiesSection');
+        this.duplicatePropertiesGrid = document.getElementById('duplicatePropertiesGrid');
+        
+        // Define properties that can be duplicated for assets and sub-assets
+        this.duplicatableProperties = {
+            asset: {
+                'manufacturer': { label: 'Manufacturer', default: true },
+                'modelNumber': { label: 'Model Number', default: true },
+                'serialNumber': { label: 'Serial Number', default: true },
+                'description': { label: 'Description', default: true },
+                'purchaseDate': { label: 'Purchase Date', default: true },
+                'price': { label: 'Purchase Price', default: true },
+                'quantity': { label: 'Quantity', default: true },
+                'link': { label: 'Product Link', default: true },
+                'tags': { label: 'Tags', default: true },
+                'warranty': { label: 'Warranty Info', default: true },
+                'secondaryWarranty': { label: 'Secondary Warranty', default: true },
+                'maintenanceEvents': { label: 'Maintenance Events', default: true },
+                'photoPath': { label: 'Photos', default: true },
+                'receiptPath': { label: 'Receipts', default: true },
+                'manualPath': { label: 'Manuals', default: true }
+            },
+            subAsset: {
+                'manufacturer': { label: 'Manufacturer', default: true },
+                'modelNumber': { label: 'Model Number', default: true },
+                'serialNumber': { label: 'Serial Number', default: true },
+                'notes': { label: 'Notes', default: true },
+                'purchaseDate': { label: 'Purchase Date', default: true },
+                'purchasePrice': { label: 'Purchase Price', default: true },
+                'quantity': { label: 'Quantity', default: true },
+                'link': { label: 'Product Link', default: true },
+                'tags': { label: 'Tags', default: true },
+                'warranty': { label: 'Warranty Info', default: true },
+                'maintenanceEvents': { label: 'Maintenance Events', default: true },
+                'photoPath': { label: 'Photos', default: true },
+                'receiptPath': { label: 'Receipts', default: true },
+                'manualPath': { label: 'Manuals', default: true }
+            }
+        };
         
         // Store utility functions
         this.formatDate = formatDate;
@@ -1040,10 +1079,25 @@ export class ModalManager {
         
         // Reset input
         this.duplicateCountInput.value = '1';
-        this.duplicateCountInput.focus();
+        
+        // Reset properties section to collapsed
+        if (this.duplicatePropertiesSection) {
+            this.duplicatePropertiesSection.setAttribute('data-collapsed', 'true');
+        }
+        
+        // Generate property toggles
+        this.generatePropertyToggles(type);
+        
+        // Initialize collapsible section
+        if (window.initCollapsibleSections) {
+            window.initCollapsibleSections();
+        }
         
         // Set up event listeners
         this.setupDuplicateModalButtons();
+        
+        // Focus on count input
+        this.duplicateCountInput.focus();
         
         // Show modal
         this.duplicateModal.style.display = 'block';
@@ -1108,21 +1162,25 @@ export class ModalManager {
         try {
             this.setButtonLoading(this.confirmDuplicateBtn, true);
             
-            const duplicates = [];
-            for (let i = 0; i < count; i++) {
-                const duplicate = this.createDuplicate(this.duplicateSource, this.duplicateType, i + 1);
-                duplicates.push(duplicate);
-            }
+            // Get selected properties
+            const selectedProperties = this.getSelectedProperties();
             
-            // Send to server
+            // Create the source object with only the original asset data (no modifications)
+            const sourceData = { ...this.duplicateSource };
+            
+            // Send duplication request to server with source data and property selections
             const apiBaseUrl = globalThis.getApiBaseUrl();
-            const endpoint = this.duplicateType === 'asset' ? '/api/assets/bulk' : '/api/subassets/bulk';
+            const endpoint = this.duplicateType === 'asset' ? '/api/assets/duplicate' : '/api/subassets/duplicate';
             const response = await fetch(`${apiBaseUrl}${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ items: duplicates }),
+                body: JSON.stringify({ 
+                    source: sourceData,
+                    count: count,
+                    selectedProperties: selectedProperties
+                }),
                 credentials: 'include'
             });
             
@@ -1200,5 +1258,50 @@ export class ModalManager {
         if (window.refreshAllData) {
             await window.refreshAllData();
         }
+    }
+    
+    generatePropertyToggles(type) {
+        if (!this.duplicatePropertiesGrid) return;
+        
+        // Clear existing toggles
+        this.duplicatePropertiesGrid.innerHTML = '';
+        
+        const properties = this.duplicatableProperties[type];
+        if (!properties) return;
+        
+        // Create toggle for each property
+        Object.entries(properties).forEach(([key, config]) => {
+            const toggleRow = document.createElement('div');
+            toggleRow.className = 'toggle-row';
+            
+            // Create toggle HTML structure matching settings modal
+            toggleRow.innerHTML = `
+                <span>${config.label}</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" 
+                           id="duplicate-${key}" 
+                           name="duplicate-${key}" 
+                           ${config.default ? 'checked' : ''}>
+                    <span class="slider"></span>
+                </label>
+            `;
+            
+            this.duplicatePropertiesGrid.appendChild(toggleRow);
+        });
+    }
+    
+    getSelectedProperties() {
+        const selected = {};
+        const properties = this.duplicatableProperties[this.duplicateType];
+        if (!properties) return selected;
+        
+        Object.keys(properties).forEach(key => {
+            const checkbox = document.getElementById(`duplicate-${key}`);
+            if (checkbox) {
+                selected[key] = checkbox.checked;
+            }
+        });
+        
+        return selected;
     }
 } 

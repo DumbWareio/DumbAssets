@@ -620,11 +620,26 @@
                         <div class="form-group">
                             <label for="duplicateCount">Number of duplicates:</label>
                             <input type="number" id="duplicateCount" min="1" max="100" value="1" class="duplicate-input">
-                            <small class="help-text">Duplicates will be named sequentially (e.g., "Asset Name (1)", "Asset Name (2)"). Serial numbers, maintenance events, and warranty information will be excluded.</small>
+                            <small class="help-text">Duplicates will be named sequentially (e.g., "Asset Name (1)", "Asset Name (2)").</small>
+                        </div>
+                        
+                        <!-- Property Selection Section -->
+                        <div id="duplicatePropertiesSection" class="collapsible-section" data-collapsed="true">
+                            <div class="collapsible-header">
+                                <h3>Properties to Copy</h3>
+                                <svg class="collapsible-toggle" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <div class="settings-grid" id="duplicatePropertiesGrid">
+                                    <!-- Property toggles will be dynamically generated here -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button id="confirmDuplicateBtn" class="save-btn">Create Duplicates</button>
+                        <button id="confirmDuplicateBtn" class="duplicate-btn">Create Duplicates</button>
                         <button id="cancelDuplicateBtn" class="cancel-btn">Cancel</button>
                     </div>
                 </div>

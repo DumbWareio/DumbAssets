@@ -607,6 +607,327 @@ async function deleteAssetFiles(input) {
     }
 }
 
+/**
+ * Creates a duplicate of an asset with selective property copying
+ * @param {Object} source - The source asset to duplicate
+ * @param {number} index - The duplicate index (for naming)
+ * @param {Object} selectedProperties - Which properties to copy
+ * @returns {Object} The duplicated asset
+ */
+async function createAssetDuplicate(source, index, selectedProperties) {
+    const duplicate = {
+        id: generateId(),
+        name: `${source.name} (${index})`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Copy selected properties
+    if (selectedProperties.manufacturer && source.manufacturer) {
+        duplicate.manufacturer = source.manufacturer;
+    } else {
+        duplicate.manufacturer = '';
+    }
+    
+    if (selectedProperties.modelNumber && source.modelNumber) {
+        duplicate.modelNumber = source.modelNumber;
+    } else {
+        duplicate.modelNumber = '';
+    }
+    
+    if (selectedProperties.description && source.description) {
+        duplicate.description = source.description;
+    } else {
+        duplicate.description = '';
+    }
+    
+    if (selectedProperties.purchaseDate && source.purchaseDate) {
+        duplicate.purchaseDate = source.purchaseDate;
+    } else {
+        duplicate.purchaseDate = null;
+    }
+    
+    if (selectedProperties.price && source.price) {
+        duplicate.price = source.price;
+    } else {
+        duplicate.price = 0;
+    }
+    
+    if (selectedProperties.link && source.link) {
+        duplicate.link = source.link;
+    } else {
+        duplicate.link = '';
+    }
+    
+    // Handle serialNumber
+    if (selectedProperties.serialNumber && source.serialNumber) {
+        duplicate.serialNumber = source.serialNumber;
+    } else {
+        duplicate.serialNumber = '';
+    }
+    
+    // Handle quantity
+    if (selectedProperties.quantity && source.quantity) {
+        duplicate.quantity = source.quantity;
+    } else {
+        duplicate.quantity = 1;
+    }
+    
+    if (selectedProperties.tags && source.tags && Array.isArray(source.tags)) {
+        duplicate.tags = [...source.tags];
+    } else {
+        duplicate.tags = [];
+    }
+    
+    // Handle warranty
+    if (selectedProperties.warranty && source.warranty) {
+        duplicate.warranty = { ...source.warranty };
+    } else {
+        duplicate.warranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+    }
+    
+    // Handle secondary warranty
+    if (selectedProperties.secondaryWarranty && source.secondaryWarranty) {
+        duplicate.secondaryWarranty = { ...source.secondaryWarranty };
+    } else {
+        duplicate.secondaryWarranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+    }
+    
+    // Handle maintenance events
+    if (selectedProperties.maintenanceEvents && source.maintenanceEvents && Array.isArray(source.maintenanceEvents)) {
+        duplicate.maintenanceEvents = source.maintenanceEvents.map(event => ({
+            ...event,
+            id: generateId() // Generate new IDs for maintenance events
+        }));
+    } else {
+        duplicate.maintenanceEvents = [];
+    }
+    
+    // Handle file copying
+    await handleFileDuplication(source, duplicate, selectedProperties);
+    
+    return duplicate;
+}
+
+/**
+ * Creates a duplicate of a sub-asset with selective property copying
+ * @param {Object} source - The source sub-asset to duplicate
+ * @param {number} index - The duplicate index (for naming)
+ * @param {Object} selectedProperties - Which properties to copy
+ * @returns {Object} The duplicated sub-asset
+ */
+async function createSubAssetDuplicate(source, index, selectedProperties) {
+    const duplicate = {
+        id: generateId(),
+        name: `${source.name} (${index})`,
+        parentId: source.parentId,
+        parentSubId: source.parentSubId || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Copy selected properties
+    if (selectedProperties.manufacturer && source.manufacturer) {
+        duplicate.manufacturer = source.manufacturer;
+    } else {
+        duplicate.manufacturer = '';
+    }
+    
+    if (selectedProperties.modelNumber && source.modelNumber) {
+        duplicate.modelNumber = source.modelNumber;
+    } else {
+        duplicate.modelNumber = '';
+    }
+    
+    if (selectedProperties.notes && source.notes) {
+        duplicate.notes = source.notes;
+    } else {
+        duplicate.notes = '';
+    }
+    
+    if (selectedProperties.purchaseDate && source.purchaseDate) {
+        duplicate.purchaseDate = source.purchaseDate;
+    } else {
+        duplicate.purchaseDate = null;
+    }
+    
+    if (selectedProperties.purchasePrice && source.purchasePrice) {
+        duplicate.purchasePrice = source.purchasePrice;
+    } else {
+        duplicate.purchasePrice = 0;
+    }
+    
+    if (selectedProperties.link && source.link) {
+        duplicate.link = source.link;
+    } else {
+        duplicate.link = '';
+    }
+    
+    // Handle serialNumber
+    if (selectedProperties.serialNumber && source.serialNumber) {
+        duplicate.serialNumber = source.serialNumber;
+    } else {
+        duplicate.serialNumber = '';
+    }
+    
+    // Handle quantity
+    if (selectedProperties.quantity && source.quantity) {
+        duplicate.quantity = source.quantity;
+    } else {
+        duplicate.quantity = 1;
+    }
+    
+    if (selectedProperties.tags && source.tags && Array.isArray(source.tags)) {
+        duplicate.tags = [...source.tags];
+    } else {
+        duplicate.tags = [];
+    }
+    
+    // Handle warranty
+    if (selectedProperties.warranty && source.warranty) {
+        duplicate.warranty = { ...source.warranty };
+    } else {
+        duplicate.warranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+    }
+    
+    // Handle maintenance events
+    if (selectedProperties.maintenanceEvents && source.maintenanceEvents && Array.isArray(source.maintenanceEvents)) {
+        duplicate.maintenanceEvents = source.maintenanceEvents.map(event => ({
+            ...event,
+            id: generateId() // Generate new IDs for maintenance events
+        }));
+    } else {
+        duplicate.maintenanceEvents = [];
+    }
+    
+    // Handle file copying
+    await handleFileDuplication(source, duplicate, selectedProperties);
+    
+    return duplicate;
+}
+
+/**
+ * Handles file duplication for assets and sub-assets
+ * @param {Object} source - The source asset/sub-asset
+ * @param {Object} duplicate - The duplicate asset/sub-asset
+ * @param {Object} selectedProperties - Which properties to copy
+ */
+async function handleFileDuplication(source, duplicate, selectedProperties) {
+    // Initialize file arrays and paths
+    duplicate.photoPaths = [];
+    duplicate.receiptPaths = [];
+    duplicate.manualPaths = [];
+    duplicate.photoInfo = [];
+    duplicate.receiptInfo = [];
+    duplicate.manualInfo = [];
+    duplicate.photoPath = null;
+    duplicate.receiptPath = null;
+    duplicate.manualPath = null;
+    
+    // Handle photos
+    if (selectedProperties.photoPath) {
+        if (source.photoPaths && Array.isArray(source.photoPaths)) {
+            for (const photoPath of source.photoPaths) {
+                const newPhotoPath = await copyFile(photoPath, 'Images');
+                if (newPhotoPath) duplicate.photoPaths.push(newPhotoPath);
+            }
+        }
+        if (source.photoInfo && Array.isArray(source.photoInfo)) {
+            duplicate.photoInfo = [...source.photoInfo];
+        }
+        if (source.photoPath && !source.photoPaths) {
+            const newPhotoPath = await copyFile(source.photoPath, 'Images');
+            if (newPhotoPath) duplicate.photoPath = newPhotoPath;
+        }
+    }
+    
+    // Handle receipts
+    if (selectedProperties.receiptPath) {
+        if (source.receiptPaths && Array.isArray(source.receiptPaths)) {
+            for (const receiptPath of source.receiptPaths) {
+                const newReceiptPath = await copyFile(receiptPath, 'Receipts');
+                if (newReceiptPath) duplicate.receiptPaths.push(newReceiptPath);
+            }
+        }
+        if (source.receiptInfo && Array.isArray(source.receiptInfo)) {
+            duplicate.receiptInfo = [...source.receiptInfo];
+        }
+        if (source.receiptPath && !source.receiptPaths) {
+            const newReceiptPath = await copyFile(source.receiptPath, 'Receipts');
+            if (newReceiptPath) duplicate.receiptPath = newReceiptPath;
+        }
+    }
+    
+    // Handle manuals
+    if (selectedProperties.manualPath) {
+        if (source.manualPaths && Array.isArray(source.manualPaths)) {
+            for (const manualPath of source.manualPaths) {
+                const newManualPath = await copyFile(manualPath, 'Manuals');
+                if (newManualPath) duplicate.manualPaths.push(newManualPath);
+            }
+        }
+        if (source.manualInfo && Array.isArray(source.manualInfo)) {
+            duplicate.manualInfo = [...source.manualInfo];
+        }
+        if (source.manualPath && !source.manualPaths) {
+            const newManualPath = await copyFile(source.manualPath, 'Manuals');
+            if (newManualPath) duplicate.manualPath = newManualPath;
+        }
+    }
+}
+
+/**
+ * Copies a file to the specified directory with a new filename
+ * @param {string} sourcePath - The source file path
+ * @param {string} targetDir - The target directory (Images, Receipts, Manuals)
+ * @returns {string|null} The new file path or null if failed
+ */
+async function copyFile(sourcePath, targetDir) {
+    if (!sourcePath) return null;
+    
+    try {
+        const fullSourcePath = path.join(DATA_DIR, sourcePath);
+        if (!fs.existsSync(fullSourcePath)) {
+            console.warn(`[WARNING] Source file not found: ${fullSourcePath}`);
+            return null;
+        }
+        
+        // Generate new filename with timestamp and random component
+        const sourceExt = path.extname(sourcePath);
+        const baseName = path.basename(sourcePath, sourceExt);
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const newFileName = `${baseName}_copy_${timestamp}_${randomSuffix}${sourceExt}`;
+        
+        const targetPath = path.join(DATA_DIR, targetDir, newFileName);
+        
+        // Copy the file
+        await fs.promises.copyFile(fullSourcePath, targetPath);
+        
+        if (DEBUG) {
+            console.log(`[DEBUG] Copied file from ${sourcePath} to ${targetDir}/${newFileName}`);
+        }
+        
+        // Return relative path
+        return `${targetDir}/${newFileName}`;
+    } catch (error) {
+        console.error(`[ERROR] Failed to copy file ${sourcePath}:`, error.message);
+        return null;
+    }
+}
+
 // Initialize data directories
 ensureDirectoryExists(path.join(DATA_DIR, 'Images'));
 ensureDirectoryExists(path.join(DATA_DIR, 'Receipts'));
@@ -796,6 +1117,54 @@ app.post('/api/assets/bulk', async (req, res) => {
         }
     } catch (error) {
         console.error('Error in bulk asset creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Duplicate assets with selective property copying
+app.post('/api/assets/duplicate', async (req, res) => {
+    try {
+        const { source, count, selectedProperties } = req.body;
+        
+        if (!source || !source.id) {
+            return res.status(400).json({ error: 'Source asset is required' });
+        }
+        
+        if (!count || count < 1 || count > 100) {
+            return res.status(400).json({ error: 'Count must be between 1 and 100' });
+        }
+        
+        if (!selectedProperties || typeof selectedProperties !== 'object') {
+            return res.status(400).json({ error: 'Selected properties object is required' });
+        }
+        
+        const assets = readJsonFile(assetsFilePath);
+        const newAssets = [];
+        
+        if (DEBUG) {
+            console.log(`[DEBUG] Duplicating asset ${source.id} ${count} times with properties:`, selectedProperties);
+        }
+        
+        for (let i = 1; i <= count; i++) {
+            const duplicate = await createAssetDuplicate(source, i, selectedProperties);
+            newAssets.push(duplicate);
+        }
+        
+        // Add all new assets to the array
+        assets.push(...newAssets);
+        
+        const success = writeJsonFile(assetsFilePath, assets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Successfully created ${newAssets.length} asset duplicates`);
+            }
+            
+            res.status(201).json({ success: true, created: newAssets.length, items: newAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create duplicates' });
+        }
+    } catch (error) {
+        console.error('Error in asset duplication:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -1135,6 +1504,54 @@ app.post('/api/subassets/bulk', async (req, res) => {
         }
     } catch (error) {
         console.error('Error in bulk sub-asset creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Duplicate sub-assets with selective property copying
+app.post('/api/subassets/duplicate', async (req, res) => {
+    try {
+        const { source, count, selectedProperties } = req.body;
+        
+        if (!source || !source.id) {
+            return res.status(400).json({ error: 'Source sub-asset is required' });
+        }
+        
+        if (!count || count < 1 || count > 100) {
+            return res.status(400).json({ error: 'Count must be between 1 and 100' });
+        }
+        
+        if (!selectedProperties || typeof selectedProperties !== 'object') {
+            return res.status(400).json({ error: 'Selected properties object is required' });
+        }
+        
+        const subAssets = readJsonFile(subAssetsFilePath);
+        const newSubAssets = [];
+        
+        if (DEBUG) {
+            console.log(`[DEBUG] Duplicating sub-asset ${source.id} ${count} times with properties:`, selectedProperties);
+        }
+        
+        for (let i = 1; i <= count; i++) {
+            const duplicate = await createSubAssetDuplicate(source, i, selectedProperties);
+            newSubAssets.push(duplicate);
+        }
+        
+        // Add all new sub-assets to the array
+        subAssets.push(...newSubAssets);
+        
+        const success = writeJsonFile(subAssetsFilePath, subAssets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Successfully created ${newSubAssets.length} sub-asset duplicates`);
+            }
+            
+            res.status(201).json({ success: true, created: newSubAssets.length, items: newSubAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create duplicates' });
+        }
+    } catch (error) {
+        console.error('Error in sub-asset duplication:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

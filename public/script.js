@@ -320,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         globalThis.deleteSubReceipt = false;
         globalThis.deleteSubManual = false;
         globalThis.renderCardVisibilityToggles = renderCardVisibilityToggles;
+        window.initCollapsibleSections = initCollapsibleSections;
 
         // Handle window resize events to update sidebar overlay
         globalThis.addEventListener('resize', () => {
