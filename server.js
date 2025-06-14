@@ -714,6 +714,44 @@ async function createAssetDuplicate(source, index, selectedProperties) {
     // Handle file copying
     await handleFileDuplication(source, duplicate, selectedProperties);
     
+    // Handle sub-asset duplication
+    if (selectedProperties.subAssets) {
+        const allSubAssets = readJsonFile(subAssetsFilePath);
+        const childSubAssets = findAllChildSubAssets(source.id, null, allSubAssets);
+        
+        if (childSubAssets.length > 0) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Duplicating ${childSubAssets.length} sub-assets for asset ${source.id}`);
+            }
+            
+            // Create a mapping from original sub-asset IDs to duplicated sub-asset IDs
+            const subAssetIdMapping = new Map();
+            
+            // Duplicate all child sub-assets with their selected properties
+            for (const childSubAsset of childSubAssets) {
+                const duplicatedSubAsset = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties);
+                // Update parent reference to the new asset
+                duplicatedSubAsset.parentId = duplicate.id;
+                
+                // If this sub-asset has a parentSubId, update it to point to the duplicated parent
+                if (childSubAsset.parentSubId && subAssetIdMapping.has(childSubAsset.parentSubId)) {
+                    duplicatedSubAsset.parentSubId = subAssetIdMapping.get(childSubAsset.parentSubId);
+                } else if (childSubAsset.parentSubId) {
+                    // Clear parentSubId if we can't find the duplicated parent (shouldn't happen)
+                    duplicatedSubAsset.parentSubId = null;
+                }
+                
+                // Store the mapping for nested sub-assets
+                subAssetIdMapping.set(childSubAsset.id, duplicatedSubAsset.id);
+                
+                allSubAssets.push(duplicatedSubAsset);
+            }
+            
+            // Save updated sub-assets
+            writeJsonFile(subAssetsFilePath, allSubAssets);
+        }
+    }
+    
     return duplicate;
 }
 
@@ -814,6 +852,42 @@ async function createSubAssetDuplicate(source, index, selectedProperties) {
     
     // Handle file copying
     await handleFileDuplication(source, duplicate, selectedProperties);
+    
+    // Handle nested sub-asset duplication
+    if (selectedProperties.subAssets) {
+        const allSubAssets = readJsonFile(subAssetsFilePath);
+        const childSubAssets = findAllChildSubAssets(source.parentId, source.id, allSubAssets);
+        
+        if (childSubAssets.length > 0) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Duplicating ${childSubAssets.length} nested sub-assets for sub-asset ${source.id}`);
+            }
+            
+            // Create a mapping from original sub-asset IDs to duplicated sub-asset IDs
+            const subAssetIdMapping = new Map();
+            
+            // Duplicate all child sub-assets with their selected properties
+            for (const childSubAsset of childSubAssets) {
+                const duplicatedSubAsset = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties);
+                // Update parent references
+                duplicatedSubAsset.parentId = duplicate.parentId; // Same parent asset
+                duplicatedSubAsset.parentSubId = duplicate.id; // Point to the duplicated sub-asset
+                
+                // If this nested sub-asset has its own parentSubId, update it
+                if (childSubAsset.parentSubId && subAssetIdMapping.has(childSubAsset.parentSubId)) {
+                    duplicatedSubAsset.parentSubId = subAssetIdMapping.get(childSubAsset.parentSubId);
+                }
+                
+                // Store the mapping for deeply nested sub-assets
+                subAssetIdMapping.set(childSubAsset.id, duplicatedSubAsset.id);
+                
+                allSubAssets.push(duplicatedSubAsset);
+            }
+            
+            // Save updated sub-assets
+            writeJsonFile(subAssetsFilePath, allSubAssets);
+        }
+    }
     
     return duplicate;
 }

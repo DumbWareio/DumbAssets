@@ -80,7 +80,8 @@ export class ModalManager {
                 'maintenanceEvents': { label: 'Maintenance Events', default: true },
                 'photoPath': { label: 'Photos', default: true },
                 'receiptPath': { label: 'Receipts', default: true },
-                'manualPath': { label: 'Manuals', default: true }
+                'manualPath': { label: 'Manuals', default: true },
+                'subAssets': { label: 'Copy Components', default: true }
             },
             subAsset: {
                 'manufacturer': { label: 'Manufacturer', default: true },
@@ -96,7 +97,8 @@ export class ModalManager {
                 'maintenanceEvents': { label: 'Maintenance Events', default: true },
                 'photoPath': { label: 'Photos', default: true },
                 'receiptPath': { label: 'Receipts', default: true },
-                'manualPath': { label: 'Manuals', default: true }
+                'manualPath': { label: 'Manuals', default: true },
+                'subAssets': { label: 'Copy Sub-Components', default: true }
             }
         };
         
