@@ -25,6 +25,68 @@ export class ImportManager {
         this._bindEvents();
     }
 
+    /**
+     * Properly parse CSV content handling quoted fields with commas and newlines
+     * @param {string} csvContent - The raw CSV content
+     * @returns {Array<Array<string>>} - Array of rows, each containing array of field values
+     */
+    _parseCSV(csvContent) {
+        const lines = [];
+        let currentLine = [];
+        let currentField = '';
+        let inQuotes = false;
+        let i = 0;
+        
+        while (i < csvContent.length) {
+            const char = csvContent[i];
+            const nextChar = csvContent[i + 1];
+            
+            if (char === '"') {
+                if (inQuotes && nextChar === '"') {
+                    // Escaped quote within quoted field
+                    currentField += '"';
+                    i += 2; // Skip both quotes
+                    continue;
+                } else if (inQuotes) {
+                    // End of quoted field
+                    inQuotes = false;
+                } else {
+                    // Start of quoted field
+                    inQuotes = true;
+                }
+            } else if (char === ',' && !inQuotes) {
+                // Field separator
+                currentLine.push(currentField);
+                currentField = '';
+            } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                // End of line
+                if (currentField || currentLine.length > 0) {
+                    currentLine.push(currentField);
+                    lines.push(currentLine);
+                    currentLine = [];
+                    currentField = '';
+                }
+                // Skip \r\n sequences
+                if (char === '\r' && nextChar === '\n') {
+                    i++;
+                }
+            } else {
+                // Regular character
+                currentField += char;
+            }
+            
+            i++;
+        }
+        
+        // Add the last field and line if not empty
+        if (currentField || currentLine.length > 0) {
+            currentLine.push(currentField);
+            lines.push(currentLine);
+        }
+        
+        return lines.filter(line => line.length > 0);
+    }
+
     _bindEvents() {
         this.importBtn.addEventListener('click', () => {
             this.resetImportForm();
@@ -203,20 +265,37 @@ export class ImportManager {
             this.setButtonLoading(this.startImportBtn, false);
             return;
         }
+        
         // Client-side validation: read file and check required fields, date columns, tags
         try {
             const fileText = await file.text();
-            const lines = fileText.split(/\r?\n/).filter(Boolean);
-            if (lines.length < 2) throw new Error('No data rows found in file.');
-            const headers = lines[0].split(',');
-            const dataRows = lines.slice(1);
+            
+            // Only validate CSV files with proper parsing
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            let lines, headers, dataRows;
+            
+            if (fileExtension === '.csv') {
+                // Use proper CSV parsing for CSV files
+                const parsedCSV = this._parseCSV(fileText);
+                if (parsedCSV.length < 2) throw new Error('No data rows found in file.');
+                
+                headers = parsedCSV[0];
+                dataRows = parsedCSV.slice(1);
+                lines = parsedCSV; // For compatibility with existing code
+            } else {
+                // For Excel files, use simple splitting (server will handle properly)
+                lines = fileText.split(/\r?\n/).filter(Boolean);
+                if (lines.length < 2) throw new Error('No data rows found in file.');
+                headers = lines[0].split(',');
+                dataRows = lines.slice(1).map(line => line.split(','));
+            }
+            
             const dateCols = ['purchaseDate', 'warrantyExpiration', 'secondaryWarrantyExpiration'];
             for (let i = 0; i < dataRows.length; i++) {
-                const row = dataRows[i].split(',');
+                const row = dataRows[i];
                 // Validate name
                 const nameIdx = mappings.name !== '' ? parseInt(mappings.name) : -1;
                 if (nameIdx === -1 || !row[nameIdx] || !row[nameIdx].trim()) {
-                    // alert(`Row ${i+2}: Name is required.`);
                     globalThis.toaster.show(`Row ${i+2}: Name is required.`, 'error');
                     this.setButtonLoading(this.startImportBtn, false);
                     return;
@@ -227,7 +306,6 @@ export class ImportManager {
                     if (idx !== -1 && row[idx] && row[idx].trim()) {
                         const val = row[idx].replace(/"/g, '');
                         if (isNaN(Date.parse(val))) {
-                            // alert(`Row ${i+2}: Invalid date in column '${headers[idx]}' (${val})`);
                             globalThis.toaster.show(`Row ${i+2}: Invalid date in column '${headers[idx]}' (${val})`, 'error');
                             this.setButtonLoading(this.startImportBtn, false);
                             return;
@@ -281,7 +359,7 @@ export class ImportManager {
             serialColumn: ["serial", "serial #", "serial number", "serial num"],
             purchaseDateColumn: ["purchase date", "date purchased", "bought date"],
             purchasePriceColumn: ["purchase price", "price", "cost", "amount"],
-            notesColumn: ["notes", "note", "description", "desc", "comments"],
+            notesColumn: ["notes", "note", "description", "desc", "comments", "hb.description", "hb.notes", "hb.warranty_details"],
             urlColumn: ["url", "link", "website"],
             warrantyColumn: ["warranty", "warranty scope", "coverage"],
             warrantyExpirationColumn: ["warranty expiration", "warranty expiry", "warranty end", "warranty end date", "expiration", "expiry"],
@@ -390,6 +468,7 @@ export class ImportManager {
             if (lower === 'purchase price') return '123.45';
             if (lower === 'quantity') return '1'; // Default quantity
             if (lower === 'lifetime') return 'false'; // Boolean value for lifetime warranty
+            if (lower === 'notes') return '"Multi-line note example:\nLine 1\nLine 2"'; // Multi-line notes example
             return `Test ${h}`;
         });
         const csvContent = headers.join(',') + '\n' + testRow.join(',') + '\n';
