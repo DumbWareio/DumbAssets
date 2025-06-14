@@ -3410,7 +3410,7 @@ a:hover {
   color: var(--secondary-color);
   font-size: 0.8rem;
   font-style: italic;
-  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
   display: block;
 }
 
@@ -3430,6 +3430,12 @@ a:hover {
   gap: 1rem 0.5rem;
   margin: 1rem 0;
   padding: 0;
+}
+
+#duplicateModalDescription {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--secondary-color);
 }
 
 #duplicateModal .toggle-row {
