@@ -2472,6 +2472,61 @@ a:hover {
     box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
+/* Tag autocomplete dropdown */
+.tag-autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background-color: #ffffff !important; /* Fallback for light theme */
+    background: var(--bg-color) !important;
+    border: 1px solid var(--border-color);
+    border-radius: var(--app-border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 160px;
+    overflow-y: auto;
+    margin-top: 2px;
+    min-width: 180px;
+    max-width: 280px;
+    width: auto;
+}
+
+[data-theme="dark"] .tag-autocomplete {
+    background-color: #1a1a1a !important; /* Explicit dark theme background */
+}
+
+[data-theme="light"] .tag-autocomplete {
+    background-color: #ffffff !important; /* Explicit light theme background */
+}
+
+.tag-suggestion {
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    line-height: 1.2;
+}
+
+.tag-suggestion:last-child {
+    border-bottom: none;
+}
+
+.tag-suggestion:hover,
+.tag-suggestion.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.tag-suggestion.selected {
+    font-weight: 500;
+}
+
+/* Position the autocomplete relative to the form group */
+.form-group {
+    position: relative;
+}
+
 /* Settings - Sortable List Styles */
 .settings-hint {
     margin-bottom: 0.4rem;

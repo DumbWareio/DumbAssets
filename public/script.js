@@ -1214,10 +1214,117 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Tag management functions
+    function getAllExistingTags() {
+        const allTags = new Set();
+        
+        // Collect tags from assets
+        assets.forEach(asset => {
+            if (asset.tags && Array.isArray(asset.tags)) {
+                asset.tags.forEach(tag => allTags.add(tag));
+            }
+        });
+        
+        // Collect tags from sub-assets
+        subAssets.forEach(subAsset => {
+            if (subAsset.tags && Array.isArray(subAsset.tags)) {
+                subAsset.tags.forEach(tag => allTags.add(tag));
+            }
+        });
+        
+        return Array.from(allTags).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    }
+
     function setupTagInput(inputId, containerId) {
         const tags = new Set();
         const input = document.getElementById(inputId);
         const container = document.getElementById(containerId);
+        
+        let autocompleteContainer = null;
+        let currentSuggestions = [];
+        let selectedSuggestionIndex = -1;
+
+        function createAutocompleteContainer() {
+            if (autocompleteContainer) {
+                autocompleteContainer.remove();
+            }
+            
+            autocompleteContainer = document.createElement('div');
+            autocompleteContainer.className = 'tag-autocomplete';
+            autocompleteContainer.style.display = 'none';
+            
+            // Position the autocomplete container relative to the input
+            const inputRect = input.getBoundingClientRect();
+            const parentRect = input.closest('.tag-input-wrapper').getBoundingClientRect();
+            
+            // Insert after the input wrapper
+            input.closest('.tag-input-wrapper').insertAdjacentElement('afterend', autocompleteContainer);
+        }
+
+        function showAutocomplete(suggestions) {
+            if (!autocompleteContainer) {
+                createAutocompleteContainer();
+            }
+            
+            currentSuggestions = suggestions;
+            selectedSuggestionIndex = -1;
+            
+            if (suggestions.length === 0) {
+                hideAutocomplete();
+                return;
+            }
+            
+            autocompleteContainer.innerHTML = suggestions.map((suggestion, index) => 
+                `<div class="tag-suggestion" data-index="${index}">${suggestion}</div>`
+            ).join('');
+            
+            autocompleteContainer.style.display = 'block';
+            
+            // Add click handlers to suggestions
+            autocompleteContainer.querySelectorAll('.tag-suggestion').forEach((suggestionElement, index) => {
+                suggestionElement.addEventListener('click', () => {
+                    selectSuggestion(index);
+                });
+            });
+        }
+
+        function hideAutocomplete() {
+            if (autocompleteContainer) {
+                autocompleteContainer.style.display = 'none';
+            }
+            currentSuggestions = [];
+            selectedSuggestionIndex = -1;
+        }
+
+        function updateSuggestionSelection() {
+            if (!autocompleteContainer) return;
+            
+            autocompleteContainer.querySelectorAll('.tag-suggestion').forEach((el, index) => {
+                el.classList.toggle('selected', index === selectedSuggestionIndex);
+            });
+        }
+
+        function selectSuggestion(index) {
+            if (index >= 0 && index < currentSuggestions.length) {
+                const selectedTag = currentSuggestions[index];
+                if (!tags.has(selectedTag)) {
+                    tags.add(selectedTag);
+                    input.value = '';
+                    renderTags();
+                    hideAutocomplete();
+                }
+            }
+        }
+
+        function getFilteredSuggestions(inputValue) {
+            if (!inputValue.trim()) return [];
+            
+            const existingTags = getAllExistingTags();
+            const inputLower = inputValue.toLowerCase();
+            
+            return existingTags.filter(tag => 
+                tag.toLowerCase().startsWith(inputLower) && !tags.has(tag)
+            ).slice(0, 8); // Limit to 8 suggestions
+        }
 
         function renderTags() {
             if (!container) return;
@@ -1246,21 +1353,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (input) {
-            // Prevent form submission when Enter is pressed in tag input
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ',') {
+            // Create autocomplete container
+            createAutocompleteContainer();
+            
+            // Handle input changes for autocomplete
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                
+                // Handle comma input for tag separation
+                if (value.endsWith(',')) {
                     e.preventDefault();
-                    e.stopPropagation();
-                    const tag = input.value.trim();
+                    const tag = value.slice(0, -1).trim();
                     if (tag && !tags.has(tag)) {
                         tags.add(tag);
                         input.value = '';
                         renderTags();
+                        hideAutocomplete();
                     }
+                } else {
+                    // Show autocomplete suggestions
+                    const suggestions = getFilteredSuggestions(value);
+                    showAutocomplete(suggestions);
                 }
             });
 
-            // Handle mobile keyboard "Enter" button that might trigger different events
+            // Handle keyboard events
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // If there's a selected suggestion, use it
+                    if (selectedSuggestionIndex >= 0 && currentSuggestions.length > 0) {
+                        selectSuggestion(selectedSuggestionIndex);
+                    } else {
+                        // Otherwise, add the current input value
+                        const tag = input.value.trim();
+                        if (tag && !tags.has(tag)) {
+                            tags.add(tag);
+                            input.value = '';
+                            renderTags();
+                            hideAutocomplete();
+                        }
+                    }
+                } else if (e.key === 'Tab') {
+                    // Tab completion
+                    if (currentSuggestions.length > 0) {
+                        e.preventDefault();
+                        const suggestionIndex = selectedSuggestionIndex >= 0 ? selectedSuggestionIndex : 0;
+                        selectSuggestion(suggestionIndex);
+                    }
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentSuggestions.length > 0) {
+                        selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
+                        updateSuggestionSelection();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentSuggestions.length > 0) {
+                        selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                        updateSuggestionSelection();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideAutocomplete();
+                }
+            });
+
+            // Handle mobile keyboard "Enter" button
             input.addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1270,21 +1430,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         tags.add(tag);
                         input.value = '';
                         renderTags();
+                        hideAutocomplete();
                     }
                 }
             });
 
-            // Handle comma input for tag separation
-            input.addEventListener('input', (e) => {
-                const value = e.target.value;
-                if (value.endsWith(',')) {
-                    e.preventDefault();
-                    const tag = value.slice(0, -1).trim();
-                    if (tag && !tags.has(tag)) {
-                        tags.add(tag);
-                        input.value = '';
-                        renderTags();
-                    }
+            // Hide autocomplete when input loses focus (with a small delay)
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    hideAutocomplete();
+                }, 150); // Small delay to allow clicking on suggestions
+            });
+
+            // Show autocomplete when input gains focus (if there's content)
+            input.addEventListener('focus', () => {
+                if (input.value.trim()) {
+                    const suggestions = getFilteredSuggestions(input.value);
+                    showAutocomplete(suggestions);
                 }
             });
         }
