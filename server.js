@@ -729,7 +729,9 @@ async function createAssetDuplicate(source, index, selectedProperties) {
             
             // Duplicate all child sub-assets with their selected properties
             for (const childSubAsset of childSubAssets) {
-                const duplicatedSubAsset = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties);
+                const result = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties, allSubAssets);
+                const duplicatedSubAsset = result.duplicate || result; // Handle both old and new return formats
+                
                 // Update parent reference to the new asset
                 duplicatedSubAsset.parentId = duplicate.id;
                 
@@ -760,9 +762,10 @@ async function createAssetDuplicate(source, index, selectedProperties) {
  * @param {Object} source - The source sub-asset to duplicate
  * @param {number} index - The duplicate index (for naming)
  * @param {Object} selectedProperties - Which properties to copy
- * @returns {Object} The duplicated sub-asset
+ * @param {Array} allSubAssets - The current sub-assets array (to avoid re-reading file)
+ * @returns {Object} The duplicated sub-asset and any created nested sub-assets
  */
-async function createSubAssetDuplicate(source, index, selectedProperties) {
+async function createSubAssetDuplicate(source, index, selectedProperties, allSubAssets = null) {
     const duplicate = {
         id: generateId(),
         name: `${source.name} (${index})`,
@@ -854,9 +857,10 @@ async function createSubAssetDuplicate(source, index, selectedProperties) {
     await handleFileDuplication(source, duplicate, selectedProperties);
     
     // Handle nested sub-asset duplication
+    const createdNestedSubAssets = [];
     if (selectedProperties.subAssets) {
-        const allSubAssets = readJsonFile(subAssetsFilePath);
-        const childSubAssets = findAllChildSubAssets(source.parentId, source.id, allSubAssets);
+        const subAssets = allSubAssets || readJsonFile(subAssetsFilePath);
+        const childSubAssets = findAllChildSubAssets(source.parentId, source.id, subAssets);
         
         if (childSubAssets.length > 0) {
             if (DEBUG) {
@@ -868,7 +872,9 @@ async function createSubAssetDuplicate(source, index, selectedProperties) {
             
             // Duplicate all child sub-assets with their selected properties
             for (const childSubAsset of childSubAssets) {
-                const duplicatedSubAsset = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties);
+                const result = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties, subAssets);
+                const duplicatedSubAsset = result.duplicate || result; // Handle both old and new return formats
+                
                 // Update parent references
                 duplicatedSubAsset.parentId = duplicate.parentId; // Same parent asset
                 duplicatedSubAsset.parentSubId = duplicate.id; // Point to the duplicated sub-asset
@@ -881,15 +887,20 @@ async function createSubAssetDuplicate(source, index, selectedProperties) {
                 // Store the mapping for deeply nested sub-assets
                 subAssetIdMapping.set(childSubAsset.id, duplicatedSubAsset.id);
                 
-                allSubAssets.push(duplicatedSubAsset);
+                createdNestedSubAssets.push(duplicatedSubAsset);
+                
+                // If there were nested sub-assets created, add them too
+                if (result.nestedSubAssets) {
+                    createdNestedSubAssets.push(...result.nestedSubAssets);
+                }
             }
-            
-            // Save updated sub-assets
-            writeJsonFile(subAssetsFilePath, allSubAssets);
         }
     }
     
-    return duplicate;
+    return {
+        duplicate,
+        nestedSubAssets: createdNestedSubAssets
+    };
 }
 
 /**
@@ -1601,14 +1612,25 @@ app.post('/api/subassets/duplicate', async (req, res) => {
         
         const subAssets = readJsonFile(subAssetsFilePath);
         const newSubAssets = [];
+        const allCreatedSubAssets = [];
         
         if (DEBUG) {
             console.log(`[DEBUG] Duplicating sub-asset ${source.id} ${count} times with properties:`, selectedProperties);
         }
         
         for (let i = 1; i <= count; i++) {
-            const duplicate = await createSubAssetDuplicate(source, i, selectedProperties);
+            const result = await createSubAssetDuplicate(source, i, selectedProperties, subAssets);
+            const duplicate = result.duplicate || result; // Handle both old and new return formats
+            
             newSubAssets.push(duplicate);
+            allCreatedSubAssets.push(duplicate);
+            
+            // If there were nested sub-assets created, add them too
+            if (result.nestedSubAssets) {
+                allCreatedSubAssets.push(...result.nestedSubAssets);
+                // Also add to the main subAssets array so subsequent duplicates can reference them
+                subAssets.push(...result.nestedSubAssets);
+            }
         }
         
         // Add all new sub-assets to the array
@@ -1617,10 +1639,10 @@ app.post('/api/subassets/duplicate', async (req, res) => {
         const success = writeJsonFile(subAssetsFilePath, subAssets);
         if (success) {
             if (DEBUG) {
-                console.log(`[DEBUG] Successfully created ${newSubAssets.length} sub-asset duplicates`);
+                console.log(`[DEBUG] Successfully created ${newSubAssets.length} sub-asset duplicates and ${allCreatedSubAssets.length - newSubAssets.length} nested sub-assets`);
             }
             
-            res.status(201).json({ success: true, created: newSubAssets.length, items: newSubAssets });
+            res.status(201).json({ success: true, created: allCreatedSubAssets.length, items: allCreatedSubAssets });
         } else {
             res.status(500).json({ error: 'Failed to create duplicates' });
         }
