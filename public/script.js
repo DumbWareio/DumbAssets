@@ -44,6 +44,7 @@ import { ImportManager } from './managers/import.js';
 import { MaintenanceManager } from './managers/maintenanceManager.js';
 import { ModalManager } from './managers/modalManager.js';
 import { DashboardManager } from './managers/dashboardManager.js';
+import { DuplicationManager } from './managers/duplicationManager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize variables for app state
@@ -114,7 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let settingsManager;
     let modalManager;
     let dashboardManager;
-    const chartManager = new ChartManager({formatDate});
+    let duplicationManager;
+    const chartManager = new ChartManager({ formatDate });
 
     // Acts as constructor for the app
     // will be called at the very end of the file
@@ -192,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createSubAssetElement,
             handleSidebarNav,
             renderSubAssets,
+            openDuplicateModal: (type, assetId = null) => duplicationManager.openDuplicateModal(type, assetId),
             
             // Search functionality
             searchInput,
@@ -232,6 +235,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const assetTagManager = setupTagInput('assetTags', 'assetTagsContainer');
         const subAssetTagManager = setupTagInput('subAssetTags', 'subAssetTagsContainer');
 
+        // Initialize DuplicationManager before ModalManager
+        duplicationManager = new DuplicationManager({
+            // Utility functions
+            setButtonLoading,
+            generateId,
+            
+            // Navigation functions
+            renderAssetDetails,
+            closeAssetModal: () => modalManager.closeAssetModal(),
+            closeSubAssetModal: () => modalManager.closeSubAssetModal(),
+            
+            // Data functions
+            refreshData: refreshAllData,
+            getAssets: () => assets,
+            getSubAssets: () => subAssets
+        });
+
         modalManager = new ModalManager({
             // DOM elements
             assetModal,
@@ -260,10 +280,16 @@ document.addEventListener('DOMContentLoaded', () => {
             saveAsset,
             saveSubAsset,
             
+            // Navigation functions
+            renderAssetDetails,
+            
             // Tag and maintenance managers
             assetTagManager,
             subAssetTagManager,
             maintenanceManager,
+            
+            // Managers
+            duplicationManager,
             
             // Global state
             getAssets: () => assets,
@@ -320,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         globalThis.deleteSubReceipt = false;
         globalThis.deleteSubManual = false;
         globalThis.renderCardVisibilityToggles = renderCardVisibilityToggles;
+        window.initCollapsibleSections = initCollapsibleSections;
 
         // Handle window resize events to update sidebar overlay
         globalThis.addEventListener('resize', () => {
@@ -408,6 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
     }
+
+    // Expose refreshAllData to window for ModalManager access
+    window.refreshAllData = refreshAllData;
 
     async function saveAsset(asset) {
         const saveBtn = assetForm.querySelector('.save-btn');
@@ -795,7 +825,17 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="sub-asset-title">${subAsset.name}</div>
             <div class="sub-asset-actions">
                 <button class="edit-sub-btn" data-id="${subAsset.id}" title="Edit">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                </button>
+                <button class="duplicate-sub-btn" data-id="${subAsset.id}" title="Duplicate">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path stroke="none" d="M0 0h24v24H0z" />
+                        <path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                        <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                        <path d="M11 14h6" />
+                        <path d="M14 11v6" />
+                    </svg>
                 </button>
                 <button class="delete-sub-btn" data-id="${subAsset.id}" title="Delete">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -804,6 +844,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         
         // Set up button event listeners
+        const duplicateBtn = details.querySelector('.duplicate-sub-btn');
+        duplicateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            duplicationManager.openDuplicateModal('subAsset', subAsset.id);
+        });
+        
         const editBtn = details.querySelector('.edit-sub-btn');
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -869,12 +915,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const filePreviewsContainer = document.createElement('div');
         filePreviewsContainer.className = 'sub-asset-files';
         
-        // Add file previews if available
-        if (subAsset.photoPath || subAsset.receiptPath || subAsset.manualPath) {
+        // Check if sub-asset has any files (both single files and arrays)
+        const hasFiles = subAsset.photoPath || subAsset.receiptPath || subAsset.manualPath ||
+                         (subAsset.photoPaths && subAsset.photoPaths.length > 0) ||
+                         (subAsset.receiptPaths && subAsset.receiptPaths.length > 0) ||
+                         (subAsset.manualPaths && subAsset.manualPaths.length > 0);
+        
+        if (hasFiles) {
             const files = document.createElement('div');
             files.className = 'compact-files-grid';
             
-            if (subAsset.photoPath) {
+            // Handle multiple photos first, then fallback to single photo
+            if (subAsset.photoPaths && Array.isArray(subAsset.photoPaths) && subAsset.photoPaths.length > 0) {
+                subAsset.photoPaths.forEach((photoPath, index) => {
+                    files.innerHTML += `
+                        <div class="compact-file-item photo">
+                            <a href="${formatFilePath(photoPath)}" target="_blank">
+                                <img src="${formatFilePath(photoPath)}" alt="${subAsset.name}" class="compact-asset-image">
+                            </a>
+                        </div>
+                    `;
+                });
+            } else if (subAsset.photoPath) {
                 files.innerHTML += `
                     <div class="compact-file-item photo">
                         <a href="${formatFilePath(subAsset.photoPath)}" target="_blank">
@@ -884,7 +946,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
             
-            if (subAsset.receiptPath) {
+            // Handle multiple receipts first, then fallback to single receipt
+            if (subAsset.receiptPaths && Array.isArray(subAsset.receiptPaths) && subAsset.receiptPaths.length > 0) {
+                subAsset.receiptPaths.forEach((receiptPath, index) => {
+                    files.innerHTML += `
+                        <div class="compact-file-item receipt">
+                            <a href="${formatFilePath(receiptPath)}" target="_blank">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/>
+                                    <path d="M14 8h-8"/>
+                                    <path d="M15 12h-9"/>
+                                    <path d="M15 16h-9"/>
+                                </svg>
+                            </a>
+                        </div>
+                    `;
+                });
+            } else if (subAsset.receiptPath) {
                 files.innerHTML += `
                     <div class="compact-file-item receipt">
                         <a href="${formatFilePath(subAsset.receiptPath)}" target="_blank">
@@ -900,7 +979,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
             
-            if (subAsset.manualPath) {
+            // Handle multiple manuals first, then fallback to single manual
+            if (subAsset.manualPaths && Array.isArray(subAsset.manualPaths) && subAsset.manualPaths.length > 0) {
+                subAsset.manualPaths.forEach((manualPath, index) => {
+                    files.innerHTML += `
+                        <div class="compact-file-item manual">
+                            <a href="${formatFilePath(manualPath)}" target="_blank">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <path d="M14 2v6h6"/>
+                                    <path d="M16 13H8"/>
+                                    <path d="M16 17H8"/>
+                                    <path d="M10 9H8"/>
+                                </svg>
+                            </a>
+                        </div>
+                    `;
+                });
+            } else if (subAsset.manualPath) {
                 files.innerHTML += `
                     <div class="compact-file-item manual">
                         <a href="${formatFilePath(subAsset.manualPath)}" target="_blank">
@@ -964,7 +1060,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="sub-asset-title">${child.name}</div>
                         <div class="sub-asset-actions">
                             <button class="edit-sub-btn" data-id="${child.id}" title="Edit">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                            </button>
+                            <button class="duplicate-sub-btn" data-id="${child.id}" title="Duplicate">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path stroke="none" d="M0 0h24v24H0z" />
+                                    <path
+                                        d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                                    <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                                    <path d="M11 14h6" />
+                                    <path d="M14 11v6" />
+                                </svg>
                             </button>
                             <button class="delete-sub-btn" data-id="${child.id}" title="Delete">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -1021,11 +1129,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     const childFilePreviewsContainer = document.createElement('div');
                     childFilePreviewsContainer.className = 'sub-asset-files';
                     
-                    if (child.photoPath || child.receiptPath || child.manualPath) {
+                    // Check if child has any files (both single files and arrays)
+                    const childHasFiles = child.photoPath || child.receiptPath || child.manualPath ||
+                                         (child.photoPaths && child.photoPaths.length > 0) ||
+                                         (child.receiptPaths && child.receiptPaths.length > 0) ||
+                                         (child.manualPaths && child.manualPaths.length > 0);
+                    
+                    if (childHasFiles) {
                         const childFiles = document.createElement('div');
                         childFiles.className = 'compact-files-grid';
                         
-                        if (child.photoPath) {
+                        // Handle multiple photos first, then fallback to single photo
+                        if (child.photoPaths && Array.isArray(child.photoPaths) && child.photoPaths.length > 0) {
+                            child.photoPaths.forEach((photoPath, index) => {
+                                childFiles.innerHTML += `
+                                    <div class="compact-file-item photo">
+                                        <a href="${formatFilePath(photoPath)}" target="_blank">
+                                            <img src="${formatFilePath(photoPath)}" alt="${child.name}" class="compact-asset-image">
+                                        </a>
+                                    </div>
+                                `;
+                            });
+                        } else if (child.photoPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item photo">
                                     <a href="${formatFilePath(child.photoPath)}" target="_blank">
@@ -1035,7 +1160,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             `;
                         }
                         
-                        if (child.receiptPath) {
+                        // Handle multiple receipts first, then fallback to single receipt
+                        if (child.receiptPaths && Array.isArray(child.receiptPaths) && child.receiptPaths.length > 0) {
+                            child.receiptPaths.forEach((receiptPath, index) => {
+                                childFiles.innerHTML += `
+                                    <div class="compact-file-item receipt">
+                                        <a href="${formatFilePath(receiptPath)}" target="_blank">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/>
+                                                <path d="M14 8h-8"/>
+                                                <path d="M15 12h-9"/>
+                                                <path d="M15 16h-9"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                `;
+                            });
+                        } else if (child.receiptPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item receipt">
                                     <a href="${formatFilePath(child.receiptPath)}" target="_blank">
@@ -1051,7 +1193,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             `;
                         }
                         
-                        if (child.manualPath) {
+                        // Handle multiple manuals first, then fallback to single manual
+                        if (child.manualPaths && Array.isArray(child.manualPaths) && child.manualPaths.length > 0) {
+                            child.manualPaths.forEach((manualPath, index) => {
+                                childFiles.innerHTML += `
+                                    <div class="compact-file-item manual">
+                                        <a href="${formatFilePath(manualPath)}" target="_blank">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <path d="M14 2v6h6"/>
+                                                <path d="M16 13H8"/>
+                                                <path d="M16 17H8"/>
+                                                <path d="M10 9H8"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                `;
+                            });
+                        } else if (child.manualPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item manual">
                                     <a href="${formatFilePath(child.manualPath)}" target="_blank">
@@ -1072,6 +1231,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     childElement.appendChild(childFilePreviewsContainer);
                     
                     // Add event listeners to child
+                    const childDuplicateBtn = childElement.querySelector('.duplicate-sub-btn');
+                    childDuplicateBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        duplicationManager.openDuplicateModal('subAsset', child.id);
+                    });
+                    
                     const childEditBtn = childElement.querySelector('.edit-sub-btn');
                     childEditBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -1598,6 +1763,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 modalManager.closeAssetModal();
                 modalManager.closeSubAssetModal();
+                
+                // Close duplicate modal if it exists
+                if (modalManager && modalManager.closeDuplicateModal) {
+                    modalManager.closeDuplicateModal();
+                }
             }
         });
         // Add click-off-to-close for all modals on overlay click
@@ -1614,6 +1784,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
+        
+        // Add click-off-to-close for duplicate modal
+        const duplicateModal = document.getElementById('duplicateModal');
+        if (duplicateModal) {
+            duplicateModal.addEventListener('mousedown', function(e) {
+                if (e.target !== duplicateModal) return;
+                if (modalManager && modalManager.closeDuplicateModal) {
+                    modalManager.closeDuplicateModal();
+                }
+            });
+        }
     }
 
     function addElementEventListeners() {
