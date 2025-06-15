@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let modalManager;
     let dashboardManager;
     let duplicationManager;
+    let externalDocManager;
     const chartManager = new ChartManager({ formatDate });
 
     // Acts as constructor for the app
@@ -296,6 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
             getAssets: () => assets,
             getSubAssets: () => subAssets,
         });
+
+        // Initialize ExternalDocManager
+        externalDocManager = new ExternalDocManager({
+            modalManager,
+            setButtonLoading
+        });
+        
+        // Make it globally accessible for onclick handlers
+        window.externalDocManager = externalDocManager;
 
         // Initialize SettingsManager after DashboardManager is ready
         if (settingsBtn && settingsModal && notificationForm && saveSettings && cancelSettings && settingsClose && testNotificationSettings) {

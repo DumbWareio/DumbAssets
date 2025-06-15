@@ -2142,6 +2142,30 @@ app.get('/api/integrations', (req, res) => {
     }
 });
 
+// Get enabled integrations for external document search
+app.get('/api/integrations/enabled', (req, res) => {
+    try {
+        const settings = getAppSettings();
+        const enabledIntegrations = integrationManager.getAllIntegrations()
+            .filter(integration => {
+                const integrationSettings = settings.integrationSettings?.[integration.id];
+                return integrationSettings?.enabled === true;
+            })
+            .map(integration => ({
+                id: integration.id,
+                name: integration.name,
+                description: integration.description,
+                icon: integration.icon,
+                category: integration.category
+            }));
+        
+        res.json(enabledIntegrations);
+    } catch (error) {
+        console.error('Failed to get enabled integrations:', error);
+        res.status(500).json({ error: 'Failed to get enabled integrations' });
+    }
+});
+
 // Test integration connection
 app.post('/api/integrations/:id/test', async (req, res) => {
     try {
