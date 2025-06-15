@@ -42,6 +42,9 @@ export class ModalManager {
         subAssetTagManager,
         maintenanceManager,
         
+        // Managers
+        duplicationManager,
+        
         // Global state
         getAssets,
         getSubAssets
@@ -54,56 +57,9 @@ export class ModalManager {
         this.subAssetForm = subAssetForm;
         this.subAssetSaveBtn = this.subAssetForm.querySelector('.save-btn');
         
-        // Duplicate modal elements
-        this.duplicateModal = document.getElementById('duplicateModal');
-        this.duplicateModalTitle = document.getElementById('duplicateModalTitle');
-        this.duplicateModalDescription = document.getElementById('duplicateModalDescription');
-        this.duplicateCountInput = document.getElementById('duplicateCount');
-        this.confirmDuplicateBtn = document.getElementById('confirmDuplicateBtn');
-        this.cancelDuplicateBtn = document.getElementById('cancelDuplicateBtn');
+        // Store duplication buttons
         this.duplicateAssetBtn = document.getElementById('duplicateAssetBtn');
         this.duplicateSubAssetBtn = document.getElementById('duplicateSubAssetBtn');
-        this.duplicatePropertiesSection = document.getElementById('duplicatePropertiesSection');
-        this.duplicatePropertiesGrid = document.getElementById('duplicatePropertiesGrid');
-        
-        // Define properties that can be duplicated for assets and sub-assets
-        this.duplicatableProperties = {
-            asset: {
-                'manufacturer': { label: 'Manufacturer', default: true },
-                'modelNumber': { label: 'Model Number', default: true },
-                'serialNumber': { label: 'Serial Number', default: true },
-                'description': { label: 'Description', default: true },
-                'purchaseDate': { label: 'Purchase Date', default: true },
-                'price': { label: 'Purchase Price', default: true },
-                'quantity': { label: 'Quantity', default: true },
-                'link': { label: 'Product Link', default: true },
-                'tags': { label: 'Tags', default: true },
-                'warranty': { label: 'Warranty Info', default: true },
-                'secondaryWarranty': { label: 'Secondary Warranty', default: true },
-                'maintenanceEvents': { label: 'Maintenance Events', default: true },
-                'photoPath': { label: 'Photos', default: true },
-                'receiptPath': { label: 'Receipts', default: true },
-                'manualPath': { label: 'Manuals', default: true },
-                'subAssets': { label: 'Copy Components', default: true }
-            },
-            subAsset: {
-                'manufacturer': { label: 'Manufacturer', default: true },
-                'modelNumber': { label: 'Model Number', default: true },
-                'serialNumber': { label: 'Serial Number', default: true },
-                'notes': { label: 'Notes', default: true },
-                'purchaseDate': { label: 'Purchase Date', default: true },
-                'purchasePrice': { label: 'Purchase Price', default: true },
-                'quantity': { label: 'Quantity', default: true },
-                'link': { label: 'Product Link', default: true },
-                'tags': { label: 'Tags', default: true },
-                'warranty': { label: 'Warranty Info', default: true },
-                'maintenanceEvents': { label: 'Maintenance Events', default: true },
-                'photoPath': { label: 'Photos', default: true },
-                'receiptPath': { label: 'Receipts', default: true },
-                'manualPath': { label: 'Manuals', default: true },
-                'subAssets': { label: 'Copy Sub-Components', default: true }
-            }
-        };
         
         // Store utility functions
         this.formatDate = formatDate;
@@ -133,6 +89,7 @@ export class ModalManager {
         this.assetTagManager = assetTagManager;
         this.subAssetTagManager = subAssetTagManager;
         this.maintenanceManager = maintenanceManager;
+        this.duplicationManager = duplicationManager;
         
         // Store global state getters
         this.getAssets = getAssets;
@@ -143,10 +100,6 @@ export class ModalManager {
         this.currentAsset = null;
         this.currentSubAsset = null;
         this.filesToDelete = [];
-        
-        // Duplication state
-        this.duplicateType = null; // 'asset' or 'subAsset'
-        this.duplicateSource = null; // The asset/subAsset being duplicated
         
         // File deletion flags
         this.deletePhoto = false;
@@ -1015,9 +968,11 @@ export class ModalManager {
         }
         
         // Set up duplicate button
-        if (this.duplicateAssetBtn) {
+        if (this.duplicateAssetBtn && this.duplicationManager) {
             this.duplicateAssetBtn.onclick = () => {
-                this.openDuplicateModal('asset');
+                if (this.currentAsset) {
+                    this.duplicationManager.openDuplicateModal('asset', this.currentAsset.id);
+                }
             };
             // Only show duplicate button in edit mode
             this.duplicateAssetBtn.style.display = this.isEditMode ? 'flex' : 'none';
@@ -1042,9 +997,11 @@ export class ModalManager {
         }
         
         // Set up duplicate button
-        if (this.duplicateSubAssetBtn) {
+        if (this.duplicateSubAssetBtn && this.duplicationManager) {
             this.duplicateSubAssetBtn.onclick = () => {
-                this.openDuplicateModal('subAsset');
+                if (this.currentSubAsset) {
+                    this.duplicationManager.openDuplicateModal('subAsset', this.currentSubAsset.id);
+                }
             };
             // Only show duplicate button in edit mode
             this.duplicateSubAssetBtn.style.display = this.isEditMode ? 'flex' : 'none';
@@ -1072,319 +1029,10 @@ export class ModalManager {
         this.deleteSubManual = false;
     }
     
-    // Duplication methods
+    // Public method to provide access to duplication functionality
     openDuplicateModal(type, itemId = null) {
-        if (!this.duplicateModal) return;
-        
-        this.duplicateType = type;
-        
-        // Find the source asset/subAsset by ID
-        if (itemId) {
-            if (type === 'asset') {
-                const assets = this.getAssets();
-                this.duplicateSource = assets.find(a => a.id === itemId);
-            } else {
-                const subAssets = this.getSubAssets();
-                this.duplicateSource = subAssets.find(sa => sa.id === itemId);
-            }
-        } else {
-            // Fallback to current item (for backward compatibility)
-            this.duplicateSource = type === 'asset' ? this.currentAsset : this.currentSubAsset;
+        if (this.duplicationManager) {
+            this.duplicationManager.openDuplicateModal(type, itemId);
         }
-        
-        if (!this.duplicateSource) {
-            globalThis.toaster.show(`Failed to find ${type} with ID: ${itemId}`, 'error');
-            return;
-        }
-        
-        // Update modal content
-        this.duplicateModalTitle.textContent = type === 'asset' ? 'Duplicate Asset' : 'Duplicate Component';
-        this.duplicateModalDescription.textContent = `How many duplicates of "${this.duplicateSource.name}" would you like to create?`;
-        
-        // Reset input
-        this.duplicateCountInput.value = '1';
-        
-        // Reset properties section to collapsed
-        if (this.duplicatePropertiesSection) {
-            this.duplicatePropertiesSection.setAttribute('data-collapsed', 'true');
-        }
-        
-        // Generate property toggles
-        this.generatePropertyToggles(type);
-        
-        // Initialize collapsible section
-        if (window.initCollapsibleSections) {
-            window.initCollapsibleSections();
-        }
-        
-        // Set up event listeners
-        this.setupDuplicateModalButtons();
-        
-        // Focus on count input
-        this.duplicateCountInput.focus();
-        
-        // Show modal
-        this.duplicateModal.style.display = 'block';
-    }
-    
-    closeDuplicateModal() {
-        if (!this.duplicateModal) return;
-        
-        this.duplicateModal.style.display = 'none';
-        this.duplicateType = null;
-        this.duplicateSource = null;
-        
-        // Remove event listeners
-        if (this.confirmDuplicateBtn) {
-            this.confirmDuplicateBtn.onclick = null;
-        }
-        if (this.cancelDuplicateBtn) {
-            this.cancelDuplicateBtn.onclick = null;
-        }
-    }
-    
-    setupDuplicateModalButtons() {
-        // Set up confirm button
-        if (this.confirmDuplicateBtn) {
-            this.confirmDuplicateBtn.onclick = () => {
-                this.performDuplication();
-            };
-        }
-        
-        // Set up cancel button
-        if (this.cancelDuplicateBtn) {
-            this.cancelDuplicateBtn.onclick = () => {
-                this.closeDuplicateModal();
-            };
-        }
-        
-        // Set up close button
-        const closeBtn = this.duplicateModal.querySelector('.close-btn');
-        if (closeBtn) {
-            closeBtn.onclick = () => {
-                this.closeDuplicateModal();
-            };
-        }
-        
-        // Set up Enter key handler
-        this.duplicateCountInput.onkeydown = (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.performDuplication();
-            }
-        };
-        
-        // Set up input event to update button text dynamically
-        this.duplicateCountInput.oninput = () => {
-            this.updateDuplicateButtonText();
-        };
-        
-        // Initialize button text
-        this.updateDuplicateButtonText();
-    }
-    
-    updateDuplicateButtonText() {
-        if (!this.confirmDuplicateBtn || !this.duplicateCountInput) return;
-        
-        const count = parseInt(this.duplicateCountInput.value) || 1;
-        const duplicateIcon = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                <path stroke="none" d="M0 0h24v24H0z" />
-                                <path
-                                    d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
-                                <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
-                                <path d="M11 14h6" />
-                                <path d="M14 11v6" />
-                            </svg>`;
-        if (count === 1) {
-            this.confirmDuplicateBtn.innerHTML = `${duplicateIcon} Create Duplicate`;
-        } else {
-            this.confirmDuplicateBtn.innerHTML = `${duplicateIcon} Create Duplicates (${count})`;
-        }
-    }
-
-    async performDuplication() {
-        const count = parseInt(this.duplicateCountInput.value);
-        
-        if (!count || count < 1 || count > 100) {
-            globalThis.toaster.show('Please enter a valid number between 1 and 100', 'error');
-            return;
-        }
-        
-        try {
-            this.setButtonLoading(this.confirmDuplicateBtn, true);
-            
-            // Get selected properties
-            const selectedProperties = this.getSelectedProperties();
-            
-            // Create the source object with only the original asset data (no modifications)
-            const sourceData = { ...this.duplicateSource };
-            
-            // Send duplication request to server with source data and property selections
-            const apiBaseUrl = globalThis.getApiBaseUrl();
-            const endpoint = this.duplicateType === 'asset' ? '/api/assets/duplicate' : '/api/subassets/duplicate';
-            const response = await fetch(`${apiBaseUrl}${endpoint}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    source: sourceData,
-                    count: count,
-                    selectedProperties: selectedProperties
-                }),
-                credentials: 'include'
-            });
-            
-            const responseValidation = await globalThis.validateResponse(response);
-            if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
-            
-            // Parse the response to get the created items
-            const result = await response.json();
-            const createdItems = result.items || [];
-            
-            // Close modals
-            this.closeDuplicateModal();
-            if (this.duplicateType === 'asset') {
-                this.closeAssetModal();
-            } else {
-                this.closeSubAssetModal();
-            }
-            
-            // Refresh data first
-            await this.refreshData();
-            
-            // Navigate appropriately based on what was duplicated
-            if (createdItems.length > 0 && this.renderAssetDetails) {
-                const firstItem = createdItems[0];
-                
-                if (this.duplicateType === 'asset') {
-                    // For assets, navigate to the first duplicated asset
-                    this.renderAssetDetails(firstItem.id, false);
-                } else {
-                    // For sub-assets, check if it's a sub-sub-asset (has parentSubId)
-                    if (firstItem.parentSubId) {
-                        // This is a sub-sub-asset, navigate to the parent sub-asset
-                        this.renderAssetDetails(firstItem.parentSubId, true);
-                    } else {
-                        // This is a first-level sub-asset, navigate to the parent asset to show the duplicated component in context
-                        const parentAssetId = firstItem.parentId;
-                        if (parentAssetId) {
-                            this.renderAssetDetails(parentAssetId, false);
-                        } else {
-                            // Fallback: navigate to the sub-asset itself if no parent found
-                            this.renderAssetDetails(firstItem.id, true);
-                        }
-                    }
-                }
-            }
-            
-            // Show success message
-            globalThis.toaster.show(`Successfully created ${count} duplicate${count > 1 ? 's' : ''}!`);
-            
-        } catch (error) {
-            globalThis.logError('Error creating duplicates:', error.message);
-        } finally {
-            this.setButtonLoading(this.confirmDuplicateBtn, false);
-        }
-    }
-    
-    createDuplicate(source, type, index) {
-        const duplicate = { ...source };
-        
-        // Generate new ID
-        duplicate.id = this.generateId();
-        
-        // Add sequential numbering to duplicate names
-        duplicate.name = `${source.name} (${index})`;
-        
-        // Clear serial number and warranty information
-        duplicate.serialNumber = '';
-        duplicate.warranty = {
-            scope: '',
-            expirationDate: null,
-            isLifetime: false
-        };
-        
-        // Clear secondary warranty for assets
-        if (type === 'asset' && duplicate.secondaryWarranty) {
-            duplicate.secondaryWarranty = {
-                scope: '',
-                expirationDate: null,
-                isLifetime: false
-            };
-        }
-        
-        // Clear file paths (duplicates won't have files)
-        duplicate.photoPath = null;
-        duplicate.receiptPath = null;
-        duplicate.manualPath = null;
-        duplicate.photoPaths = [];
-        duplicate.receiptPaths = [];
-        duplicate.manualPaths = [];
-        duplicate.photoInfo = [];
-        duplicate.receiptInfo = [];
-        duplicate.manualInfo = [];
-        
-        // Clear maintenance events
-        duplicate.maintenanceEvents = [];
-        
-        // Set new timestamps
-        duplicate.createdAt = new Date().toISOString();
-        duplicate.updatedAt = new Date().toISOString();
-        
-        return duplicate;
-    }
-    
-    async refreshData() {
-        // This should be provided by the parent script
-        if (window.refreshAllData) {
-            await window.refreshAllData();
-        }
-    }
-    
-    generatePropertyToggles(type) {
-        if (!this.duplicatePropertiesGrid) return;
-        
-        // Clear existing toggles
-        this.duplicatePropertiesGrid.innerHTML = '';
-        
-        const properties = this.duplicatableProperties[type];
-        if (!properties) return;
-        
-        // Create toggle for each property
-        Object.entries(properties).forEach(([key, config]) => {
-            const toggleRow = document.createElement('div');
-            toggleRow.className = 'toggle-row';
-            
-            // Create toggle HTML structure matching settings modal
-            toggleRow.innerHTML = `
-                <span>${config.label}</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" 
-                           id="duplicate-${key}" 
-                           name="duplicate-${key}" 
-                           ${config.default ? 'checked' : ''}>
-                    <span class="slider"></span>
-                </label>
-            `;
-            
-            this.duplicatePropertiesGrid.appendChild(toggleRow);
-        });
-    }
-    
-    getSelectedProperties() {
-        const selected = {};
-        const properties = this.duplicatableProperties[this.duplicateType];
-        if (!properties) return selected;
-        
-        Object.keys(properties).forEach(key => {
-            const checkbox = document.getElementById(`duplicate-${key}`);
-            if (checkbox) {
-                selected[key] = checkbox.checked;
-            }
-        });
-        
-        return selected;
     }
 }

@@ -44,6 +44,7 @@ import { ImportManager } from './managers/import.js';
 import { MaintenanceManager } from './managers/maintenanceManager.js';
 import { ModalManager } from './managers/modalManager.js';
 import { DashboardManager } from './managers/dashboardManager.js';
+import { DuplicationManager } from './managers/duplicationManager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize variables for app state
@@ -192,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createSubAssetElement,
             handleSidebarNav,
             renderSubAssets,
-            openDuplicateModal: (type, assetId = null) => modalManager.openDuplicateModal(type, assetId),
+            openDuplicateModal: (type, assetId = null) => duplicationManager.openDuplicateModal(type, assetId),
             
             // Search functionality
             searchInput,
@@ -233,6 +234,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const assetTagManager = setupTagInput('assetTags', 'assetTagsContainer');
         const subAssetTagManager = setupTagInput('subAssetTags', 'subAssetTagsContainer');
 
+        // Initialize DuplicationManager before ModalManager
+        const duplicationManager = new DuplicationManager({
+            // Utility functions
+            setButtonLoading,
+            generateId,
+            
+            // Navigation functions
+            renderAssetDetails,
+            closeAssetModal: () => modalManager.closeAssetModal(),
+            closeSubAssetModal: () => modalManager.closeSubAssetModal(),
+            
+            // Data functions
+            refreshData: refreshAllData,
+            getAssets: () => assets,
+            getSubAssets: () => subAssets
+        });
+
         modalManager = new ModalManager({
             // DOM elements
             assetModal,
@@ -268,6 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
             assetTagManager,
             subAssetTagManager,
             maintenanceManager,
+            
+            // Managers
+            duplicationManager,
             
             // Global state
             getAssets: () => assets,
@@ -825,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const duplicateBtn = details.querySelector('.duplicate-sub-btn');
         duplicateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            modalManager.openDuplicateModal('subAsset', subAsset.id);
+            duplicationManager.openDuplicateModal('subAsset', subAsset.id);
         });
         
         const editBtn = details.querySelector('.edit-sub-btn');
@@ -1212,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const childDuplicateBtn = childElement.querySelector('.duplicate-sub-btn');
                     childDuplicateBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        modalManager.openDuplicateModal('subAsset', child.id);
+                        duplicationManager.openDuplicateModal('subAsset', child.id);
                     });
                     
                     const childEditBtn = childElement.querySelector('.edit-sub-btn');
