@@ -1006,6 +1006,17 @@ export class ModalManager {
     }
 
     /**
+     * Attach an external document to the current asset/sub-asset
+     * @param {Object} attachment - The attachment object
+     * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
+     * @param {boolean} isSubAsset - Whether this is for a sub-asset
+     */
+    async attachExternalDocument(attachment, attachmentType, isSubAsset) {
+        // For backward compatibility, also support the old method name
+        return this.attachPaperlessDocument(attachment, attachmentType, isSubAsset);
+    }
+
+    /**
      * Attach a Paperless document to the current asset/sub-asset
      * @param {Object} attachment - The attachment object from PaperlessManager
      * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
