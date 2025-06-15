@@ -1067,13 +1067,29 @@ export class ModalManager {
     }
     
     // Duplication methods
-    openDuplicateModal(type) {
+    openDuplicateModal(type, itemId = null) {
         if (!this.duplicateModal) return;
         
         this.duplicateType = type;
-        this.duplicateSource = type === 'asset' ? this.currentAsset : this.currentSubAsset;
         
-        if (!this.duplicateSource) return;
+        // Find the source asset/subAsset by ID
+        if (itemId) {
+            if (type === 'asset') {
+                const assets = this.getAssets();
+                this.duplicateSource = assets.find(a => a.id === itemId);
+            } else {
+                const subAssets = this.getSubAssets();
+                this.duplicateSource = subAssets.find(sa => sa.id === itemId);
+            }
+        } else {
+            // Fallback to current item (for backward compatibility)
+            this.duplicateSource = type === 'asset' ? this.currentAsset : this.currentSubAsset;
+        }
+        
+        if (!this.duplicateSource) {
+            globalThis.toaster.show(`Failed to find ${type} with ID: ${itemId}`, 'error');
+            return;
+        }
         
         // Update modal content
         this.duplicateModalTitle.textContent = type === 'asset' ? 'Duplicate Asset' : 'Duplicate Component';

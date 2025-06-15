@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createSubAssetElement,
             handleSidebarNav,
             renderSubAssets,
+            openDuplicateModal: (type, assetId = null) => modalManager.openDuplicateModal(type, assetId),
             
             // Search functionality
             searchInput,
@@ -799,7 +800,17 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="sub-asset-title">${subAsset.name}</div>
             <div class="sub-asset-actions">
                 <button class="edit-sub-btn" data-id="${subAsset.id}" title="Edit">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                </button>
+                <button class="duplicate-sub-btn" data-id="${subAsset.id}" title="Duplicate">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path stroke="none" d="M0 0h24v24H0z" />
+                        <path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                        <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                        <path d="M11 14h6" />
+                        <path d="M14 11v6" />
+                    </svg>
                 </button>
                 <button class="delete-sub-btn" data-id="${subAsset.id}" title="Delete">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -808,6 +819,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         
         // Set up button event listeners
+        const duplicateBtn = details.querySelector('.duplicate-sub-btn');
+        duplicateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modalManager.openDuplicateModal('subAsset', subAsset.id);
+        });
+        
         const editBtn = details.querySelector('.edit-sub-btn');
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1018,7 +1035,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="sub-asset-title">${child.name}</div>
                         <div class="sub-asset-actions">
                             <button class="edit-sub-btn" data-id="${child.id}" title="Edit">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                            </button>
+                            <button class="duplicate-sub-btn" data-id="${child.id}" title="Duplicate">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path stroke="none" d="M0 0h24v24H0z" />
+                                    <path
+                                        d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                                    <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                                    <path d="M11 14h6" />
+                                    <path d="M14 11v6" />
+                                </svg>
                             </button>
                             <button class="delete-sub-btn" data-id="${child.id}" title="Delete">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -1177,6 +1206,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     childElement.appendChild(childFilePreviewsContainer);
                     
                     // Add event listeners to child
+                    const childDuplicateBtn = childElement.querySelector('.duplicate-sub-btn');
+                    childDuplicateBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        modalManager.openDuplicateModal('subAsset', child.id);
+                    });
+                    
                     const childEditBtn = childElement.querySelector('.edit-sub-btn');
                     childEditBtn.addEventListener('click', (e) => {
                         e.stopPropagation();

@@ -757,6 +757,12 @@ input[type="date"][data-has-value="true"] {
   height: 20px;
 }
 
+.asset-actions .duplicate-asset-btn svg {
+  stroke: var(--success-color);
+  width: 20px;
+  height: 20px;
+}
+
 .asset-actions .delete-asset-btn svg {
   stroke: var(--error-color);
   width: 20px;
@@ -771,6 +777,11 @@ input[type="date"][data-has-value="true"] {
 .asset-actions .edit-asset-btn:hover {
   background-color: rgba(37, 100, 235, 0.4);
   box-shadow: 0 0 5px rgb(37, 100, 235);
+}
+
+.asset-actions .duplicate-asset-btn:hover {
+  background-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 5px rgb(16, 185, 129);
 }
 
 .asset-actions .copy-link-btn:hover svg,
@@ -1098,6 +1109,12 @@ input[type="date"][data-has-value="true"] {
   height: 20px;
 }
 
+.sub-asset-actions .duplicate-sub-btn svg {
+  stroke: var(--success-color);
+  width: 20px;
+  height: 20px;
+}
+
 .sub-asset-actions .delete-sub-btn svg {
   stroke: var(--error-color);
   width: 20px;
@@ -1112,6 +1129,12 @@ input[type="date"][data-has-value="true"] {
 
 .sub-asset-actions .edit-sub-btn:hover svg {
   stroke: #fff;
+}
+
+.sub-asset-actions .duplicate-sub-btn:hover {
+  background-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 5px rgb(16, 185, 129);
+  z-index: 5;
 }
 
 .sub-asset-actions .delete-sub-btn:hover {
