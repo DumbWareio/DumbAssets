@@ -34,6 +34,9 @@ export class ModalManager {
         saveAsset,
         saveSubAsset,
         
+        // Navigation functions
+        renderAssetDetails,
+        
         // Tag and maintenance managers
         assetTagManager,
         subAssetTagManager,
@@ -122,6 +125,9 @@ export class ModalManager {
         // Store data functions
         this.saveAsset = saveAsset;
         this.saveSubAsset = saveSubAsset;
+        
+        // Store navigation functions
+        this.renderAssetDetails = renderAssetDetails;
         
         // Store managers
         this.assetTagManager = assetTagManager;
@@ -1233,6 +1239,10 @@ export class ModalManager {
             const responseValidation = await globalThis.validateResponse(response);
             if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
             
+            // Parse the response to get the created items
+            const result = await response.json();
+            const createdItems = result.items || [];
+            
             // Close modals
             this.closeDuplicateModal();
             if (this.duplicateType === 'asset') {
@@ -1241,8 +1251,35 @@ export class ModalManager {
                 this.closeSubAssetModal();
             }
             
-            // Refresh data and show success message
+            // Refresh data first
             await this.refreshData();
+            
+            // Navigate appropriately based on what was duplicated
+            if (createdItems.length > 0 && this.renderAssetDetails) {
+                const firstItem = createdItems[0];
+                
+                if (this.duplicateType === 'asset') {
+                    // For assets, navigate to the first duplicated asset
+                    this.renderAssetDetails(firstItem.id, false);
+                } else {
+                    // For sub-assets, check if it's a sub-sub-asset (has parentSubId)
+                    if (firstItem.parentSubId) {
+                        // This is a sub-sub-asset, navigate to the parent sub-asset
+                        this.renderAssetDetails(firstItem.parentSubId, true);
+                    } else {
+                        // This is a first-level sub-asset, navigate to the parent asset to show the duplicated component in context
+                        const parentAssetId = firstItem.parentId;
+                        if (parentAssetId) {
+                            this.renderAssetDetails(parentAssetId, false);
+                        } else {
+                            // Fallback: navigate to the sub-asset itself if no parent found
+                            this.renderAssetDetails(firstItem.id, true);
+                        }
+                    }
+                }
+            }
+            
+            // Show success message
             globalThis.toaster.show(`Successfully created ${count} duplicate${count > 1 ? 's' : ''}!`);
             
         } catch (error) {

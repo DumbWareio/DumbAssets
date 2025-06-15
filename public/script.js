@@ -261,6 +261,9 @@ document.addEventListener('DOMContentLoaded', () => {
             saveAsset,
             saveSubAsset,
             
+            // Navigation functions
+            renderAssetDetails,
+            
             // Tag and maintenance managers
             assetTagManager,
             subAssetTagManager,
