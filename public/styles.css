@@ -786,6 +786,7 @@ input[type="date"][data-has-value="true"] {
 
 .asset-actions .copy-link-btn:hover svg,
 .asset-actions .edit-asset-btn:hover svg,
+.asset-actions .duplicate-asset-btn:hover svg,
 .asset-actions .delete-asset-btn:hover svg {
   stroke: #fff;
 }
@@ -1143,6 +1144,8 @@ input[type="date"][data-has-value="true"] {
   z-index: 5;
 }
 
+.sub-asset-actions .edit-sub-btn:hover svg,
+.sub-asset-actions .duplicate-sub-btn:hover svg,
 .sub-asset-actions .delete-sub-btn:hover svg {
   stroke: #fff;
 }
