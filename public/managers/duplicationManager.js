@@ -267,10 +267,13 @@ export class DuplicationManager {
             const result = await response.json();
             const createdItems = result.items || [];
             
+            // Store the duplicate type before closing modal (since closeDuplicateModal sets it to null)
+            const duplicatedType = this.duplicateType;
+            
             // Close the duplicate modal
-          this.closeDuplicateModal();
-          this.closeAssetModal();
-          this.closeSubAssetModal();
+            this.closeDuplicateModal();
+            this.closeAssetModal();
+            this.closeSubAssetModal();
             
             // Refresh data first
             await this.refreshData();
@@ -279,10 +282,10 @@ export class DuplicationManager {
             if (createdItems.length > 0 && this.renderAssetDetails) {
                 const firstItem = createdItems[0];
                 
-                if (this.duplicateType === 'asset') {
-                    // For assets, navigate to the first duplicated asset
-                    console.log(`[DuplicationManager] Navigating to first duplicated asset: ${firstItem.id}`);
-                    this.renderAssetDetails(firstItem.id, false);
+                if (duplicatedType === 'asset') {
+                  // For assets, navigate to the first duplicated asset
+                  console.log(`[DuplicationManager] Navigating to first duplicated asset: ${firstItem.id}`);
+                  this.renderAssetDetails(firstItem.id, false);
                 } else {
                     // For sub-assets, we need to determine the navigation context
                     if (firstItem.parentSubId) {
