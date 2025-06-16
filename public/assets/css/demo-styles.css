@@ -1,0 +1,56 @@
+/* DEMO MODE STYLES */
+.header-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  /* padding: 0.5rem; */
+  color: var(--text-color);
+  border-radius: 8px;
+  transition: var(--input-element-transition);
+  font-size: 1.5rem;
+}
+.demo-banner {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8383 100%);
+  color: white;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  margin: 0 auto 1rem auto;
+  font-weight: 500;
+  font-size: 0.9rem;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+  border-radius: 0 0 8px 8px;
+  position: relative;
+  z-index: 5;
+  width: fit-content;
+  max-width: 90%;
+  backdrop-filter: blur(8px);
+  /* border: 1px solid rgba(255, 255, 255, 0.1); */
+}
+
+.demo-banner span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}

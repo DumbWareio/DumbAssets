@@ -202,7 +202,7 @@ app.use(BASE_PATH, (req, res, next) => {
         '/verify-pin',
         '/config.js',
         '/assets/',
-        '/styles.css',
+        '/assets/css/',
         '/manifest.json',
         '/asset-manifest.json',
     ];

@@ -1,0 +1,479 @@
+/* Paperless Search Modal Styles */
+.paperless-search-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--modal-overlay);
+  z-index: 1000;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.paperless-search-content {
+  background-color: var(--background-color);
+  margin: 2rem auto;
+  padding: 0;
+  border-radius: var(--app-border-radius);
+  width: 100%;
+  max-width: 800px;
+  position: relative;
+  max-height: calc(100vh - 4rem);
+  overflow: hidden;
+  z-index: 1001;
+  border: 1px solid var(--border-color);
+}
+
+.paperless-search-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+  background-color: var(--container);
+}
+
+.paperless-search-header .close-btn {
+  font-size: 1.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.paperless-search-header .close-btn:hover {
+  background-color: var(--hover-color);
+}
+
+.paperless-search-body {
+  padding: 1.5rem;
+  background-color: var(--background-color);
+}
+
+.paperless-search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--container);
+  color: var(--text-color);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.paperless-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.paperless-results {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--container);
+}
+
+.paperless-document-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.paperless-document-item:last-child {
+  border-bottom: none;
+}
+
+.paperless-document-item:hover {
+  background-color: var(--hover-color);
+}
+
+.paperless-document-info {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.paperless-document-title {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+.paperless-document-meta {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+}
+
+.paperless-attach-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.paperless-attach-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* External Document Search Modal Styles */
+#externalDocModal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-subtitle {
+  padding: 0 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-subtitle p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  text-align: center;
+  opacity: 0.8;
+}
+
+#externalDocModal .modal-content {
+  max-width: 700px;
+  width: 90vw;
+  max-height: 60vh;
+  height: auto;
+  margin: 0;
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.external-doc-search {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.search-controls {
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
+}
+
+.external-doc-search-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background: var(--container);
+  color: var(--text-color);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.external-doc-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.integration-filters {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.integration-filter-btn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background: var(--container);
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.integration-filter-btn:hover {
+  background: var(--hover-color);
+}
+
+.integration-filter-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.integration-filter-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--background-color);
+}
+
+.integration-filter-warning {
+  padding: 0.5rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.integration-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.external-doc-results-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.external-doc-results {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background: var(--container);
+  min-height: 120px;
+  max-height: 250px;
+}
+
+.search-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+}
+
+.search-placeholder svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.search-placeholder p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.external-doc-item {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.external-doc-item:last-child {
+  border-bottom: none;
+}
+
+.external-doc-item:hover {
+  background-color: var(--hover-color);
+}
+
+.external-doc-info {
+  flex: 1;
+  margin-right: 0.5rem;
+}
+
+.external-doc-title {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.125rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.external-doc-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.0625rem 0.375rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+.external-doc-meta {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+  margin-top: 0.125rem;
+  line-height: 1.2;
+}
+
+.external-doc-link-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.external-doc-link-btn:hover {
+  background: var(--primary-hover);
+}
+
+.external-doc-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.external-doc-link-btn.linked {
+  background: var(--success-color, #10b981) !important;
+  opacity: 0.8 !important;
+  cursor: default !important;
+}
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+}
+
+.search-loading .spinner {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.5rem;
+}
+
+.search-error {
+  padding: 1rem;
+  text-align: center;
+  color: var(--error-color);
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 0.375rem;
+  margin: 1rem;
+}
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+}
+
+.no-results svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.external-doc-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--background-color);
+  border-radius: 0 0 0.25rem 0.25rem;
+  flex-shrink: 0;
+}
+
+.pagination-info {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.pagination-btn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background: var(--container);
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--hover-color);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.load-more-btn {
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background: var(--container);
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: var(--hover-color);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Paperless Document Badge Styles */
