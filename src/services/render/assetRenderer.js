@@ -16,6 +16,7 @@ let deleteSubAsset;
 let createSubAssetElement;
 let handleSidebarNav;
 let renderSubAssets;
+let openDuplicateModal;
 
 // Search functionality
 let searchInput;
@@ -50,6 +51,7 @@ function initRenderer(config) {
     createSubAssetElement = config.createSubAssetElement;
     handleSidebarNav = config.handleSidebarNav;
     renderSubAssets = config.renderSubAssets;
+    openDuplicateModal = config.openDuplicateModal;
     
     // Store references to search functionality
     searchInput = config.searchInput;
@@ -467,7 +469,17 @@ function renderAssetDetails(assetId, isSubAsset = false) {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     </button>
                     <button class="edit-asset-btn" data-id="${asset.id}" title="Edit">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
+                    </button>
+                    <button class="duplicate-asset-btn" data-id="${asset.id}" data-type="${isSub ? 'subAsset' : 'asset'}" title="Duplicate">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <path stroke="none" d="M0 0h24v24H0z" />
+                            <path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                            <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                            <path d="M11 14h6" />
+                            <path d="M14 11v6" />
+                        </svg>
                     </button>
                     <button class="delete-asset-btn" data-id="${asset.id}" title="Delete">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -559,6 +571,16 @@ function renderAssetDetails(assetId, isSubAsset = false) {
             else openAssetModal(asset);
         });
     }
+    
+    const duplicateBtn = assetDetails.querySelector('.duplicate-asset-btn');
+    if (duplicateBtn && openDuplicateModal) {
+        duplicateBtn.addEventListener('click', () => {
+            const type = duplicateBtn.dataset.type;
+            const assetId = duplicateBtn.dataset.id;
+            openDuplicateModal(type, assetId);
+        });
+    }
+    
     const deleteBtn = assetDetails.querySelector('.delete-asset-btn');
     if (deleteBtn) {
         deleteBtn.addEventListener('click', async () => {

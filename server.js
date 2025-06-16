@@ -607,6 +607,412 @@ async function deleteAssetFiles(input) {
     }
 }
 
+/**
+ * Creates a duplicate of an asset with selective property copying
+ * @param {Object} source - The source asset to duplicate
+ * @param {number} index - The duplicate index (for naming)
+ * @param {Object} selectedProperties - Which properties to copy
+ * @returns {Object} The duplicated asset
+ */
+async function createAssetDuplicate(source, index, selectedProperties) {
+    const duplicate = {
+        id: generateId(),
+        name: `${source.name} (${index})`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Copy selected properties
+    if (selectedProperties.manufacturer && source.manufacturer) {
+        duplicate.manufacturer = source.manufacturer;
+    } else {
+        duplicate.manufacturer = '';
+    }
+    
+    if (selectedProperties.modelNumber && source.modelNumber) {
+        duplicate.modelNumber = source.modelNumber;
+    } else {
+        duplicate.modelNumber = '';
+    }
+    
+    if (selectedProperties.description && source.description) {
+        duplicate.description = source.description;
+    } else {
+        duplicate.description = '';
+    }
+    
+    if (selectedProperties.purchaseDate && source.purchaseDate) {
+        duplicate.purchaseDate = source.purchaseDate;
+    } else {
+        duplicate.purchaseDate = null;
+    }
+    
+    if (selectedProperties.price && source.price) {
+        duplicate.price = source.price;
+    } else {
+        duplicate.price = 0;
+    }
+    
+    if (selectedProperties.link && source.link) {
+        duplicate.link = source.link;
+    } else {
+        duplicate.link = '';
+    }
+    
+    // Handle serialNumber
+    if (selectedProperties.serialNumber && source.serialNumber) {
+        duplicate.serialNumber = source.serialNumber;
+    } else {
+        duplicate.serialNumber = '';
+    }
+    
+    // Handle quantity
+    if (selectedProperties.quantity && source.quantity) {
+        duplicate.quantity = source.quantity;
+    } else {
+        duplicate.quantity = 1;
+    }
+    
+    if (selectedProperties.tags && source.tags && Array.isArray(source.tags)) {
+        duplicate.tags = [...source.tags];
+    } else {
+        duplicate.tags = [];
+    }
+    
+    // Handle warranty
+    if (selectedProperties.warranty && source.warranty) {
+        duplicate.warranty = { ...source.warranty };
+    } else {
+        duplicate.warranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+    }
+    
+    // Handle secondary warranty
+    if (selectedProperties.secondaryWarranty && source.secondaryWarranty) {
+        duplicate.secondaryWarranty = { ...source.secondaryWarranty };
+    } else {
+        duplicate.secondaryWarranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+    }
+    
+    // Handle maintenance events
+    if (selectedProperties.maintenanceEvents && source.maintenanceEvents && Array.isArray(source.maintenanceEvents)) {
+        duplicate.maintenanceEvents = source.maintenanceEvents.map(event => ({
+            ...event,
+            id: generateId() // Generate new IDs for maintenance events
+        }));
+    } else {
+        duplicate.maintenanceEvents = [];
+    }
+    
+    // Handle file copying
+    await handleFileDuplication(source, duplicate, selectedProperties);
+    
+    // Handle sub-asset duplication
+    if (selectedProperties.subAssets) {
+        const allSubAssets = readJsonFile(subAssetsFilePath);
+        const childSubAssets = findAllChildSubAssets(source.id, null, allSubAssets);
+        
+        if (childSubAssets.length > 0) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Duplicating ${childSubAssets.length} sub-assets for asset ${source.id}`);
+            }
+            
+            // Create a mapping from original sub-asset IDs to duplicated sub-asset IDs
+            const subAssetIdMapping = new Map();
+            
+            // Duplicate all child sub-assets with their selected properties
+            for (const childSubAsset of childSubAssets) {
+                const result = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties, allSubAssets);
+                const duplicatedSubAsset = result.duplicate || result; // Handle both old and new return formats
+                
+                // Update parent reference to the new asset
+                duplicatedSubAsset.parentId = duplicate.id;
+                
+                // If this sub-asset has a parentSubId, update it to point to the duplicated parent
+                if (childSubAsset.parentSubId && subAssetIdMapping.has(childSubAsset.parentSubId)) {
+                    duplicatedSubAsset.parentSubId = subAssetIdMapping.get(childSubAsset.parentSubId);
+                } else if (childSubAsset.parentSubId) {
+                    // Clear parentSubId if we can't find the duplicated parent (shouldn't happen)
+                    duplicatedSubAsset.parentSubId = null;
+                }
+                
+                // Store the mapping for nested sub-assets
+                subAssetIdMapping.set(childSubAsset.id, duplicatedSubAsset.id);
+                
+                allSubAssets.push(duplicatedSubAsset);
+            }
+            
+            // Save updated sub-assets
+            writeJsonFile(subAssetsFilePath, allSubAssets);
+        }
+    }
+    
+    return duplicate;
+}
+
+/**
+ * Creates a duplicate of a sub-asset with selective property copying
+ * @param {Object} source - The source sub-asset to duplicate
+ * @param {number} index - The duplicate index (for naming)
+ * @param {Object} selectedProperties - Which properties to copy
+ * @param {Array} allSubAssets - The current sub-assets array (to avoid re-reading file)
+ * @returns {Object} The duplicated sub-asset and any created nested sub-assets
+ */
+async function createSubAssetDuplicate(source, index, selectedProperties, allSubAssets = null) {
+    const duplicate = {
+        id: generateId(),
+        name: `${source.name} (${index})`,
+        parentId: source.parentId,
+        parentSubId: source.parentSubId || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    // Copy selected properties
+    if (selectedProperties.manufacturer && source.manufacturer) {
+        duplicate.manufacturer = source.manufacturer;
+    } else {
+        duplicate.manufacturer = '';
+    }
+    
+    if (selectedProperties.modelNumber && source.modelNumber) {
+        duplicate.modelNumber = source.modelNumber;
+    } else {
+        duplicate.modelNumber = '';
+    }
+    
+    if (selectedProperties.notes && source.notes) {
+        duplicate.notes = source.notes;
+    } else {
+        duplicate.notes = '';
+    }
+    
+    if (selectedProperties.purchaseDate && source.purchaseDate) {
+        duplicate.purchaseDate = source.purchaseDate;
+    } else {
+        duplicate.purchaseDate = null;
+    }
+    
+    if (selectedProperties.purchasePrice && source.purchasePrice) {
+        duplicate.purchasePrice = source.purchasePrice;
+    } else {
+        duplicate.purchasePrice = 0;
+    }
+    
+    if (selectedProperties.link && source.link) {
+        duplicate.link = source.link;
+    } else {
+        duplicate.link = '';
+    }
+    
+    // Handle serialNumber
+    if (selectedProperties.serialNumber && source.serialNumber) {
+        duplicate.serialNumber = source.serialNumber;
+    } else {
+        duplicate.serialNumber = '';
+    }
+    
+    // Handle quantity
+    if (selectedProperties.quantity && source.quantity) {
+        duplicate.quantity = source.quantity;
+    } else {
+        duplicate.quantity = 1;
+    }
+    
+    if (selectedProperties.tags && source.tags && Array.isArray(source.tags)) {
+        duplicate.tags = [...source.tags];
+    } else {
+        duplicate.tags = [];
+    }
+    
+    // Handle warranty
+    if (selectedProperties.warranty && source.warranty) {
+        duplicate.warranty = { ...source.warranty };
+    } else {
+        duplicate.warranty = {
+            scope: '',
+            expirationDate: null,
+            isLifetime: false
+        };
+    }
+    
+    // Handle maintenance events
+    if (selectedProperties.maintenanceEvents && source.maintenanceEvents && Array.isArray(source.maintenanceEvents)) {
+        duplicate.maintenanceEvents = source.maintenanceEvents.map(event => ({
+            ...event,
+            id: generateId() // Generate new IDs for maintenance events
+        }));
+    } else {
+        duplicate.maintenanceEvents = [];
+    }
+    
+    // Handle file copying
+    await handleFileDuplication(source, duplicate, selectedProperties);
+    
+    // Handle nested sub-asset duplication
+    const createdNestedSubAssets = [];
+    if (selectedProperties.subAssets) {
+        const subAssets = allSubAssets || readJsonFile(subAssetsFilePath);
+        const childSubAssets = findAllChildSubAssets(source.parentId, source.id, subAssets);
+        
+        if (childSubAssets.length > 0) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Duplicating ${childSubAssets.length} nested sub-assets for sub-asset ${source.id}`);
+            }
+            
+            // Create a mapping from original sub-asset IDs to duplicated sub-asset IDs
+            const subAssetIdMapping = new Map();
+            
+            // Duplicate all child sub-assets with their selected properties
+            for (const childSubAsset of childSubAssets) {
+                const result = await createSubAssetDuplicate(childSubAsset, 1, selectedProperties, subAssets);
+                const duplicatedSubAsset = result.duplicate || result; // Handle both old and new return formats
+                
+                // Update parent references
+                duplicatedSubAsset.parentId = duplicate.parentId; // Same parent asset
+                duplicatedSubAsset.parentSubId = duplicate.id; // Point to the duplicated sub-asset
+                
+                // If this nested sub-asset has its own parentSubId, update it
+                if (childSubAsset.parentSubId && subAssetIdMapping.has(childSubAsset.parentSubId)) {
+                    duplicatedSubAsset.parentSubId = subAssetIdMapping.get(childSubAsset.parentSubId);
+                }
+                
+                // Store the mapping for deeply nested sub-assets
+                subAssetIdMapping.set(childSubAsset.id, duplicatedSubAsset.id);
+                
+                createdNestedSubAssets.push(duplicatedSubAsset);
+                
+                // If there were nested sub-assets created, add them too
+                if (result.nestedSubAssets) {
+                    createdNestedSubAssets.push(...result.nestedSubAssets);
+                }
+            }
+        }
+    }
+    
+    return {
+        duplicate,
+        nestedSubAssets: createdNestedSubAssets
+    };
+}
+
+/**
+ * Handles file duplication for assets and sub-assets
+ * @param {Object} source - The source asset/sub-asset
+ * @param {Object} duplicate - The duplicate asset/sub-asset
+ * @param {Object} selectedProperties - Which properties to copy
+ */
+async function handleFileDuplication(source, duplicate, selectedProperties) {
+    // Initialize file arrays and paths
+    duplicate.photoPaths = [];
+    duplicate.receiptPaths = [];
+    duplicate.manualPaths = [];
+    duplicate.photoInfo = [];
+    duplicate.receiptInfo = [];
+    duplicate.manualInfo = [];
+    duplicate.photoPath = null;
+    duplicate.receiptPath = null;
+    duplicate.manualPath = null;
+    
+    // Handle photos
+    if (selectedProperties.photoPath) {
+        if (source.photoPaths && Array.isArray(source.photoPaths)) {
+            for (const photoPath of source.photoPaths) {
+                const newPhotoPath = await copyFile(photoPath, 'Images');
+                if (newPhotoPath) duplicate.photoPaths.push(newPhotoPath);
+            }
+        }
+        if (source.photoInfo && Array.isArray(source.photoInfo)) {
+            duplicate.photoInfo = [...source.photoInfo];
+        }
+        if (source.photoPath && !source.photoPaths) {
+            const newPhotoPath = await copyFile(source.photoPath, 'Images');
+            if (newPhotoPath) duplicate.photoPath = newPhotoPath;
+        }
+    }
+    
+    // Handle receipts
+    if (selectedProperties.receiptPath) {
+        if (source.receiptPaths && Array.isArray(source.receiptPaths)) {
+            for (const receiptPath of source.receiptPaths) {
+                const newReceiptPath = await copyFile(receiptPath, 'Receipts');
+                if (newReceiptPath) duplicate.receiptPaths.push(newReceiptPath);
+            }
+        }
+        if (source.receiptInfo && Array.isArray(source.receiptInfo)) {
+            duplicate.receiptInfo = [...source.receiptInfo];
+        }
+        if (source.receiptPath && !source.receiptPaths) {
+            const newReceiptPath = await copyFile(source.receiptPath, 'Receipts');
+            if (newReceiptPath) duplicate.receiptPath = newReceiptPath;
+        }
+    }
+    
+    // Handle manuals
+    if (selectedProperties.manualPath) {
+        if (source.manualPaths && Array.isArray(source.manualPaths)) {
+            for (const manualPath of source.manualPaths) {
+                const newManualPath = await copyFile(manualPath, 'Manuals');
+                if (newManualPath) duplicate.manualPaths.push(newManualPath);
+            }
+        }
+        if (source.manualInfo && Array.isArray(source.manualInfo)) {
+            duplicate.manualInfo = [...source.manualInfo];
+        }
+        if (source.manualPath && !source.manualPaths) {
+            const newManualPath = await copyFile(source.manualPath, 'Manuals');
+            if (newManualPath) duplicate.manualPath = newManualPath;
+        }
+    }
+}
+
+/**
+ * Copies a file to the specified directory with a new filename
+ * @param {string} sourcePath - The source file path
+ * @param {string} targetDir - The target directory (Images, Receipts, Manuals)
+ * @returns {string|null} The new file path or null if failed
+ */
+async function copyFile(sourcePath, targetDir) {
+    if (!sourcePath) return null;
+    
+    try {
+        const fullSourcePath = path.join(DATA_DIR, sourcePath);
+        if (!fs.existsSync(fullSourcePath)) {
+            console.warn(`[WARNING] Source file not found: ${fullSourcePath}`);
+            return null;
+        }
+        
+        // Generate new filename with timestamp and random component
+        const sourceExt = path.extname(sourcePath);
+        const baseName = path.basename(sourcePath, sourceExt);
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const newFileName = `${baseName}_copy_${timestamp}_${randomSuffix}${sourceExt}`;
+        
+        const targetPath = path.join(DATA_DIR, targetDir, newFileName);
+        
+        // Copy the file
+        await fs.promises.copyFile(fullSourcePath, targetPath);
+        
+        if (DEBUG) {
+            console.log(`[DEBUG] Copied file from ${sourcePath} to ${targetDir}/${newFileName}`);
+        }
+        
+        // Return relative path
+        return `${targetDir}/${newFileName}`;
+    } catch (error) {
+        console.error(`[ERROR] Failed to copy file ${sourcePath}:`, error.message);
+        return null;
+    }
+}
+
 // Initialize data directories
 ensureDirectoryExists(path.join(DATA_DIR, 'Images'));
 ensureDirectoryExists(path.join(DATA_DIR, 'Receipts'));
@@ -713,6 +1119,138 @@ app.post('/api/asset', async (req, res) => {
         res.status(201).json(newAsset);
     } else {
         res.status(500).json({ error: 'Failed to create asset' });
+    }
+});
+
+// Bulk create assets
+app.post('/api/assets/bulk', async (req, res) => {
+    try {
+        const { items } = req.body;
+        
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Items array is required' });
+        }
+        
+        if (items.length > 100) {
+            return res.status(400).json({ error: 'Cannot create more than 100 assets at once' });
+        }
+        
+        const assets = readJsonFile(assetsFilePath);
+        const newAssets = [];
+        
+        for (const item of items) {
+            // Ensure maintenanceEvents is always present (even if empty)
+            item.maintenanceEvents = item.maintenanceEvents || [];
+            
+            // Ensure quantity is present for backwards compatibility
+            if (typeof item.quantity === 'undefined' || item.quantity === null) {
+                item.quantity = 1;
+            }
+            
+            // Ensure required fields
+            if (!item.name) {
+                return res.status(400).json({ error: 'Asset name is required for all items' });
+            }
+            
+            // Generate ID if not provided
+            if (!item.id) {
+                item.id = generateId();
+            }
+            
+            // Set timestamps
+            item.createdAt = new Date().toISOString();
+            item.updatedAt = new Date().toISOString();
+            
+            newAssets.push(item);
+        }
+        
+        // Add all new assets to the array
+        assets.push(...newAssets);
+        
+        const success = writeJsonFile(assetsFilePath, assets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Bulk created ${newAssets.length} assets`);
+            }
+            
+            // Optional: Send notification for bulk creation
+            try {
+                const configPath = path.join(DATA_DIR, 'config.json');
+                let config = {};
+                if (fs.existsSync(configPath)) {
+                    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                }
+                const notificationSettings = config.notificationSettings || {};
+                const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+                
+                if (notificationSettings.notifyAdd && appriseUrl) {
+                    await sendNotification('assets_bulk_added', {
+                        count: newAssets.length,
+                        names: newAssets.map(a => a.name).join(', ')
+                    }, {
+                        appriseUrl,
+                        baseUrl: getBaseUrl(req)
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to send bulk asset added notification:', err.message);
+            }
+            
+            res.status(201).json({ success: true, created: newAssets.length, items: newAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create assets' });
+        }
+    } catch (error) {
+        console.error('Error in bulk asset creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Duplicate assets with selective property copying
+app.post('/api/assets/duplicate', async (req, res) => {
+    try {
+        const { source, count, selectedProperties } = req.body;
+        
+        if (!source || !source.id) {
+            return res.status(400).json({ error: 'Source asset is required' });
+        }
+        
+        if (!count || count < 1 || count > 100) {
+            return res.status(400).json({ error: 'Count must be between 1 and 100' });
+        }
+        
+        if (!selectedProperties || typeof selectedProperties !== 'object') {
+            return res.status(400).json({ error: 'Selected properties object is required' });
+        }
+        
+        const assets = readJsonFile(assetsFilePath);
+        const newAssets = [];
+        
+        if (DEBUG) {
+            console.log(`[DEBUG] Duplicating asset ${source.id} ${count} times with properties:`, selectedProperties);
+        }
+        
+        for (let i = 1; i <= count; i++) {
+            const duplicate = await createAssetDuplicate(source, i, selectedProperties);
+            newAssets.push(duplicate);
+        }
+        
+        // Add all new assets to the array
+        assets.push(...newAssets);
+        
+        const success = writeJsonFile(assetsFilePath, assets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Successfully created ${newAssets.length} asset duplicates`);
+            }
+            
+            res.status(201).json({ success: true, created: newAssets.length, items: newAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create duplicates' });
+        }
+    } catch (error) {
+        console.error('Error in asset duplication:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -865,71 +1403,252 @@ app.delete('/api/asset/:id', async (req, res) => {
 
 // Create a new sub-asset
 app.post('/api/subasset', async (req, res) => {
-    const subAssets = readJsonFile(subAssetsFilePath);
-    const newSubAsset = req.body;
-    // Remove legacy maintenanceReminder if present
-    if (newSubAsset.maintenanceReminder) delete newSubAsset.maintenanceReminder;
-    // Ensure maintenanceEvents is always present (even if empty)
-    newSubAsset.maintenanceEvents = newSubAsset.maintenanceEvents || [];
-    
-    // Ensure quantity is present for backwards compatibility
-    if (typeof newSubAsset.quantity === 'undefined' || newSubAsset.quantity === null) {
-        newSubAsset.quantity = 1;
-    }
-    
-    // Ensure required fields
-    if (!newSubAsset.name || !newSubAsset.parentId) {
-        return res.status(400).json({ error: 'Sub-asset name and parent ID are required' });
-    }
-    
-    // Generate ID if not provided
-    if (!newSubAsset.id) {
-        newSubAsset.id = generateId();
-    }
-    
-    // Set timestamps
-    newSubAsset.createdAt = new Date().toISOString();
-    newSubAsset.updatedAt = new Date().toISOString();
-    
-    subAssets.push(newSubAsset);
-    
-    if (writeJsonFile(subAssetsFilePath, subAssets)) {
-        if (DEBUG) {
-            console.log('[DEBUG] Sub-asset added:', { id: newSubAsset.id, name: newSubAsset.name, parentId: newSubAsset.parentId });
+    try {
+        const assets = readJsonFile(assetsFilePath);
+        const subAssets = readJsonFile(subAssetsFilePath);
+        const newSubAsset = req.body;
+        
+        // Ensure maintenanceEvents is always present (even if empty)
+        newSubAsset.maintenanceEvents = newSubAsset.maintenanceEvents || [];
+        
+        // Debug logging for sub-asset creation
+        console.log('Received sub-asset data:', {
+            id: newSubAsset.id,
+            name: newSubAsset.name,
+            parentId: newSubAsset.parentId,
+            parentSubId: newSubAsset.parentSubId
+        });
+        
+        // Validate required fields
+        if (!newSubAsset.name || !newSubAsset.name.trim()) {
+            console.error('Validation failed: Missing name');
+            return res.status(400).json({ error: 'Sub-asset name is required' });
         }
-        // Notification logic for sub-asset creation
-        try {
-            const configPath = path.join(DATA_DIR, 'config.json');
-            let config = {};
-            if (fs.existsSync(configPath)) {
-                config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            }
-            const notificationSettings = config.notificationSettings || {};
-            const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+        
+        if (!newSubAsset.parentId || !newSubAsset.parentId.trim()) {
+            console.error('Validation failed: Missing parentId');
+            return res.status(400).json({ error: 'Parent asset ID is required' });
+        }
+        
+        // Generate ID if not provided
+        if (!newSubAsset.id) {
+            newSubAsset.id = generateId();
+            console.log('Generated new ID for sub-asset:', newSubAsset.id);
+        }
+        
+        // Set timestamps
+        newSubAsset.createdAt = new Date().toISOString();
+        newSubAsset.updatedAt = new Date().toISOString();
+        
+        // Ensure quantity is present for backwards compatibility
+        if (typeof newSubAsset.quantity === 'undefined' || newSubAsset.quantity === null) {
+            newSubAsset.quantity = 1;
+        }
+        
+        // Process file deletions if provided
+        if (newSubAsset.filesToDelete && newSubAsset.filesToDelete.length > 0) {
+            await deleteAssetFiles(newSubAsset.filesToDelete);
+        }
+        delete newSubAsset.filesToDelete;
+        
+        subAssets.push(newSubAsset);
+        const success = writeJsonFile(subAssetsFilePath, subAssets);
+        
+        if (success) {
+            console.log('Sub-asset created successfully:', { id: newSubAsset.id, name: newSubAsset.name });
+            
             if (DEBUG) {
-                console.log('[DEBUG] Sub-asset notification settings (add):', notificationSettings, 'Apprise URL:', appriseUrl);
+                console.log('[DEBUG] Sub-asset added:', { name: newSubAsset.name, modelNumber: newSubAsset.modelNumber, parentId: newSubAsset.parentId });
             }
-            if (notificationSettings.notifyAdd && appriseUrl) {
-                await sendNotification('asset_added', {
-                    id: newSubAsset.id,
-                    parentId: newSubAsset.parentId,
-                    name: `${newSubAsset.name} (Component)`,
-                    modelNumber: newSubAsset.modelNumber,
-                    description: newSubAsset.description || newSubAsset.notes
-                }, {
-                    appriseUrl,
-                    baseUrl: getBaseUrl(req)
-                });
-                if (DEBUG) {
-                    console.log('[DEBUG] Sub-asset added notification sent.');
+            
+            // Notification logic
+            try {
+                const configPath = path.join(DATA_DIR, 'config.json');
+                let config = {};
+                if (fs.existsSync(configPath)) {
+                    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                 }
+                const notificationSettings = config.notificationSettings || {};
+                const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+                if (DEBUG) {
+                    console.log('[DEBUG] Notification settings (add sub-asset):', notificationSettings, 'Apprise URL:', appriseUrl);
+                }
+                if (notificationSettings.notifyAdd && appriseUrl) {
+                    // Find parent asset name for better notification
+                    const parentAsset = assets.find(a => a.id === newSubAsset.parentId);
+                    await sendNotification('subasset_added', {
+                        id: newSubAsset.id,
+                        name: newSubAsset.name,
+                        modelNumber: newSubAsset.modelNumber,
+                        parentName: parentAsset ? parentAsset.name : 'Unknown Asset'
+                    }, {
+                        appriseUrl,
+                        baseUrl: getBaseUrl(req)
+                    });
+                    if (DEBUG) {
+                        console.log('[DEBUG] Sub-asset added notification sent.');
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to send sub-asset added notification:', err.message);
             }
-        } catch (err) {
-            console.error('Failed to send sub-asset added notification:', err.message);
+            
+            res.status(201).json(newSubAsset);
+        } else {
+            console.error('Failed to save sub-asset to file');
+            res.status(500).json({ error: 'Failed to create sub-asset' });
         }
-        res.status(201).json(newSubAsset);
-    } else {
-        res.status(500).json({ error: 'Failed to create sub-asset' });
+    } catch (error) {
+        console.error('Error creating sub-asset:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Bulk create sub-assets
+app.post('/api/subassets/bulk', async (req, res) => {
+    try {
+        const { items } = req.body;
+        
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Items array is required' });
+        }
+        
+        if (items.length > 100) {
+            return res.status(400).json({ error: 'Cannot create more than 100 sub-assets at once' });
+        }
+        
+        const assets = readJsonFile(assetsFilePath);
+        const subAssets = readJsonFile(subAssetsFilePath);
+        const newSubAssets = [];
+        
+        for (const item of items) {
+            // Ensure maintenanceEvents is always present (even if empty)
+            item.maintenanceEvents = item.maintenanceEvents || [];
+            
+            // Validate required fields
+            if (!item.name || !item.name.trim()) {
+                return res.status(400).json({ error: 'Sub-asset name is required for all items' });
+            }
+            
+            if (!item.parentId || !item.parentId.trim()) {
+                return res.status(400).json({ error: 'Parent asset ID is required for all items' });
+            }
+            
+            // Generate ID if not provided
+            if (!item.id) {
+                item.id = generateId();
+            }
+            
+            // Set timestamps
+            item.createdAt = new Date().toISOString();
+            item.updatedAt = new Date().toISOString();
+            
+            // Ensure quantity is present for backwards compatibility
+            if (typeof item.quantity === 'undefined' || item.quantity === null) {
+                item.quantity = 1;
+            }
+            
+            newSubAssets.push(item);
+        }
+        
+        // Add all new sub-assets to the array
+        subAssets.push(...newSubAssets);
+        
+        const success = writeJsonFile(subAssetsFilePath, subAssets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Bulk created ${newSubAssets.length} sub-assets`);
+            }
+            
+            // Optional: Send notification for bulk creation
+            try {
+                const configPath = path.join(DATA_DIR, 'config.json');
+                let config = {};
+                if (fs.existsSync(configPath)) {
+                    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                }
+                const notificationSettings = config.notificationSettings || {};
+                const appriseUrl = process.env.APPRISE_URL || (config.appriseUrl || null);
+                
+                if (notificationSettings.notifyAdd && appriseUrl) {
+                    await sendNotification('subassets_bulk_added', {
+                        count: newSubAssets.length,
+                        names: newSubAssets.map(s => s.name).join(', ')
+                    }, {
+                        appriseUrl,
+                        baseUrl: getBaseUrl(req)
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to send bulk sub-asset added notification:', err.message);
+            }
+            
+            res.status(201).json({ success: true, created: newSubAssets.length, items: newSubAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create sub-assets' });
+        }
+    } catch (error) {
+        console.error('Error in bulk sub-asset creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Duplicate sub-assets with selective property copying
+app.post('/api/subassets/duplicate', async (req, res) => {
+    try {
+        const { source, count, selectedProperties } = req.body;
+        
+        if (!source || !source.id) {
+            return res.status(400).json({ error: 'Source sub-asset is required' });
+        }
+        
+        if (!count || count < 1 || count > 100) {
+            return res.status(400).json({ error: 'Count must be between 1 and 100' });
+        }
+        
+        if (!selectedProperties || typeof selectedProperties !== 'object') {
+            return res.status(400).json({ error: 'Selected properties object is required' });
+        }
+        
+        const subAssets = readJsonFile(subAssetsFilePath);
+        const newSubAssets = [];
+        const allCreatedSubAssets = [];
+        
+        if (DEBUG) {
+            console.log(`[DEBUG] Duplicating sub-asset ${source.id} ${count} times with properties:`, selectedProperties);
+        }
+        
+        for (let i = 1; i <= count; i++) {
+            const result = await createSubAssetDuplicate(source, i, selectedProperties, subAssets);
+            const duplicate = result.duplicate || result; // Handle both old and new return formats
+            
+            newSubAssets.push(duplicate);
+            allCreatedSubAssets.push(duplicate);
+            
+            // If there were nested sub-assets created, add them too
+            if (result.nestedSubAssets) {
+                allCreatedSubAssets.push(...result.nestedSubAssets);
+                // Also add to the main subAssets array so subsequent duplicates can reference them
+                subAssets.push(...result.nestedSubAssets);
+            }
+        }
+        
+        // Add all new sub-assets to the array
+        subAssets.push(...newSubAssets);
+        
+        const success = writeJsonFile(subAssetsFilePath, subAssets);
+        if (success) {
+            if (DEBUG) {
+                console.log(`[DEBUG] Successfully created ${newSubAssets.length} sub-asset duplicates and ${allCreatedSubAssets.length - newSubAssets.length} nested sub-assets`);
+            }
+            
+            res.status(201).json({ success: true, created: allCreatedSubAssets.length, items: allCreatedSubAssets });
+        } else {
+            res.status(500).json({ error: 'Failed to create duplicates' });
+        }
+    } catch (error) {
+        console.error('Error in sub-asset duplication:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -1414,10 +2133,9 @@ app.post('/api/notification-test', async (req, res) => {
         if (DEBUG) {
             console.log('[DEBUG] Notification settings (test):', notificationSettings, 'Apprise URL:', appriseUrl);
         }
-        if (!appriseUrl) return res.status(400).json({ error: 'No Apprise URL configured.' });
 
         // Get enabled notification types from request body
-        const { enabledTypes } = notificationSettings;;
+        const { enabledTypes } = notificationSettings;
         if (!enabledTypes || !Array.isArray(enabledTypes)) {
             return res.status(400).json({ error: 'No enabled notification types provided.' });
         }

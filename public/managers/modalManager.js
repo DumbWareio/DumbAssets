@@ -34,10 +34,16 @@ export class ModalManager {
         saveAsset,
         saveSubAsset,
         
+        // Navigation functions
+        renderAssetDetails,
+        
         // Tag and maintenance managers
         assetTagManager,
         subAssetTagManager,
         maintenanceManager,
+        
+        // Managers
+        duplicationManager,
         
         // Global state
         getAssets,
@@ -50,6 +56,10 @@ export class ModalManager {
         this.subAssetModal = subAssetModal;
         this.subAssetForm = subAssetForm;
         this.subAssetSaveBtn = this.subAssetForm.querySelector('.save-btn');
+        
+        // Store duplication buttons
+        this.duplicateAssetBtn = document.getElementById('duplicateAssetBtn');
+        this.duplicateSubAssetBtn = document.getElementById('duplicateSubAssetBtn');
         
         // Store utility functions
         this.formatDate = formatDate;
@@ -72,10 +82,14 @@ export class ModalManager {
         this.saveAsset = saveAsset;
         this.saveSubAsset = saveSubAsset;
         
+        // Store navigation functions
+        this.renderAssetDetails = renderAssetDetails;
+        
         // Store managers
         this.assetTagManager = assetTagManager;
         this.subAssetTagManager = subAssetTagManager;
         this.maintenanceManager = maintenanceManager;
+        this.duplicationManager = duplicationManager;
         
         // Store global state getters
         this.getAssets = getAssets;
@@ -952,6 +966,17 @@ export class ModalManager {
                 this.closeAssetModal();
             };
         }
+        
+        // Set up duplicate button
+        if (this.duplicateAssetBtn && this.duplicationManager) {
+            this.duplicateAssetBtn.onclick = () => {
+                if (this.currentAsset) {
+                    this.duplicationManager.openDuplicateModal('asset', this.currentAsset.id);
+                }
+            };
+            // Only show duplicate button in edit mode
+            this.duplicateAssetBtn.style.display = this.isEditMode ? 'flex' : 'none';
+        }
     }
     
     setupSubAssetModalButtons() {
@@ -969,6 +994,17 @@ export class ModalManager {
             closeBtn.onclick = () => {
                 this.closeSubAssetModal();
             };
+        }
+        
+        // Set up duplicate button
+        if (this.duplicateSubAssetBtn && this.duplicationManager) {
+            this.duplicateSubAssetBtn.onclick = () => {
+                if (this.currentSubAsset) {
+                    this.duplicationManager.openDuplicateModal('subAsset', this.currentSubAsset.id);
+                }
+            };
+            // Only show duplicate button in edit mode
+            this.duplicateSubAssetBtn.style.display = this.isEditMode ? 'flex' : 'none';
         }
     }
     
@@ -992,4 +1028,11 @@ export class ModalManager {
         this.deleteSubReceipt = false;
         this.deleteSubManual = false;
     }
-} 
+    
+    // Public method to provide access to duplication functionality
+    openDuplicateModal(type, itemId = null) {
+        if (this.duplicationManager) {
+            this.duplicationManager.openDuplicateModal(type, itemId);
+        }
+    }
+}
