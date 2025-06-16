@@ -470,12 +470,20 @@ The frontend automatically:
 - Provides test connection functionality
 - Manages configuration persistence
 
-**Optional: Custom Styles** (`/public/assets/css/your-integration-styles.css`):
+**Custom Styles** (`/public/assets/css/your-integration-styles.css`):
+
 ```css
 /* Integration-specific styles if needed */
 .integration-your-integration .custom-element {
   /* Your custom styling */
 }
+```
+
+- Add any specific styles needed for your integration into it's own CSS file so it doesn't mix with other styles.
+- This new css file should be linked in the main HTML files (index.html) like so:
+
+```html
+<link rel="stylesheet" href="assets/css/your-integration-styles.css">
 ```
 
 #### 3. Integration Schema Reference
