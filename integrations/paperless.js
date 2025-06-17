@@ -398,15 +398,18 @@ class PaperlessIntegration {
         
         const response = await this.downloadDocument(config, documentId);
         
-        // Copy headers from Paperless response
-        response.headers.forEach((value, key) => {
-          if (key.toLowerCase() !== 'transfer-encoding') {
-            res.setHeader(key, value);
-          }
-        });
+        // Copy relevant headers from Paperless response
+        const contentType = response.headers.get('content-type');
+        const contentLength = response.headers.get('content-length');
+        const contentDisposition = response.headers.get('content-disposition');
         
-        // Pipe the response
-        response.body.pipe(res);
+        if (contentType) res.setHeader('content-type', contentType);
+        if (contentLength) res.setHeader('content-length', contentLength);
+        if (contentDisposition) res.setHeader('content-disposition', contentDisposition);
+        
+        // Get the response as a buffer and send it
+        const buffer = await response.arrayBuffer();
+        res.send(Buffer.from(buffer));
       } catch (error) {
         console.error('Failed to download document:', error);
         res.status(500).json({ error: error.message });

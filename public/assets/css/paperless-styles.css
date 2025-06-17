@@ -347,3 +347,40 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Badge Styles */
+/* Paperless Document Styles */
+.paperless-document {
+  position: relative;
+}
+
+.paperless-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Position badge relative to file-preview-item in modals */
+.file-preview-item .paperless-badge {
+  top: 14px;
+  left: 8px;
+}
+
+/* Position badge relative to file-item in asset details */
+.file-item .paperless-badge {
+  top: 8px;
+  left: 8px;
+}
+
+.paperless-badge img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
