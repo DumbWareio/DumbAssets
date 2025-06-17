@@ -21,7 +21,7 @@ class PaperlessIntegration {
    **/
   static SCHEMA = {
     name: 'Paperless NGX',
-    description: 'Document management system integration for attaching documents to assets',
+    description: 'Integration for accessing and attaching paperless documents to assets.',
     version: '1.0.0',
     icon: 'document',
     category: 'document-management',
@@ -30,14 +30,14 @@ class PaperlessIntegration {
       enabled: {
         type: 'boolean',
         label: 'Enable Paperless Integration',
-        description: 'Enable integration with Paperless NGX document management system',
+        // description: 'Enable integration with Paperless NGX document management system',
         default: false,
         required: false
       },
       hostUrl: {
         type: 'url',
         label: 'Paperless Host URL',
-        description: 'The base URL of your Paperless NGX instance (e.g., https://paperless.example.com)',
+        description: 'The base URL of your Paperless NGX instance',
         placeholder: 'https://paperless.example.com',
         required: true,
         dependsOn: 'enabled'

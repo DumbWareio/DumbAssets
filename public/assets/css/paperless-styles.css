@@ -1,138 +1,10 @@
-/* Paperless Search Modal Styles */
-.paperless-search-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: var(--modal-overlay);
-  z-index: 1000;
-  overflow-y: auto;
+.uploader-external-link-button {
+  display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.paperless-search-content {
-  background-color: var(--background-color);
-  margin: 2rem auto;
-  padding: 0;
-  border-radius: var(--app-border-radius);
-  width: 100%;
-  max-width: 800px;
-  position: relative;
-  max-height: calc(100vh - 4rem);
-  overflow: hidden;
-  z-index: 1001;
-  border: 1px solid var(--border-color);
-}
-
-.paperless-search-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
-  padding: 1rem 1.5rem;
-  background-color: var(--container);
-}
-
-.paperless-search-header .close-btn {
-  font-size: 1.5rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
   cursor: pointer;
-  background: none;
-  border: none;
-  color: var(--text-color);
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: background-color 0.2s ease;
-}
-
-.paperless-search-header .close-btn:hover {
-  background-color: var(--hover-color);
-}
-
-.paperless-search-body {
-  padding: 1.5rem;
-  background-color: var(--background-color);
-}
-
-.paperless-search-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.375rem;
-  background: var(--container);
-  color: var(--text-color);
-  font-size: 1rem;
-  margin-bottom: 1rem;
-}
-
-.paperless-search-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-}
-
-.paperless-results {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 0.375rem;
-  background: var(--container);
-}
-
-.paperless-document-item {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: background-color 0.2s ease;
-}
-
-.paperless-document-item:last-child {
-  border-bottom: none;
-}
-
-.paperless-document-item:hover {
-  background-color: var(--hover-color);
-}
-
-.paperless-document-info {
-  flex: 1;
-  margin-right: 1rem;
-}
-
-.paperless-document-title {
-  font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 0.25rem;
-}
-
-.paperless-document-meta {
-  font-size: 0.875rem;
-  color: var(--text-color-secondary);
-  opacity: 0.8;
-}
-
-.paperless-attach-btn {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.paperless-attach-btn:hover {
-  background: var(--primary-hover);
+  max-width: 175px;
+  gap: 0.5rem;
 }
 
 /* External Document Search Modal Styles */
@@ -475,5 +347,3 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-/* Paperless Document Badge Styles */

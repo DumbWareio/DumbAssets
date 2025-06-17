@@ -133,7 +133,7 @@ export class IntegrationsManager {
      */
     renderIntegration(integration) {
         const section = document.createElement('div');
-        section.className = 'integration-section';
+        section.className = 'integration-section collapsible-section';
         section.dataset.integrationId = integration.id;
 
         const header = document.createElement('div');
@@ -144,14 +144,9 @@ export class IntegrationsManager {
                     <h4>${integration.name}</h4>
                     <p class="integration-description">${integration.description || ''}</p>
                 </div>
-                <div class="integration-toggle">
-                    <label class="switch">
-                        <input type="checkbox" id="${integration.id}Enabled" ${integration.defaultConfig?.enabled ? 'checked' : ''}>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                <span class="collapsible-arrow">▼</span>
             </div>
-            <span class="collapsible-arrow">▼</span>
+
         `;
 
         const content = document.createElement('div');
@@ -171,7 +166,7 @@ export class IntegrationsManager {
             testButton.type = 'button';
             testButton.className = 'action-button test-integration-btn';
             testButton.dataset.integrationId = integration.id;
-            testButton.style.cssText = 'background: var(--success-color); margin-top: 1rem;';
+            // testButton.style.cssText = '';
             testButton.innerHTML = 'Test Connection<div class="spinner"></div>';
             fieldsContainer.appendChild(testButton);
         }
@@ -196,8 +191,8 @@ export class IntegrationsManager {
         const schema = integration.configSchema || {};
         
         Object.entries(schema).forEach(([fieldName, fieldConfig]) => {
-            // Skip the enabled field as it's handled by the toggle
-            if (fieldName === 'enabled') return;
+            // // Skip the enabled field as it's handled by the toggle
+            // if (fieldName === 'enabled') return;
 
             const fieldElement = this.renderIntegrationField(integration.id, fieldName, fieldConfig);
             container.appendChild(fieldElement);
@@ -211,7 +206,7 @@ export class IntegrationsManager {
      */
     renderIntegrationField(integrationId, fieldName, fieldConfig) {
         const fieldContainer = document.createElement('div');
-        fieldContainer.className = 'form-group integration-field';
+        fieldContainer.className = 'integration-field';
         fieldContainer.dataset.fieldName = fieldName;
 
         // Add dependency class if this field depends on another
@@ -219,9 +214,11 @@ export class IntegrationsManager {
             fieldContainer.classList.add('depends-on-' + fieldConfig.dependsOn);
         }
 
+        const labelContainer = document.createElement('div');
         const label = document.createElement('label');
         label.textContent = fieldConfig.label || fieldName;
         label.htmlFor = `${integrationId}${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}`;
+        labelContainer.appendChild(label);
 
         const fieldId = `${integrationId}${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}`;
         let input;
@@ -251,7 +248,7 @@ export class IntegrationsManager {
                 input = document.createElement('div');
                 input.className = 'checkbox-container';
                 input.innerHTML = `
-                    <label class="switch">
+                    <label class="toggle-switch">
                         <input type="checkbox" id="${fieldId}" name="${fieldName}" ${fieldConfig.default ? 'checked' : ''}>
                         <span class="slider"></span>
                     </label>
@@ -266,17 +263,17 @@ export class IntegrationsManager {
                 input.placeholder = fieldConfig.placeholder || '';
         }
 
-        fieldContainer.appendChild(label);
-        fieldContainer.appendChild(input);
+        fieldContainer.appendChild(labelContainer);
+
 
         // Add description if provided
         if (fieldConfig.description) {
-            const description = document.createElement('small');
+            const description = document.createElement('p');
             description.className = 'field-description';
             description.textContent = fieldConfig.description;
-            fieldContainer.appendChild(description);
+            labelContainer.appendChild(description);
         }
-
+        fieldContainer.appendChild(input);
         return fieldContainer;
     }
 

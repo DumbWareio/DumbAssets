@@ -1164,7 +1164,7 @@ export class ModalManager {
             <div class="file-preview">
                 ${previewContent}
                 <div class="paperless-badge">
-                    <img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX">
+                    <img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX">
                 </div>
             </div>
             <button type="button" class="delete-preview-btn" title="Remove attachment">

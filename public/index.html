@@ -264,33 +264,44 @@
                             </div>
                             <div class="collapsible-content">
                                 <div class="form-group">
-                                    <label for="assetPhoto">Photo</label>
-                                                                            <div class="file-upload-grid">
-                                            <div class="file-upload-box" data-target="assetPhoto">
-                                                <input type="file" id="assetPhoto" accept="image/*" class="file-input" multiple>
-                                                <div class="upload-content">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                        <polyline points="17 8 12 3 7 8"/>
-                                                        <line x1="12" y1="3" x2="12" y2="15"/>
-                                                    </svg>
-                                                    <span>Drag & drop or click to upload photos</span>
-                                                </div>
-                                            </div>
-                                            <div id="photoPreview" class="preview-grid"></div>
-                                        </div>
-                                        <div style="margin-top: 0.75rem;">
-                                                                                    <button type="button" id="linkExternalPhotos" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                    <div class="file-upload-header">
+                                        <label for="assetPhoto">Photo</label>
+                                        <button type="button" id="linkExternalPhotos" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                             </svg>
                                             Link External Docs
                                         </button>
+                                    </div>
+                                    <div class="file-upload-grid">
+                                        <div class="file-upload-box" data-target="assetPhoto">
+                                            <input type="file" id="assetPhoto" accept="image/*" class="file-input" multiple>
+                                            <div class="upload-content">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                    <polyline points="17 8 12 3 7 8"/>
+                                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                                </svg>
+                                                <span>Drag & drop or click to upload photos</span>
+                                            </div>
                                         </div>
+                                        <div id="photoPreview" class="preview-grid"></div>
+                                    </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="assetReceipt">Receipt</label>
+                                    <div class="file-upload-header">
+                                        <label for="assetReceipt">Receipt</label>
+                                        <button type="button" id="linkExternalReceipts" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External Docs
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="assetReceipt">
                                             <input type="file" id="assetReceipt" accept=".pdf,.jpg,.jpeg,.png" class="file-input" multiple>
@@ -304,18 +315,19 @@
                                         </div>
                                         <div id="receiptPreview" class="preview-grid"></div>
                                     </div>
-                                    <div style="margin-top: 0.75rem;">
-                                        <button type="button" id="linkExternalReceipts" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </div>
+                                <div class="form-group">
+                                    <div class="file-upload-header">
+                                        <label for="assetManual">Manual</label>
+                                        <button type="button" id="linkExternalManuals" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                             </svg>
                                             Link External Docs
                                         </button>
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="assetManual">Manual</label>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="assetManual">
                                             <input type="file" id="assetManual" accept=".pdf" class="file-input" multiple>
@@ -328,15 +340,6 @@
                                             </div>
                                         </div>
                                         <div id="manualPreview" class="preview-grid"></div>
-                                    </div>
-                                    <div style="margin-top: 0.75rem;">
-                                        <button type="button" id="linkExternalManuals" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                                            </svg>
-                                            Link External Docs
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -474,7 +477,17 @@
                             </div>
                             <div class="collapsible-content">
                                 <div class="form-group">
-                                    <label for="subAssetPhoto">Photo</label>
+                                    <div class="file-upload-header">
+                                        <label for="subAssetPhoto">Photo</label>
+                                        <button type="button" id="linkExternalSubPhotos" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External Docs
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="subAssetPhoto">
                                             <input type="file" id="subAssetPhoto" accept="image/*" class="file-input" multiple>
@@ -489,18 +502,19 @@
                                         </div>
                                         <div id="subPhotoPreview" class="preview-grid"></div>
                                     </div>
-                                    <div style="margin-top: 0.75rem;">
-                                        <button type="button" id="linkExternalSubPhotos" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </div>
+                                <div class="form-group">
+                                    <div class="file-upload-header">
+                                        <label for="subAssetReceipt">Receipt</label>
+                                        <button type="button" id="linkExternalSubReceipts" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                             </svg>
                                             Link External Docs
                                         </button>
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="subAssetReceipt">Receipt</label>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="subAssetReceipt">
                                             <input type="file" id="subAssetReceipt" accept=".pdf,.jpg,.jpeg,.png" class="file-input" multiple>
@@ -514,18 +528,19 @@
                                         </div>
                                         <div id="subReceiptPreview" class="preview-grid"></div>
                                     </div>
-                                    <div style="margin-top: 0.75rem;">
-                                        <button type="button" id="linkExternalSubReceipts" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </div>
+                                <div class="form-group">
+                                    <div class="file-upload-header">
+                                        <label for="subAssetManual">Manual</label>
+                                        <button type="button" id="linkExternalSubManuals" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                             </svg>
                                             Link External Docs
                                         </button>
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="subAssetManual">Manual</label>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="subAssetManual">
                                             <input type="file" id="subAssetManual" accept=".pdf,.doc,.docx,.md,.txt" class="file-input" multiple>
@@ -538,15 +553,6 @@
                                             </div>
                                         </div>
                                         <div id="subManualPreview" class="preview-grid"></div>
-                                    </div>
-                                    <div style="margin-top: 0.75rem;">
-                                        <button type="button" id="linkExternalSubManuals" class="action-button" style="background: var(--primary-color); font-size: 0.875rem;">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                                            </svg>
-                                            Link External Docs
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -574,7 +580,7 @@
             </div>
 
             <!-- External Document Search Modal -->
-            <div id="externalDocModal" class="modal">
+            <div id="externalDocModal" class="modal" style="display: none;">
                 <div class="modal-content" style="max-width: 900px;">
                     <div class="modal-header">
                         <h2 class="modal-title">Link External Documents</h2>
@@ -582,9 +588,9 @@
                             <span class="close-btn">&times;</span>
                         </div>
                     </div>
-                    <div class="modal-subtitle">
+                    <!-- <div class="modal-subtitle">
                         <p>You can link multiple documents - the modal will stay open until you close it.</p>
-                    </div>
+                    </div> -->
                     <div class="modal-body">
                         <div class="external-doc-search">
                             <div class="search-controls">

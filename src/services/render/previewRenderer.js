@@ -20,7 +20,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
     }
     
     const paperlessBadge = isPaperlessDocument ? 
-        '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
+        '<div class="paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
     
     previewItem.innerHTML = `
         <div class="file-preview">
@@ -98,7 +98,7 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
     }
     
     const paperlessBadge = isPaperlessDocument ? 
-        '<div class="paperless-badge"><img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
+        '<div class="paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
     
     previewItem.innerHTML = `
         <div class="file-preview">

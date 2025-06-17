@@ -11,9 +11,14 @@ export class ExternalDocManager {
         this.currentIsSubAsset = false;
         this.searchTimeout = null;
         this.activeIntegrations = [];
-        this.selectedIntegrations = new Set();
+        this.selectedIntegrations = new Set(['all']);
         
-        this.DEBUG = window.appConfig?.debug || false;
+        // Pagination state
+        this.currentPage = 1;
+        this.pageSize = 15;
+        this.totalDocuments = 0;
+        this.currentQuery = '';
+        this.isLoading = false;
         
         this.init();
     }
@@ -24,67 +29,47 @@ export class ExternalDocManager {
     }
 
     bindEvents() {
-        // Bind the "Link External Docs" buttons
         const buttonIds = [
-            'linkExternalPhotos',
-            'linkExternalReceipts', 
-            'linkExternalManuals',
-            'linkExternalSubPhotos',
-            'linkExternalSubReceipts',
-            'linkExternalSubManuals'
+            'linkExternalPhotos', 'linkExternalReceipts', 'linkExternalManuals',
+            'linkExternalSubPhotos', 'linkExternalSubReceipts', 'linkExternalSubManuals'
         ];
 
         buttonIds.forEach(buttonId => {
             const button = document.getElementById(buttonId);
             if (button) {
-                button.addEventListener('click', (e) => {
-                    this.handleLinkExternalDocs(e, buttonId);
-                });
+                button.addEventListener('click', (e) => this.handleLinkExternalDocs(e, buttonId));
             }
         });
 
-        // Bind modal events
         const modal = document.getElementById('externalDocModal');
         const closeBtn = modal?.querySelector('.close-btn');
         const searchInput = document.getElementById('externalDocSearchInput');
 
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.closeModal());
-        }
-
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.closeModal();
-                }
-            });
-        }
-
+        if (closeBtn) closeBtn.addEventListener('click', () => this.closeModal());
+        if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) this.closeModal(); });
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(this.searchTimeout);
-                this.searchTimeout = setTimeout(() => {
-                    this.performSearch(e.target.value);
-                }, 300);
-            });
-
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    clearTimeout(this.searchTimeout);
-                    this.performSearch(e.target.value);
-                }
+                this.currentQuery = e.target.value;
+                this.currentPage = 1; // Reset to first page on new search
+                this.searchTimeout = setTimeout(() => this.performSearch(e.target.value), 300);
             });
         }
+
+        // Pagination event listeners
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        
+        if (prevBtn) prevBtn.addEventListener('click', () => this.previousPage());
+        if (nextBtn) nextBtn.addEventListener('click', () => this.nextPage());
     }
 
     async loadActiveIntegrations() {
         try {
             const response = await fetch(`${globalThis.getApiBaseUrl()}/api/integrations/enabled`);
             const responseValidation = await globalThis.validateResponse(response);
-            if (responseValidation.errorMessage) {
-                throw new Error(responseValidation.errorMessage);
-            }
-
+            if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
+            
             this.activeIntegrations = await response.json();
             this.updateIntegrationFilters();
         } catch (error) {
@@ -98,112 +83,38 @@ export class ExternalDocManager {
         if (!filtersContainer) return;
 
         filtersContainer.innerHTML = '';
-
+        
         if (this.activeIntegrations.length === 0) {
-            filtersContainer.innerHTML = `
-                <div class="integration-filter-warning">
-                    <span>⚠️ No document integrations enabled. Enable integrations in Settings to search external documents.</span>
-                </div>
-            `;
+            filtersContainer.innerHTML = '<div style="color: var(--text-color-secondary); padding: 0.5rem;">No document integrations enabled</div>';
             return;
         }
 
-        // Add "All" filter
         const allBtn = document.createElement('button');
         allBtn.className = 'integration-filter-btn active';
-        allBtn.dataset.integration = 'all';
-        allBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2v20"/>
-                <path d="M2 12h20"/>
-            </svg>
-            All Sources
-        `;
+        allBtn.textContent = 'All Sources';
         allBtn.addEventListener('click', () => this.toggleIntegrationFilter('all'));
         filtersContainer.appendChild(allBtn);
 
-        // Add individual integration filters
         this.activeIntegrations.forEach(integration => {
             const btn = document.createElement('button');
             btn.className = 'integration-filter-btn';
-            btn.dataset.integration = integration.id;
-            btn.innerHTML = `
-                ${this.getIntegrationIcon(integration)}
-                ${integration.name}
-            `;
+            btn.textContent = integration.name;
             btn.addEventListener('click', () => this.toggleIntegrationFilter(integration.id));
             filtersContainer.appendChild(btn);
         });
-
-        // Select all by default
-        this.selectedIntegrations.clear();
-        this.selectedIntegrations.add('all');
-    }
-
-    getIntegrationIcon(integration) {
-        const icons = {
-            paperless: '<img src="/assets/logos/paperless-ngx.png" alt="Paperless NGX" class="integration-icon">',
-            nextcloud: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-            </svg>`,
-            default: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-            </svg>`
-        };
-        
-        return icons[integration.id] || icons.default;
     }
 
     toggleIntegrationFilter(integrationId) {
-        const filtersContainer = document.getElementById('integrationFilters');
-        const buttons = filtersContainer.querySelectorAll('.integration-filter-btn');
-
-        if (integrationId === 'all') {
-            // Select all, deselect others
-            this.selectedIntegrations.clear();
-            this.selectedIntegrations.add('all');
-            buttons.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.integration === 'all');
-            });
-        } else {
-            // Toggle individual integration
-            this.selectedIntegrations.delete('all');
-            
-            if (this.selectedIntegrations.has(integrationId)) {
-                this.selectedIntegrations.delete(integrationId);
-            } else {
-                this.selectedIntegrations.add(integrationId);
-            }
-
-            // Update button states
-            buttons.forEach(btn => {
-                if (btn.dataset.integration === 'all') {
-                    btn.classList.remove('active');
-                } else {
-                    btn.classList.toggle('active', this.selectedIntegrations.has(btn.dataset.integration));
-                }
-            });
-
-            // If no integrations selected, select all
-            if (this.selectedIntegrations.size === 0) {
-                this.selectedIntegrations.add('all');
-                buttons.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.integration === 'all');
-                });
-            }
-        }
-
-        // Re-run search if there's a search term
-        const searchInput = document.getElementById('externalDocSearchInput');
-        if (searchInput && searchInput.value.trim()) {
-            this.performSearch(searchInput.value.trim());
-        }
+        // Simplified toggle logic for now
+        this.selectedIntegrations.clear();
+        this.selectedIntegrations.add(integrationId === 'all' ? 'all' : integrationId);
+        
+        const buttons = document.querySelectorAll('.integration-filter-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
     }
 
     handleLinkExternalDocs(event, buttonId) {
-        // Determine attachment type and sub-asset status from button ID
         const idMap = {
             'linkExternalPhotos': { type: 'photo', isSubAsset: false },
             'linkExternalReceipts': { type: 'receipt', isSubAsset: false },
@@ -213,310 +124,244 @@ export class ExternalDocManager {
             'linkExternalSubManuals': { type: 'manual', isSubAsset: true }
         };
 
-        const buttonConfig = idMap[buttonId];
-        if (!buttonConfig) {
-            console.error('Unknown button ID:', buttonId);
-            return;
-        }
+        const config = idMap[buttonId];
+        if (!config) return;
 
-        this.currentAttachmentType = buttonConfig.type;
-        this.currentIsSubAsset = buttonConfig.isSubAsset;
-
+        this.currentAttachmentType = config.type;
+        this.currentIsSubAsset = config.isSubAsset;
         this.openModal();
     }
 
     openModal() {
         const modal = document.getElementById('externalDocModal');
-        const searchInput = document.getElementById('externalDocSearchInput');
-        const resultsContainer = document.getElementById('externalDocResults');
-
         if (modal) {
             modal.style.display = 'flex';
             
-            // Reset search input and results
+            // Reset state
+            this.currentPage = 1;
+            this.currentQuery = '';
+            
+            const searchInput = document.getElementById('externalDocSearchInput');
             if (searchInput) {
                 searchInput.value = '';
-                searchInput.focus();
+                searchInput.placeholder = 'Search documents or browse all...';
             }
             
-            if (resultsContainer) {
-                resultsContainer.innerHTML = `
-                    <div class="search-placeholder">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="m21 21-4.35-4.35"/>
-                        </svg>
-                        <p>Start typing to search external documents</p>
-                    </div>
-                `;
-            }
-
-            // Refresh integrations in case settings changed
-            this.loadActiveIntegrations();
+            // Load integrations and immediately load all documents
+            this.loadActiveIntegrations().then(() => {
+                this.loadAllDocuments();
+            });
+            
+            // Focus search input after a brief delay
+            setTimeout(() => {
+                if (searchInput) searchInput.focus();
+            }, 100);
         }
     }
 
     closeModal() {
         const modal = document.getElementById('externalDocModal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
-        
-        // Clear search timeout
+        if (modal) modal.style.display = 'none';
         clearTimeout(this.searchTimeout);
     }
 
     async performSearch(query) {
         if (!query || query.trim().length < 2) {
-            this.showSearchPlaceholder();
+            this.loadAllDocuments();
             return;
         }
+
+        if (this.isLoading) return;
+        this.isLoading = true;
 
         const resultsContainer = document.getElementById('externalDocResults');
         if (!resultsContainer) return;
 
-        // Show loading state
-        resultsContainer.innerHTML = `
-            <div class="search-loading">
-                <div class="spinner"></div>
-                <span>Searching external documents...</span>
-            </div>
-        `;
+        this.showLoading('Searching documents...');
 
         try {
-            const integrations = this.getSelectedIntegrations();
-            const allResults = [];
-
-            // Search each selected integration
-            for (const integration of integrations) {
-                try {
-                    const results = await this.searchIntegration(integration, query);
-                    allResults.push(...results);
-                } catch (error) {
-                    console.error(`Failed to search ${integration.name}:`, error);
-                    // Continue with other integrations
-                }
-            }
-
-            this.displayResults(allResults, query);
-
+            const results = await this.searchPaperless(query, this.currentPage);
+            this.displayResults(results, query);
         } catch (error) {
-            console.error('Search failed:', error);
-            resultsContainer.innerHTML = `
-                <div class="search-error">
-                    <p>Search failed: ${error.message}</p>
-                </div>
-            `;
+            resultsContainer.innerHTML = `<div class="search-error"><p>Search failed: ${error.message}</p></div>`;
+            this.hidePagination();
+        } finally {
+            this.isLoading = false;
         }
     }
 
-    getSelectedIntegrations() {
-        if (this.selectedIntegrations.has('all')) {
-            return this.activeIntegrations;
-        }
-        
-        return this.activeIntegrations.filter(integration => 
-            this.selectedIntegrations.has(integration.id)
-        );
-    }
+    async loadAllDocuments() {
+        if (this.isLoading) return;
+        this.isLoading = true;
 
-    async searchIntegration(integration, query) {
-        switch (integration.id) {
-            case 'paperless':
-                return await this.searchPaperless(query);
-            case 'nextcloud':
-                return await this.searchNextcloud(query);
-            default:
-                console.warn(`Search not implemented for integration: ${integration.id}`);
-                return [];
-        }
-    }
+        this.showLoading('Loading documents...');
 
-    async searchPaperless(query) {
         try {
-            const response = await fetch(`${globalThis.getApiBaseUrl()}/api/paperless/search?q=${encodeURIComponent(query)}&page_size=20`);
-            const responseValidation = await globalThis.validateResponse(response);
-            if (responseValidation.errorMessage) {
-                throw new Error(responseValidation.errorMessage);
+            const results = await this.searchPaperless('', this.currentPage);
+            this.displayResults(results, '');
+        } catch (error) {
+            const resultsContainer = document.getElementById('externalDocResults');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `<div class="search-error"><p>Failed to load documents: ${error.message}</p></div>`;
             }
+            this.hidePagination();
+        } finally {
+            this.isLoading = false;
+        }
+    }
 
-            const data = await response.json();
-            
-            return (data.results || []).map(doc => ({
+    showLoading(message = 'Loading...') {
+        const resultsContainer = document.getElementById('externalDocResults');
+        if (resultsContainer) {
+            resultsContainer.innerHTML = `<div class="search-loading"><div class="spinner"></div><span>${message}</span></div>`;
+        }
+        this.hidePagination();
+    }
+
+    async searchPaperless(query, page = 1) {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            page_size: this.pageSize.toString()
+        });
+        
+        if (query && query.trim()) {
+            params.append('q', query.trim());
+        }
+
+        const response = await fetch(`${globalThis.getApiBaseUrl()}/api/paperless/search?${params}`);
+        const responseValidation = await globalThis.validateResponse(response);
+        if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
+
+        const data = await response.json();
+        
+        // Store pagination info
+        this.totalDocuments = data.count || 0;
+        
+        return {
+            results: (data.results || []).map(doc => ({
                 id: doc.id,
                 title: doc.title,
                 source: 'paperless',
-                sourceName: 'Paperless NGX',
                 downloadUrl: `${globalThis.getApiBaseUrl()}/api/paperless/document/${doc.id}/download`,
-                viewUrl: doc.original_file_name ? `${globalThis.getApiBaseUrl()}/api/paperless/document/${doc.id}/download` : null,
                 mimeType: doc.mime_type,
                 fileSize: doc.file_size,
-                created: doc.created,
                 modified: doc.modified,
-                tags: doc.tags || [],
-                correspondent: doc.correspondent_name,
-                documentType: doc.document_type_name,
                 attachedAt: new Date().toISOString()
-            }));
-        } catch (error) {
-            console.error('Paperless search failed:', error);
-            throw new Error(`Paperless search failed: ${error.message}`);
-        }
+            })),
+            count: data.count || 0,
+            next: data.next,
+            previous: data.previous
+        };
     }
 
-    async searchNextcloud(query) {
-        // Placeholder for future Nextcloud integration
-        try {
-            const response = await fetch(`${globalThis.getApiBaseUrl()}/api/nextcloud/search?q=${encodeURIComponent(query)}`);
-            const responseValidation = await globalThis.validateResponse(response);
-            if (responseValidation.errorMessage) {
-                throw new Error(responseValidation.errorMessage);
-            }
-
-            const data = await response.json();
-            
-            return (data.files || []).map(file => ({
-                id: file.fileid,
-                title: file.basename,
-                source: 'nextcloud',
-                sourceName: 'Nextcloud',
-                downloadUrl: `${globalThis.getApiBaseUrl()}/api/nextcloud/file/${encodeURIComponent(file.path)}/download`,
-                viewUrl: file.preview_url,
-                mimeType: file.mimetype,
-                fileSize: file.size,
-                created: file.mtime,
-                modified: file.mtime,
-                path: file.path,
-                attachedAt: new Date().toISOString()
-            }));
-        } catch (error) {
-            console.error('Nextcloud search failed:', error);
-            // Don't throw for future integrations that aren't implemented yet
-            return [];
-        }
-    }
-
-    displayResults(results, query) {
+    displayResults(data, query) {
         const resultsContainer = document.getElementById('externalDocResults');
         if (!resultsContainer) return;
 
+        const results = data.results || [];
+
         if (results.length === 0) {
-            resultsContainer.innerHTML = `
-                <div class="no-results">
-                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M16 16l-4-4-4 4"/>
-                        <path d="M12 8v8"/>
-                    </svg>
-                    <p>No documents found for "${query}"</p>
-                </div>
-            `;
+            const message = query ? `No documents found for "${query}"` : 'No documents available';
+            resultsContainer.innerHTML = `<div class="no-results"><p>${message}</p></div>`;
+            this.hidePagination();
             return;
         }
 
-        // Sort results by relevance/date
-        results.sort((a, b) => new Date(b.modified || b.created) - new Date(a.modified || a.created));
-
-        const resultsHtml = results.map(doc => this.createDocumentItemHtml(doc)).join('');
+        const resultsHtml = results.map(doc => {
+            const formattedDate = doc.modified ? new Date(doc.modified).toLocaleDateString() : '';
+            const formattedSize = doc.fileSize ? this.formatFileSize(doc.fileSize) : '';
+            const meta = [formattedDate, formattedSize].filter(Boolean).join(' • ');
+            
+            const html = `
+                <div class="external-doc-item">
+                    <div class="external-doc-info">
+                        <div class="external-doc-title">
+                            ${this.escapeHtml(doc.title)}
+                            <span class="external-doc-source">Paperless NGX</span>
+                        </div>
+                        ${meta ? `<div class="external-doc-meta">${this.escapeHtml(meta)}</div>` : ''}
+                    </div>
+                    <button id="${doc.source}-${doc.id}" class="external-doc-link-btn">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        Link
+                    </button>
+                </div>
+            `;
+            return html;
+        }).join('');
+        
+        
         resultsContainer.innerHTML = resultsHtml;
-
-        // Bind link buttons
-        resultsContainer.querySelectorAll('.external-doc-link-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const docData = JSON.parse(e.target.dataset.docData);
-                this.linkDocument(docData);
+        const linkButtons = resultsContainer.querySelectorAll('.external-doc-link-btn');
+        linkButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const docId = button.id.split('-')[1];
+                const docData = data.results.find(doc => doc.id === parseInt(docId,
+                    10));
+                if (docData) {
+                    this.linkDocument(docData);
+                } else {
+                    globalThis.logError(`Document with ID ${docId} not found in results`);
+                }
             });
         });
-    }
-
-    createDocumentItemHtml(doc) {
-        const formattedDate = doc.modified ? new Date(doc.modified).toLocaleDateString() : '';
-        const formattedSize = doc.fileSize ? this.formatFileSize(doc.fileSize) : '';
         
-        const meta = [
-            formattedDate,
-            formattedSize,
-            doc.correspondent,
-            doc.documentType
-        ].filter(Boolean).join(' • ');
-
-        return `
-            <div class="external-doc-item">
-                <div class="external-doc-info">
-                    <div class="external-doc-title">
-                        ${this.escapeHtml(doc.title)}
-                        <span class="external-doc-source">
-                            ${this.getIntegrationIcon({ id: doc.source })}
-                            ${doc.sourceName}
-                        </span>
-                    </div>
-                    ${meta ? `<div class="external-doc-meta">${this.escapeHtml(meta)}</div>` : ''}
-                    ${doc.tags && doc.tags.length > 0 ? `
-                        <div class="external-doc-meta">
-                            Tags: ${doc.tags.map(tag => `<span class="tag">${this.escapeHtml(tag.name || tag)}</span>`).join(', ')}
-                        </div>
-                    ` : ''}
-                </div>
-                <button class="external-doc-link-btn" data-doc-data='${JSON.stringify(doc)}'>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                    </svg>
-                    Link
-                </button>
-            </div>
-        `;
+        this.updatePagination(data, query);
     }
 
-    async linkDocument(docData) {
-        try {
-            // Create attachment object compatible with existing system
-            const attachment = {
-                paperlessId: docData.id, // Keep for backward compatibility
-                externalId: docData.id,
-                source: docData.source,
-                title: docData.title,
-                downloadUrl: docData.downloadUrl,
-                viewUrl: docData.viewUrl,
-                mimeType: docData.mimeType,
-                fileSize: docData.fileSize,
-                attachedAt: docData.attachedAt,
-                // Additional metadata
-                tags: docData.tags,
-                correspondent: docData.correspondent,
-                documentType: docData.documentType,
-                path: docData.path
-            };
+    updatePagination(data, query) {
+        const paginationContainer = document.getElementById('externalDocPagination');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
 
-            // Use existing modal manager method, but make it generic
-            await this.modalManager.attachExternalDocument(
-                attachment, 
-                this.currentAttachmentType, 
-                this.currentIsSubAsset
-            );
+        if (!paginationContainer || !paginationInfo || !prevBtn || !nextBtn) return;
 
-            // Close the modal
-            this.closeModal();
+        const totalPages = Math.ceil(data.count / this.pageSize);
+        const startItem = (this.currentPage - 1) * this.pageSize + 1;
+        const endItem = Math.min(this.currentPage * this.pageSize, data.count);
 
-            globalThis.toaster.show(`Linked "${docData.title}" to ${this.currentAttachmentType}`, 'success');
+        if (totalPages <= 1) {
+            paginationContainer.style.display = 'none';
+            return;
+        }
 
-        } catch (error) {
-            globalThis.logError('Failed to link external document:', error.message);
+        paginationContainer.style.display = 'flex';
+        paginationInfo.textContent = `${startItem}-${endItem} of ${data.count} documents`;
+        
+        prevBtn.disabled = !data.previous;
+        nextBtn.disabled = !data.next;
+    }
+
+    hidePagination() {
+        const paginationContainer = document.getElementById('externalDocPagination');
+        if (paginationContainer) {
+            paginationContainer.style.display = 'none';
         }
     }
 
-    showSearchPlaceholder() {
-        const resultsContainer = document.getElementById('externalDocResults');
-        if (resultsContainer) {
-            resultsContainer.innerHTML = `
-                <div class="search-placeholder">
-                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <p>Start typing to search external documents</p>
-                </div>
-            `;
+    async previousPage() {
+        if (this.currentPage > 1 && !this.isLoading) {
+            this.currentPage--;
+            if (this.currentQuery) {
+                this.performSearch(this.currentQuery);
+            } else {
+                this.loadAllDocuments();
+            }
+        }
+    }
+
+    async nextPage() {
+        if (!this.isLoading) {
+            this.currentPage++;
+            if (this.currentQuery) {
+                this.performSearch(this.currentQuery);
+            } else {
+                this.loadAllDocuments();
+            }
         }
     }
 
@@ -527,9 +372,52 @@ export class ExternalDocManager {
         return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
     }
 
+    async linkDocument(docData) {
+        // Find the button that was clicked
+        const clickedButton = event?.target?.closest('.external-doc-link-btn');
+        
+        try {
+            if (clickedButton) this.setButtonLoading(clickedButton, true);
+            
+            const attachment = {
+                paperlessId: docData.id,
+                title: docData.title,
+                downloadUrl: docData.downloadUrl,
+                mimeType: docData.mimeType,
+                fileSize: docData.fileSize,
+                attachedAt: docData.attachedAt
+            };
+
+            await this.modalManager.attachPaperlessDocument(attachment, this.currentAttachmentType, this.currentIsSubAsset);
+            
+            // Show success feedback
+            // globalThis.toaster.show(`Linked "${docData.title}"`, 'success', false, 2000);
+            
+            // Update button to show it's been linked
+            if (clickedButton) {
+                clickedButton.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    Linked
+                `;
+                clickedButton.disabled = true;
+                clickedButton.style.background = 'var(--success-color, #10b981)';
+                clickedButton.style.opacity = '0.8';
+                clickedButton.style.cursor = 'default';
+            }
+            
+        } catch (error) {
+            if (clickedButton) this.setButtonLoading(clickedButton, false);
+            globalThis.logError('Failed to link document:', error.message);
+        }
+    }
+
+
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-} 
+}

@@ -1311,6 +1311,13 @@ input[type="date"][data-has-value="true"] {
   margin-bottom: 20px;
 }
 
+.file-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
 .file-input {
   display: none;
 }
@@ -1579,20 +1586,16 @@ input[type="date"][data-has-value="true"] {
 }
 
 /* Integration Settings Styles */
-/* Integration Settings Styles */
 .integration-section {
   margin-bottom: 1rem;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--app-border-radius);
-  background: var(--container);
 }
 
 .integration-header-content {
   display: flex;
-  justify-content: space-between;
+  text-align: left;
   align-items: center;
-  width: 100%;
-  padding: 1rem;
 }
 
 .integration-info h4 {
@@ -1604,52 +1607,21 @@ input[type="date"][data-has-value="true"] {
 
 .integration-description {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--text-color-secondary);
   opacity: 0.8;
 }
 
-.integration-toggle {
-  margin-left: 1rem;
-}
-
-.collapsible-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  padding: 0;
-  background: transparent;
-  border: none;
-  width: 100%;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.collapsible-header:hover {
-  background: var(--hover-color);
-}
-
-.collapsible-arrow {
-  font-size: 0.875rem;
-  color: var(--text-color-secondary);
-  margin-right: 1rem;
-  transition: transform 0.2s ease;
-}
-
-.collapsible-content {
-  padding: 1rem;
-}
-
 .integration-fields-container {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr, 2fr;
   gap: 1rem;
 }
 
 .integration-field {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  /* flex-direction: column; */
+  gap: 1rem;
 }
 
 .integration-field label {
@@ -1679,11 +1651,13 @@ input[type="date"][data-has-value="true"] {
   font-size: 0.75rem;
   color: var(--text-color-secondary);
   opacity: 0.8;
+  text-align: left;
 }
 
 .test-integration-btn {
-  margin-top: 1rem;
-  align-self: flex-start;
+  margin: 1rem 0;
+  float: right;
+  background: var(--success-color);
 }
 
 /* Integration field visibility based on dependencies */

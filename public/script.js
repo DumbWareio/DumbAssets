@@ -46,6 +46,7 @@ import { MaintenanceManager } from './managers/maintenanceManager.js';
 import { ModalManager } from './managers/modalManager.js';
 import { DashboardManager } from './managers/dashboardManager.js';
 import { DuplicationManager } from './managers/duplicationManager.js';
+import { ExternalDocManager } from './managers/externalDocManager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize variables for app state
