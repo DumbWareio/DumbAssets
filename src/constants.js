@@ -31,3 +31,6 @@ export const FIELD_TYPES = {
 };
 
 export const API_TEST_SUCCESS = 'connected';
+// API ENDPOINTS
+export const API_INTEGRATIONS_ENPOINT = 'api/integrations';
+export const API_PAPERLESS_ENDPOINT = API_INTEGRATIONS_ENPOINT + '/paperless';

@@ -3,7 +3,7 @@
  * Combined integration schema and endpoint functionality for Paperless NGX document management system
  */
 
-const { API_TEST_SUCCESS, TOKENMASK } = require('../src/constants.js');
+const { API_TEST_SUCCESS, API_PAPERLESS_ENDPOINT, TOKENMASK } = require('../src/constants.js');
 
 class PaperlessIntegration {
   /**
@@ -25,6 +25,7 @@ class PaperlessIntegration {
     version: '1.0.0',
     icon: 'document',
     category: 'document-management',
+    apiEndpoint: API_PAPERLESS_ENDPOINT,
     
     configSchema: {
       enabled: {
@@ -60,11 +61,11 @@ class PaperlessIntegration {
     },
     
     endpoints: [
-      'GET /api/paperless/test-connection',
-      'GET /api/paperless/search',
-      'GET /api/paperless/document/:id/info',
-      'GET /api/paperless/document/:id/download',
-      'GET /api/paperless/test'
+      `GET /${API_PAPERLESS_ENDPOINT}/test-connection`,
+      `GET /${API_PAPERLESS_ENDPOINT}/search`,
+      `GET /${API_PAPERLESS_ENDPOINT}/document/:id/info`,
+      `GET /${API_PAPERLESS_ENDPOINT}/document/:id/download`,
+      `GET /${API_PAPERLESS_ENDPOINT}/test`
     ],
     
     validators: {
@@ -111,7 +112,7 @@ class PaperlessIntegration {
     },
     
     metadata: {
-      documentationUrl: 'https://paperless-ngx.readthedocs.io/en/latest/api/',
+      documentationUrl: 'https://docs.paperless-ngx.com/api/',
       supportLevel: 'community',
       tags: ['documents', 'pdf', 'scanning', 'ocr']
     }
@@ -121,6 +122,9 @@ class PaperlessIntegration {
    * Test connection to Paperless instance
    */
   static async testConnection(config) {
+    if (!config.enabled) {
+      throw new Error('Integration is disabled');
+    }
     if (!config.hostUrl || !config.apiToken) {
       throw new Error('Host URL and API Token are required');
     }
@@ -313,7 +317,7 @@ class PaperlessIntegration {
     };
 
     // Test Paperless connection
-    app.post(BASE_PATH + '/api/paperless/test-connection', async (req, res) => {
+    app.post(BASE_PATH + `/${API_PAPERLESS_ENDPOINT}/test-connection`, async (req, res) => {
       try {
         let { hostUrl, apiToken } = req.body;
         
@@ -322,13 +326,12 @@ class PaperlessIntegration {
             success: false, 
             error: 'Host URL and API Token are required' 
           });
-        }
-
+        };
+        
         // If the token is masked, get the real token from stored settings
         if (apiToken === TOKENMASK) {
           try {
-            const settings = await getSettings();
-            const paperlessConfig = settings.integrationSettings?.paperless;
+            const paperlessConfig = await getPaperlessConfig();
             if (paperlessConfig?.apiToken && paperlessConfig.apiToken !== TOKENMASK) {
               apiToken = paperlessConfig.apiToken;
             } else {
@@ -357,7 +360,7 @@ class PaperlessIntegration {
     });
 
     // Search Paperless documents
-    app.get(BASE_PATH + '/api/paperless/search', async (req, res) => {
+    app.get(BASE_PATH + `/${API_PAPERLESS_ENDPOINT}/search`, async (req, res) => {
       try {
         const config = await getPaperlessConfig();
         const { q: query, page = 1, page_size: pageSize = 20 } = req.query;
@@ -377,7 +380,7 @@ class PaperlessIntegration {
     });
 
     // Get Paperless document info
-    app.get(BASE_PATH + '/api/paperless/document/:id/info', async (req, res) => {
+    app.get(BASE_PATH + `/${API_PAPERLESS_ENDPOINT}/document/:id/info`, async (req, res) => {
       try {
         const config = await getPaperlessConfig();
         const documentId = req.params.id;
@@ -391,7 +394,7 @@ class PaperlessIntegration {
     });
 
     // Proxy Paperless document download
-    app.get(BASE_PATH + '/api/paperless/document/:id/download', async (req, res) => {
+    app.get(BASE_PATH + `/${API_PAPERLESS_ENDPOINT}/document/:id/download`, async (req, res) => {
       try {
         const config = await getPaperlessConfig();
         const documentId = req.params.id;
@@ -417,7 +420,7 @@ class PaperlessIntegration {
     });
 
     // Test endpoint for debugging
-    app.get(BASE_PATH + '/api/paperless/test', (req, res) => {
+    app.get(BASE_PATH + `/${API_PAPERLESS_ENDPOINT}/test`, (req, res) => {
       res.json({ 
         message: 'Paperless integration endpoints are working',
         timestamp: new Date().toISOString()

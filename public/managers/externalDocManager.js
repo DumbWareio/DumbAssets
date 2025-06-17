@@ -3,6 +3,8 @@
  * Supports Paperless NGX initially, extensible for Nextcloud, SharePoint, etc.
  */
 
+import { API_PAPERLESS_ENDPOINT } from '../../src/constants.js';
+
 export class ExternalDocManager {
     constructor({ modalManager, setButtonLoading }) {
         this.modalManager = modalManager;
@@ -238,7 +240,8 @@ export class ExternalDocManager {
             params.append('q', query.trim());
         }
 
-        const response = await fetch(`${globalThis.getApiBaseUrl()}/api/paperless/search?${params}`);
+        const searchEndpoint = `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/search?${params.toString()}`;
+        const response = await fetch(searchEndpoint);
         const responseValidation = await globalThis.validateResponse(response);
         if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
 
@@ -252,7 +255,7 @@ export class ExternalDocManager {
                 id: doc.id,
                 title: doc.title,
                 source: 'paperless',
-                downloadUrl: `${globalThis.getApiBaseUrl()}/api/paperless/document/${doc.id}/download`,
+                downloadUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/download`,
                 mimeType: doc.mime_type,
                 fileSize: doc.file_size,
                 modified: doc.modified,

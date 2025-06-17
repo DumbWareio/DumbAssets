@@ -352,260 +352,60 @@ try {
 
 ### Adding New Integrations
 
-DumbAssets uses a schema-driven integration system that automatically generates UI and handles configuration management. Here's how to add a new integration:
+DumbAssets uses a schema-driven integration system that automatically generates UI and handles configuration management. The integration system is now managed centrally by the Integration Manager, which is responsible for importing, registering, and routing all integrations. Follow these steps to add a new integration:
 
 #### 1. Backend Integration Setup
 
-**Create Integration File** (`/integrations/your-integration.js`):
+- **Create Integration File** (`/integrations/your-integration.js`):
 
-```javascript
-/**
- * Your Integration for DumbAssets
- * Provides integration with YourService for document/asset management
- */
+  - Export a class with a static `SCHEMA` property and a static `registerRoutes(app, getSettings)` method.
+  - The `SCHEMA` defines config fields, validation, endpoints, and metadata.
+  - The `registerRoutes` method should register all Express routes for the integration.
 
-class YourIntegration {
-  static SCHEMA = {
-    id: "your-integration",
-    name: "Your Integration",
-    description: "Connect to YourService for enhanced asset management",
-    category: "document-management", // or 'inventory', 'storage', etc.
-    configSchema: {
-      baseUrl: {
-        type: "url",
-        label: "Base URL",
-        placeholder: "https://your-service.example.com",
-        required: true,
-        helpText: "Base URL of your service instance",
-      },
-      apiToken: {
-        type: "password",
-        label: "API Token",
-        placeholder: "Enter your API token",
-        required: true,
-        sensitive: true, // Will be masked with TOKENMASK
-        helpText: "API token from your service settings",
-      },
-    },
-    defaultConfig: {
-      baseUrl: "",
-      apiToken: "",
-      timeout: 10000,
-    },
-    endpoints: {
-      testConnection: "/api/integrations/your-integration/test",
-      search: "/api/integrations/your-integration/search",
-    },
-    validators: {
-      baseUrl: (value) => {
-        if (!value) return "Base URL is required";
-        try {
-          new URL(value);
-          return null;
-        } catch {
-          return "Please enter a valid URL";
-        }
-      },
-      apiToken: (value) => {
-        if (!value) return "API token is required";
-        if (value === "TOKENMASK") return null; // Allow masked tokens
-        if (value.length < 10) return "API token seems too short";
-        return null;
-      },
-    },
-    statusCheck: {
-      endpoint: "/status",
-      method: "GET",
-      expectedStatus: 200,
-    },
-  };
+- **Register Integration in Integration Manager** (`/integrations/integrationManager.js`):
 
-  static async testConnection(config) {
-    // Implementation for testing connection
-    try {
-      const response = await fetch(`${config.baseUrl}/api/status`, {
-        headers: { Authorization: `Token ${config.apiToken}` },
-        timeout: config.timeout || 10000,
-      });
+  - Import your integration at the top of the file.
+  - In `registerBuiltInIntegrations()`, call `this.registerIntegration('your-integration-id', YourIntegration.SCHEMA);`
+  - The Integration Manager is now responsible for calling each integration's `registerRoutes` method via its own `registerRoutes(app, getSettings)` function. This means only the Integration Manager imports integration files, and all route registration is centralized.
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return { success: true, message: "Connection successful" };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  }
-
-  static registerRoutes(app) {
-    // Register API routes
-    app.get("/api/integrations/your-integration/test", async (req, res) => {
-      try {
-        const config = req.body.config || req.query;
-        const result = await YourIntegration.testConnection(config);
-        res.json(result);
-      } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-      }
-    });
-
-    app.post("/api/integrations/your-integration/search", async (req, res) => {
-      // Implementation for search functionality
-      try {
-        const { config, query } = req.body;
-        const results = await YourIntegration.searchDocuments(config, query);
-        res.json({ success: true, data: results });
-      } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-      }
-    });
-  }
-
-  static async searchDocuments(config, query) {
-    // Implementation for document search
-    // Return standardized format for asset linking
-  }
-}
-
-module.exports = YourIntegration;
-```
-
-**Register Integration** in `/integrations/integrationManager.js`:
-
-```javascript
-// Add to registerBuiltInIntegrations method
-registerBuiltInIntegrations() {
-  // ...existing integrations...
-  this.registerIntegration(require('./your-integration'));
-}
-```
-
-**Register Routes** in `server.js`:
-
-```javascript
-// Add after existing integration routes
-YourIntegration.registerRoutes(app);
-```
+- **Register All Integration Routes in server.js**:
+  - In `server.js`, after initializing the app and before starting the server, call `integrationManager.registerRoutes(app, getSettings)`.
+  - You do NOT need to import individual integrations in `server.js`.
 
 #### 2. Frontend Integration (Automatic)
 
-The frontend automatically:
-
-- Loads integration from `/api/integrations` endpoint
-- Generates UI based on `configSchema`
-- Handles form validation using `validators`
-- Provides test connection functionality
-- Manages configuration persistence
-
-**Custom Styles** (`/public/assets/css/your-integration-styles.css`):
-
-```css
-/* Integration-specific styles if needed */
-.integration-your-integration .custom-element {
-  /* Your custom styling */
-}
-```
-
-- Add any specific styles needed for your integration into it's own CSS file so it doesn't mix with other styles.
-- This new css file should be linked in the main HTML files (index.html) like so:
-
-```html
-<link rel="stylesheet" href="assets/css/your-integration-styles.css">
-```
+- The frontend dynamically loads all integrations and their schemas from the `/api/integrations` endpoint.
+- The UI is generated based on the schema, including validation, field types, and test connection functionality.
+- Add optional integration-specific styles in `/public/assets/css/your-integration-styles.css` if needed.
 
 #### 3. Integration Schema Reference
 
-**Config Schema Field Types:**
+- See the Paperless NGX integration for a full example of a schema and route registration.
+- Supported field types: text, password, url, number, select, checkbox, textarea, boolean.
+- Mark sensitive fields with `sensitive: true` (these are masked in the UI and handled securely).
 
-- `text`: Basic text input
-- `password`: Masked input for sensitive data
-- `url`: URL input with validation
-- `number`: Numeric input
-- `select`: Dropdown with options
-- `checkbox`: Boolean checkbox
-- `textarea`: Multi-line text input
-
-**Required Schema Properties:**
-
-- `id`: Unique integration identifier
-- `name`: Display name
-- `description`: User-friendly description
-- `category`: Groups integrations in UI
-- `configSchema`: Field definitions for configuration
-- `defaultConfig`: Default values for configuration
-- `endpoints`: API endpoint mappings
-- `validators`: Field validation functions
-- `statusCheck`: Health check configuration
-
-**Sensitive Field Handling:**
-
-- Mark fields with `sensitive: true`
-- Use `TOKENMASK` for masked values
-- Implement proper validation for masked tokens
-
-#### 4. Integration Categories
-
-Standard categories for organization:
-
-- `document-management`: Document storage and retrieval
-- `inventory`: Inventory management systems
-- `storage`: Cloud storage services
-- `notification`: Alert and notification services
-- `backup`: Backup and sync services
-
-#### 5. Error Handling Standards
+#### 4. Error Handling and Testing
 
 - Use consistent error response format: `{ success: false, message: 'Error description' }`
 - Implement proper timeout handling (default: 10000ms)
 - Provide meaningful error messages for users
 - Log detailed errors server-side for debugging
+- Implement a `testConnection` static method for connectivity validation
 
-#### 6. Testing Integration
+#### 5. Integration Development Checklist
 
-- Implement `testConnection` method for connectivity validation
-- Use `/scripts/test-maintenance-notifications.js` pattern for testing
-- Test both valid and invalid configurations
-- Verify error handling and timeout scenarios
-
-#### 7. Integration Manager API
-
-The integration manager provides:
-
-- `getIntegrations()`: Get all registered integrations
-- `getIntegration(id)`: Get specific integration
-- `validateConfig(id, config)`: Validate configuration
-- `sanitizeConfig(id, config)`: Sanitize sensitive fields
-- `testIntegration(id, config)`: Test integration connection
-
-### Integration Development Checklist
-
-**Backend:**
-
-- [ ] Create integration class in `/integrations/`
-- [ ] Define complete SCHEMA with all required properties
-- [ ] Implement `testConnection` static method
-- [ ] Register routes with proper error handling
-- [ ] Add to integrationManager registration
-- [ ] Add route registration in server.js
-
-**Frontend:**
-
-- [ ] Test UI generation from schema
-- [ ] Verify form validation works correctly
-- [ ] Test connection functionality
+- [ ] Create integration class in `/integrations/` with SCHEMA and registerRoutes
+- [ ] Register integration in `integrationManager.js` (import and add to `registerBuiltInIntegrations`)
+- [ ] Integration Manager will call your integration's `registerRoutes` automatically
+- [ ] Call `integrationManager.registerRoutes(app, getSettings)` in `server.js`
+- [ ] Test UI generation, validation, and connection from the frontend
 - [ ] Add custom styles if needed
-
-**Testing:**
-
-- [ ] Test valid configuration scenarios
-- [ ] Test invalid configuration handling
-- [ ] Verify sensitive field masking
-- [ ] Test timeout and error scenarios
-- [ ] Validate API endpoint responses
-
-**Documentation:**
-
-- [ ] Add integration-specific documentation
-- [ ] Update relevant README files
 - [ ] Document any special configuration requirements
+
+#### 6. Key Conventions
+
+- All backend integration logic and route registration is managed by the Integration Manager
+- Only the Integration Manager imports integration files
+- All integrations must provide a static `registerRoutes(app, getSettings)` method
+- The frontend is schema-driven and requires no manual code changes for new integrations
+- Use the Paperless NGX integration as a reference for best practices

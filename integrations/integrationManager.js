@@ -268,6 +268,11 @@ class IntegrationManager {
 
         return preparedConfig;
     }
+
+    registerRoutes(app, getSettings) {
+        PaperlessIntegration.registerRoutes(app, getSettings);
+        // Future integrations can register their routes here
+    }
 }
 
 // Singleton instance

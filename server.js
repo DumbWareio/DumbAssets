@@ -26,7 +26,6 @@ const { sanitizeFileName } = require('./src/services/fileUpload/utils');
 const packageJson = require('./package.json');
 const { TOKENMASK } = require('./src/constants');
 const { integrationManager } = require('./integrations/integrationManager');
-const PaperlessIntegration = require('./integrations/paperless');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -2214,7 +2213,7 @@ app.post('/api/settings', (req, res) => {
 
 // --- INTEGRATION SYSTEM ---
 // Initialize and register integration routes
-PaperlessIntegration.registerRoutes(app, getAppSettings);
+integrationManager.registerRoutes(app, getAppSettings);
 
 // Test notification endpoint
 app.post('/api/notification-test', async (req, res) => {
