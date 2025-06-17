@@ -2211,10 +2211,6 @@ app.post('/api/settings', (req, res) => {
     }
 });
 
-// --- INTEGRATION SYSTEM ---
-// Initialize and register integration routes
-integrationManager.registerRoutes(app, getAppSettings);
-
 // Test notification endpoint
 app.post('/api/notification-test', async (req, res) => {
     if (DEBUG) {
@@ -2364,6 +2360,10 @@ setInterval(() => {
 
 // Warranty expiration notification cron
 startWarrantyCron();
+
+// --- INTEGRATION SYSTEM ---
+// Initialize and register integration routes
+integrationManager.registerRoutes(app, getAppSettings);
 
 // --- START SERVER ---
 app.listen(PORT, () => {

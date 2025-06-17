@@ -13,6 +13,31 @@ class IntegrationManager {
     }
 
     /**
+     * Register built-in integrations
+     */
+    registerBuiltInIntegrations() {
+        // Register Paperless NGX integration
+        this.registerIntegration('paperless', PaperlessIntegration.SCHEMA);
+
+        // Future integrations can be added here
+        // this.registerIntegration('nextcloud', { ... });
+        // this.registerIntegration('sharepoint', { ... });
+    }
+
+    /**
+     * Register routes for all integrations
+     * @param {Object} app - Express application instance
+     * @param {Function} getSettings - Function to retrieve application settings
+     * This method registers all integration-specific routes
+     * by calling their static `registerRoutes` methods. which is ultimately called from server.js.
+     * It allows each integration to define its own API endpoints
+     */
+    registerRoutes(app, getSettings) {
+        PaperlessIntegration.registerRoutes(app, getSettings);
+        // Future integrations can register their routes here
+    }
+
+    /**
      * Register a new integration
      * @param {string} id - Unique integration identifier
      * @param {Object} config - Integration configuration
@@ -153,18 +178,6 @@ class IntegrationManager {
     }
 
     /**
-     * Register built-in integrations
-     */
-    registerBuiltInIntegrations() {
-        // Register Paperless NGX integration
-        this.registerIntegration('paperless', PaperlessIntegration.SCHEMA);
-
-        // Future integrations can be added here
-        // this.registerIntegration('nextcloud', { ... });
-        // this.registerIntegration('sharepoint', { ... });
-    }
-
-    /**
      * Get integration configuration for frontend settings
      */
     getIntegrationsForSettings() {
@@ -267,11 +280,6 @@ class IntegrationManager {
         }
 
         return preparedConfig;
-    }
-
-    registerRoutes(app, getSettings) {
-        PaperlessIntegration.registerRoutes(app, getSettings);
-        // Future integrations can register their routes here
     }
 }
 
