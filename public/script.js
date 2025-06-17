@@ -304,9 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
             modalManager,
             setButtonLoading
         });
-        
-        // Make it globally accessible for onclick handlers
-        window.externalDocManager = externalDocManager;
 
         // Initialize SettingsManager after DashboardManager is ready
         if (settingsBtn && settingsModal && notificationForm && saveSettings && cancelSettings && settingsClose && testNotificationSettings) {
@@ -320,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 testNotificationSettings,
                 setButtonLoading,
                 renderDashboard: (animate = true) => dashboardManager.renderDashboard(animate),
+                loadActiveIntegrations: () => externalDocManager.loadActiveIntegrations(),
             });
         }
 

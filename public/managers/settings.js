@@ -12,7 +12,8 @@ export class SettingsManager {
         settingsClose,
         testNotificationSettings,
         setButtonLoading,
-        renderDashboard
+        renderDashboard,
+        loadActiveIntegrations
     }) {
         this.localSettingsStorageKey = 'dumbAssetSettings';
         this.localSettingsLastOpenedPaneKey = 'dumbAssetSettingsLastOpenedPane';
@@ -25,6 +26,7 @@ export class SettingsManager {
         this.testNotificationSettings = testNotificationSettings;
         this.setButtonLoading = setButtonLoading;
         this.renderDashboard = renderDashboard;
+        this.loadActiveIntegrations = loadActiveIntegrations;
         this.selectedAssetId = null;
         this.DEBUG = false;
         
@@ -300,6 +302,7 @@ export class SettingsManager {
             if (!this.selectedAssetId && typeof this.renderDashboard === 'function') {
                 this.renderDashboard();
             }
+            this.loadActiveIntegrations(); // reload integrations
         } catch (error) {
             globalThis.logError('Failed to save settings:', error.message);
         } finally {

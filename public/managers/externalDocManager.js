@@ -19,7 +19,10 @@ export class ExternalDocManager {
         this.totalDocuments = 0;
         this.currentQuery = '';
         this.isLoading = false;
-        
+        this.buttonIds = [
+            'linkExternalPhotos', 'linkExternalReceipts', 'linkExternalManuals',
+            'linkExternalSubPhotos', 'linkExternalSubReceipts', 'linkExternalSubManuals'
+        ];
         this.init();
     }
 
@@ -29,18 +32,6 @@ export class ExternalDocManager {
     }
 
     bindEvents() {
-        const buttonIds = [
-            'linkExternalPhotos', 'linkExternalReceipts', 'linkExternalManuals',
-            'linkExternalSubPhotos', 'linkExternalSubReceipts', 'linkExternalSubManuals'
-        ];
-
-        buttonIds.forEach(buttonId => {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.addEventListener('click', (e) => this.handleLinkExternalDocs(e, buttonId));
-            }
-        });
-
         const modal = document.getElementById('externalDocModal');
         const closeBtn = modal?.querySelector('.close-btn');
         const searchInput = document.getElementById('externalDocSearchInput');
@@ -66,11 +57,30 @@ export class ExternalDocManager {
 
     async loadActiveIntegrations() {
         try {
+            // Remove existing event listeners and hide buttons
+            this.buttonIds.forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.removeEventListener('click', (e) => this.handleLinkExternalDocs(e, buttonId));
+                    button.style.display = 'none';
+                }
+            });
+
             const response = await fetch(`${globalThis.getApiBaseUrl()}/api/integrations/enabled`);
             const responseValidation = await globalThis.validateResponse(response);
             if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
             
             this.activeIntegrations = await response.json();
+
+            if (this.activeIntegrations && this.activeIntegrations.length > 0) {
+                this.buttonIds.forEach(buttonId => {
+                    const button = document.getElementById(buttonId);
+                    if (button) {
+                        button.addEventListener('click', (e) => this.handleLinkExternalDocs(e, buttonId));
+                        button.style.display = 'flex';
+                    }
+                });
+            }
             this.updateIntegrationFilters();
         } catch (error) {
             console.error('Failed to load active integrations:', error);

@@ -1315,7 +1315,7 @@ input[type="date"][data-has-value="true"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .file-input {
@@ -1942,9 +1942,9 @@ a:hover {
   grid-column: span 3;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  gap: 0.5rem;
   width: 100%;
+  margin-bottom: 1rem;
 }
 .preview-grid .file-preview-item {
   position: relative;
