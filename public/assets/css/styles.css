@@ -3496,3 +3496,119 @@ a:hover {
   /* font-size: 12px; */
 }
 
+/* Duplicate Modal Specific Styles */
+.duplicate-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: var(--app-border);
+  border-radius: var(--app-border-radius);
+  background-color: var(--input-background);
+  color: var(--text-color);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.duplicate-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(37, 100, 235, 0.3);
+}
+
+.help-text {
+  color: var(--secondary-color);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: var(--app-border);
+  margin-top: 1rem;
+}
+
+/* Duplicate Modal Property Toggles */
+#duplicateModal .settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem 0.5rem;
+  margin: 1rem 0;
+  padding: 0;
+}
+
+#duplicateModalDescription {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+}
+
+#duplicateModal .toggle-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#duplicateModal .toggle-row span {
+  font-size: 0.85em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+#duplicateModal .toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 18px;
+  min-width: 36px;
+}
+
+#duplicateModal .toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+#duplicateModal .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+#duplicateModal .slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+#duplicateModal input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+#duplicateModal input:focus + .slider {
+  box-shadow: 0 0 1px var(--primary-color);
+}
+
+#duplicateModal input:checked + .slider:before {
+  transform: translateX(18px);
+}
