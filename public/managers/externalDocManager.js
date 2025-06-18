@@ -363,17 +363,20 @@ export class ExternalDocManager {
         };
     }
 
-    async searchPapra(query, page = 0) {
+    async searchPapra(query, page = 1) {
         // When filtering by attachment type, load more results to account for filtering
         const pageSize = this.currentAttachmentType ? Math.max(this.pageSize * 3, 50) : this.pageSize;
         
+        // Convert from 1-based to 0-based pagination for Papra API
+        const pageIndex = Math.max(0, page - 1);
+        
         const params = new URLSearchParams({
-            pageIndex: page.toString(),
+            pageIndex: pageIndex.toString(),
             pageSize: pageSize.toString()
         });
         
         if (query && query.trim()) {
-            params.append('searchQuery', query.trim());
+            params.append('q', query.trim());
         }
 
         const searchEndpoint = `${globalThis.getApiBaseUrl()}/${API_PAPRA_ENDPOINT}/search?${params.toString()}`;
