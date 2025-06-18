@@ -148,6 +148,13 @@ export class IntegrationsManager {
         headerContent.className = 'integration-header-content';
         
         const titleElement = document.createElement('h3');
+        if (integration.logoHref) { 
+            const iconElement = document.createElement('img');
+            iconElement.src = integration.logoHref;
+            iconElement.alt = `${integration.name} logo`;
+            iconElement.className = 'integration-logo';
+            headerContent.appendChild(iconElement);
+        }
         titleElement.textContent = integration.name;
         headerContent.appendChild(titleElement);
         

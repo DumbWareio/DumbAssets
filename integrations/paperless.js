@@ -24,6 +24,7 @@ class PaperlessIntegration {
     description: 'Integration for accessing and attaching paperless documents to assets.',
     version: '1.0.0',
     icon: 'document',
+    logoHref: 'assets/integrations/paperless/paperless-ngx.png',
     category: 'document-management',
     apiEndpoint: API_PAPERLESS_ENDPOINT,
     

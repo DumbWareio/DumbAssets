@@ -1606,6 +1606,16 @@ input[type="date"][data-has-value="true"] {
   gap: 1rem;
 }
 
+.integration-logo {
+  width: 18px;
+  height: 18px;
+  /* border-radius: 50%; */
+  /* background-color: var(--primary-transparent); */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .integration-info h4 {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;

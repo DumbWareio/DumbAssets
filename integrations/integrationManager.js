@@ -55,6 +55,7 @@ class IntegrationManager {
             version: config.version || '1.0.0',
             enabled: config.enabled || false,
             icon: config.icon || 'gear',
+            logoHref: config.logoHref || null, // Optional logo URL for frontend display
             category: config.category || 'general',
             
             // Configuration schema for settings UI
@@ -191,6 +192,7 @@ class IntegrationManager {
             name: integration.name,
             description: integration.description,
             icon: integration.icon,
+            logoHref: integration.logoHref,
             category: integration.category,
             configSchema: integration.configSchema,
             defaultConfig: integration.defaultConfig,

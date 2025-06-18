@@ -24,6 +24,7 @@ class PapraIntegration {
     description: 'Integration for accessing and attaching Papra documents to assets.',
     version: '1.0.0',
     icon: 'document',
+    logoHref: 'assets/integrations/papra/papra.png',
     category: 'document-management',
     apiEndpoint: API_PAPRA_ENDPOINT,
     
