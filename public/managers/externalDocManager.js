@@ -672,10 +672,13 @@ export class ExternalDocManager {
         const attachmentTypeText = this.getAttachmentTypeDisplayText();
         const fileTypeHint = this.getFileTypeHint();
         
-        modalTitle.innerHTML = `
-            Link External ${attachmentTypeText.charAt(0).toUpperCase() + attachmentTypeText.slice(1)}
-            ${fileTypeHint ? `<span class="file-type-hint">${fileTypeHint}</span>` : ''}
-        `;
+        modalTitle.innerHTML = `Link External ${attachmentTypeText.charAt(0).toUpperCase() + attachmentTypeText.slice(1)}`;
+        if (fileTypeHint) {
+            const fileTypeSpan = document.createElement('span');
+            fileTypeSpan.className = 'file-type-hint';
+            fileTypeSpan.textContent = ` ${fileTypeHint}`;
+            modalTitle.appendChild(fileTypeSpan);
+        }
     }
 
     /**

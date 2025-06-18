@@ -3,8 +3,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  max-width: 175px;
+  max-width: 140px;
   gap: 0.5rem;
+  opacity: 0.8;
+}
+.uploader-external-link-button:hover {
+  opacity: 1;
+  transition: opacity 0.2s ease;
 }
 
 /* External Document Search Modal Styles */
@@ -14,12 +19,12 @@
   justify-content: center;
 }
 
-.modal-subtitle {
+#externalDocModal .modal-subtitle {
   padding: 0 1.5rem;
   margin-bottom: 0.5rem;
 }
 
-.modal-subtitle p {
+#externalDocModal .modal-subtitle p {
   margin: 0;
   font-size: 0.875rem;
   color: var(--text-color-secondary);
@@ -46,7 +51,7 @@
   height: 100%;
 }
 
-.search-controls {
+#externalDocModal .search-controls {
   margin-bottom: 0.75rem;
   flex-shrink: 0;
 }
