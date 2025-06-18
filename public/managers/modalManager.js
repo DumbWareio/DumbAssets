@@ -128,6 +128,19 @@ export class ModalManager {
         this.currentAsset = asset;
         this.filesToDelete = [];
         
+        // For new assets, create a temporary asset object to store external document attachments
+        if (!this.isEditMode) {
+            this.currentAsset = {
+                id: this.generateId(),
+                photoPaths: [],
+                receiptPaths: [],
+                manualPaths: [],
+                photoInfo: [],
+                receiptInfo: [],
+                manualInfo: []
+            };
+        }
+        
         document.getElementById('addAssetTitle').textContent = this.isEditMode ? 'Edit Asset' : 'Add Asset';
         this.assetForm.reset();
         let containsExistingFiles = false;
@@ -215,6 +228,19 @@ export class ModalManager {
         this.isEditMode = !!subAsset;
         this.currentSubAsset = subAsset;
         this.filesToDelete = [];
+        
+        // For new sub-assets, create a temporary sub-asset object to store external document attachments
+        if (!this.isEditMode) {
+            this.currentSubAsset = {
+                id: this.generateId(),
+                photoPaths: [],
+                receiptPaths: [],
+                manualPaths: [],
+                photoInfo: [],
+                receiptInfo: [],
+                manualInfo: []
+            };
+        }
         
         document.getElementById('addComponentTitle').textContent = this.isEditMode ? 'Edit Component' : 'Add Component';
         this.subAssetForm.reset();
@@ -848,10 +874,17 @@ export class ModalManager {
             newAsset.manualInfo = this.currentAsset.manualInfo || [];
             newAsset.createdAt = this.currentAsset.createdAt;
         } else {
-            newAsset.id = this.generateId();
+            // For new assets, use the temporary asset data (including external document attachments)
+            newAsset.id = this.currentAsset ? this.currentAsset.id : this.generateId();
             newAsset.photoPath = null;
             newAsset.receiptPath = null;
             newAsset.manualPath = null;
+            newAsset.photoPaths = this.currentAsset ? this.currentAsset.photoPaths || [] : [];
+            newAsset.receiptPaths = this.currentAsset ? this.currentAsset.receiptPaths || [] : [];
+            newAsset.manualPaths = this.currentAsset ? this.currentAsset.manualPaths || [] : [];
+            newAsset.photoInfo = this.currentAsset ? this.currentAsset.photoInfo || [] : [];
+            newAsset.receiptInfo = this.currentAsset ? this.currentAsset.receiptInfo || [] : [];
+            newAsset.manualInfo = this.currentAsset ? this.currentAsset.manualInfo || [] : [];
             newAsset.createdAt = new Date().toISOString();
         }
         
@@ -906,12 +939,19 @@ export class ModalManager {
             
             // Handle file deletions - This is now handled by filesToDelete array
         } else {
-            const generatedId = this.generateId();
-            console.log('ModalManager: Create mode - generating new ID:', generatedId);
+            // For new sub-assets, use the temporary sub-asset data (including external document attachments)
+            const generatedId = this.currentSubAsset ? this.currentSubAsset.id : this.generateId();
+            console.log('ModalManager: Create mode - using ID:', generatedId);
             newSubAsset.id = generatedId;
             newSubAsset.photoPath = null;
             newSubAsset.receiptPath = null;
             newSubAsset.manualPath = null;
+            newSubAsset.photoPaths = this.currentSubAsset ? this.currentSubAsset.photoPaths || [] : [];
+            newSubAsset.receiptPaths = this.currentSubAsset ? this.currentSubAsset.receiptPaths || [] : [];
+            newSubAsset.manualPaths = this.currentSubAsset ? this.currentSubAsset.manualPaths || [] : [];
+            newSubAsset.photoInfo = this.currentSubAsset ? this.currentSubAsset.photoInfo || [] : [];
+            newSubAsset.receiptInfo = this.currentSubAsset ? this.currentSubAsset.receiptInfo || [] : [];
+            newSubAsset.manualInfo = this.currentSubAsset ? this.currentSubAsset.manualInfo || [] : [];
             newSubAsset.createdAt = new Date().toISOString();
         }
         
