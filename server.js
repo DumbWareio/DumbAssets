@@ -2155,6 +2155,8 @@ app.get('/api/integrations/enabled', (req, res) => {
                 name: integration.name,
                 description: integration.description,
                 icon: integration.icon,
+                logoHref: integration.logoHref,
+                colorScheme: integration.colorScheme,
                 category: integration.category
             }));
         

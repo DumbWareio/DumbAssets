@@ -25,6 +25,7 @@ class PaperlessIntegration {
     version: '1.0.0',
     icon: 'document',
     logoHref: 'assets/integrations/paperless/paperless-ngx.png',
+    colorScheme: '#17541F',
     category: 'document-management',
     apiEndpoint: API_PAPERLESS_ENDPOINT,
     

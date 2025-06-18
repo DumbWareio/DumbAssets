@@ -163,6 +163,7 @@ export class ExternalDocManager {
         this.activeIntegrations.forEach(integration => {
             const btn = document.createElement('button');
             btn.className = 'integration-filter-btn';
+            if (integration.colorScheme) btn.style.backgroundColor = integration.colorScheme;
             btn.textContent = integration.name || this.getSourceDisplayName(integration.id);
             btn.addEventListener('click', () => this.toggleIntegrationFilter(integration.id));
             filtersContainer.appendChild(btn);

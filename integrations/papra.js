@@ -25,6 +25,7 @@ class PapraIntegration {
     version: '1.0.0',
     icon: 'document',
     logoHref: 'assets/integrations/papra/papra.png',
+    colorScheme: '#B3D167',
     category: 'document-management',
     apiEndpoint: API_PAPRA_ENDPOINT,
     

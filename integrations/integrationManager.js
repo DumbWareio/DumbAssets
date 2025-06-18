@@ -56,6 +56,7 @@ class IntegrationManager {
             enabled: config.enabled || false,
             icon: config.icon || 'gear',
             logoHref: config.logoHref || null, // Optional logo URL for frontend display
+            colorScheme: config.colorScheme || 'default', // Default color scheme for UI
             category: config.category || 'general',
             
             // Configuration schema for settings UI
@@ -193,6 +194,7 @@ class IntegrationManager {
             description: integration.description,
             icon: integration.icon,
             logoHref: integration.logoHref,
+            colorScheme: integration.colorScheme || 'default',
             category: integration.category,
             configSchema: integration.configSchema,
             defaultConfig: integration.defaultConfig,
