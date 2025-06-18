@@ -1,6 +1,7 @@
 // IntegrationsManager handles all integration-related functionality including loading,
 // rendering, configuration, and testing of integrations in the settings modal
 import { API_TEST_SUCCESS, TOKENMASK } from '../src/constants.js';
+import { calculateCollapsibleContentHeight, initCollapsibleSections } from '../js/collapsible.js';
 
 export class IntegrationsManager {
     constructor({
@@ -65,6 +66,9 @@ export class IntegrationsManager {
                 const categorySection = this.renderIntegrationCategory(category, categoryIntegrations);
                 integrationsContainer.appendChild(categorySection);
             }
+
+            // Initialize collapsible sections for the rendered integrations
+            initCollapsibleSections();
 
             // Bind events for all rendered integrations
             this.bindIntegrationEvents();
@@ -138,20 +142,36 @@ export class IntegrationsManager {
 
         const header = document.createElement('div');
         header.className = 'collapsible-header';
-        header.innerHTML = `
-            <div class="integration-header-content">
-                <div class="integration-info">
-                    <h4>${integration.name}</h4>
-                    <p class="integration-description">${integration.description || ''}</p>
-                </div>
-                <span class="collapsible-arrow">▼</span>
-            </div>
-
-        `;
+        
+        // Create header content with proper structure matching main app
+        const headerContent = document.createElement('div');
+        headerContent.className = 'integration-header-content';
+        
+        const titleElement = document.createElement('h3');
+        titleElement.textContent = integration.name;
+        headerContent.appendChild(titleElement);
+        
+        // Add description if available
+        if (integration.description) {
+            const descElement = document.createElement('p');
+            descElement.className = 'integration-description';
+            descElement.textContent = integration.description;
+            descElement.style.color = 'var(--text-color-secondary)';
+            headerContent.appendChild(descElement);
+        }
+        
+        // Create toggle icon matching main app structure
+        const toggleIcon = document.createElement('div');
+        // toggleIcon.className = 'collapsible-toggle';
+        toggleIcon.innerHTML = `<svg class="collapsible-toggle" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>`;
+        
+        header.appendChild(headerContent);
+        header.appendChild(toggleIcon);
 
         const content = document.createElement('div');
         content.className = 'collapsible-content';
-        content.style.display = 'none';
 
         const fieldsContainer = document.createElement('div');
         fieldsContainer.className = 'integration-fields';
@@ -166,7 +186,6 @@ export class IntegrationsManager {
             testButton.type = 'button';
             testButton.className = 'action-button test-integration-btn';
             testButton.dataset.integrationId = integration.id;
-            // testButton.style.cssText = '';
             testButton.innerHTML = 'Test Connection<div class="spinner"></div>';
             fieldsContainer.appendChild(testButton);
         }
@@ -175,8 +194,8 @@ export class IntegrationsManager {
         section.appendChild(header);
         section.appendChild(content);
 
-        // Make it collapsible
-        this.makeCollapsible(header, content);
+        // Make sections start collapsed and then use shared collapsible system
+        section.setAttribute('data-collapsed', 'true');
 
         return section;
     }
@@ -287,20 +306,6 @@ export class IntegrationsManager {
     }
 
     /**
-     * Make a section collapsible
-     */
-    makeCollapsible(header, content) {
-        header.addEventListener('click', () => {
-            const isOpen = content.style.display !== 'none';
-            content.style.display = isOpen ? 'none' : 'block';
-            const arrow = header.querySelector('.collapsible-arrow');
-            if (arrow) {
-                arrow.textContent = isOpen ? '▼' : '▲';
-            }
-        });
-    }
-
-    /**
      * Bind events for integration controls
      */
     bindIntegrationEvents() {
@@ -308,7 +313,17 @@ export class IntegrationsManager {
         document.querySelectorAll('.integration-section input[id$="Enabled"]').forEach(toggle => {
             toggle.addEventListener('change', (e) => {
                 const integrationId = e.target.id.replace('Enabled', '');
+                const section = e.target.closest('.collapsible-section');
+                
                 this.toggleIntegrationFields(integrationId, e.target.checked);
+                
+                // Recalculate collapsible height on enabled/disable integration
+                if (section) {
+                    const content = section.querySelector('.collapsible-content');
+                    if (content) {
+                        calculateCollapsibleContentHeight(content);
+                    }
+                }
             });
             
             // Set initial state
@@ -333,6 +348,9 @@ export class IntegrationsManager {
                 this.testIntegrationConnection(integrationId, btn);
             });
         });
+
+        // Initialize collapsible sections using shared system
+        initCollapsibleSections();
     }
 
     /**
