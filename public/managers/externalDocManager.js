@@ -211,7 +211,8 @@ export class ExternalDocManager {
                 searchInput.value = '';
                 // Update placeholder based on attachment type
                 const attachmentTypeText = this.getAttachmentTypeDisplayText();
-                searchInput.placeholder = `Search ${attachmentTypeText} or browse all...`;
+                const fileTypeHint = this.getFileTypeHint();
+                searchInput.placeholder = `Search ${attachmentTypeText} or browse all... ${fileTypeHint}`;
             }
             
             // Update modal title to show what type of files we're looking for
@@ -462,7 +463,7 @@ export class ExternalDocManager {
                     <div class="external-doc-info">
                         <div class="external-doc-title">
                             ${this.escapeHtml(doc.title)}
-                            <span class="external-doc-source ${doc.source}-badge">${sourceDisplayName}</span>
+                            <span class="external-doc-source">${sourceDisplayName}</span>
                         </div>
                         ${meta ? `<div class="external-doc-meta">${this.escapeHtml(meta)}</div>` : ''}
                     </div>
@@ -670,15 +671,8 @@ export class ExternalDocManager {
         if (!modalTitle) return;
         
         const attachmentTypeText = this.getAttachmentTypeDisplayText();
-        const fileTypeHint = this.getFileTypeHint();
         
         modalTitle.innerHTML = `Link External ${attachmentTypeText.charAt(0).toUpperCase() + attachmentTypeText.slice(1)}`;
-        if (fileTypeHint) {
-            const fileTypeSpan = document.createElement('span');
-            fileTypeSpan.className = 'file-type-hint';
-            fileTypeSpan.textContent = ` ${fileTypeHint}`;
-            modalTitle.appendChild(fileTypeSpan);
-        }
     }
 
     /**

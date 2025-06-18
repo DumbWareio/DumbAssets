@@ -194,7 +194,15 @@ export class IntegrationsManager {
             testButton.className = 'action-button test-integration-btn';
             testButton.dataset.integrationId = integration.id;
             testButton.innerHTML = 'Test Connection<div class="spinner"></div>';
-            fieldsContainer.appendChild(testButton);
+            // fieldsContainer.appendChild(testButton);
+            // add test button next to fields container checkbox integration-field data-field-name="enabled"
+            const enabledField = fieldsContainer.querySelector('.integration-field[data-field-name="enabled"]');
+            if (enabledField) {
+                enabledField.appendChild(testButton);
+            } else {
+                // If no enabled field, append to fields container directly
+                fieldsContainer.appendChild(testButton);
+            }
         }
 
         content.appendChild(fieldsContainer);

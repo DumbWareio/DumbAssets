@@ -297,8 +297,11 @@ export class SettingsManager {
 
             const settingsCopy = { ...settings };
             localStorage.setItem(this.localSettingsStorageKey, JSON.stringify(settingsCopy));
-            this.closeSettingsModal();
+            
+            // this.closeSettingsModal();
+            
             globalThis.toaster.show('Settings saved');
+            
             if (!this.selectedAssetId && typeof this.renderDashboard === 'function') {
                 this.renderDashboard();
             }
