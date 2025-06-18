@@ -989,6 +989,15 @@ input[type="date"][data-has-value="true"] {
   letter-spacing: -0.5px;
 }
 
+.file-type-hint {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-color-secondary);
+  margin-top: 0.3rem;
+  font-style: italic;
+}
+
 .form-group {
   margin-bottom: 0.5rem;
 }

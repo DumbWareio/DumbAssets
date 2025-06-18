@@ -25,6 +25,59 @@ export class ExternalDocManager {
             'linkExternalPhotos', 'linkExternalReceipts', 'linkExternalManuals',
             'linkExternalSubPhotos', 'linkExternalSubReceipts', 'linkExternalSubManuals'
         ];
+        
+        // File extension filters for different attachment types (more reliable than MIME types)
+        this.fileExtensionFilters = {
+            photo: [
+                '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.svg'
+            ],
+            receipt: [
+                '.pdf', '.doc', '.docx', '.txt', '.rtf',
+                '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif'
+            ],
+            manual: [
+                '.pdf', '.doc', '.docx', '.txt', '.rtf',
+                '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp'
+            ]
+        };
+        
+        // MIME type filters as backup (when file extension isn't available)
+        this.mimeTypeFilters = {
+            photo: [
+                'image/jpeg',
+                'image/jpg', 
+                'image/png',
+                'image/gif',
+                'image/webp',
+                'image/bmp',
+                'image/tiff',
+                'image/svg+xml'
+            ],
+            receipt: [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'text/plain',
+                'image/jpeg',
+                'image/jpg',
+                'image/png',
+                'image/gif',
+                'image/webp',
+                'image/bmp',
+                'image/tiff'
+            ],
+            manual: [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'text/plain',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            ]
+        };
+        
         this.init();
     }
 
@@ -156,8 +209,13 @@ export class ExternalDocManager {
             const searchInput = document.getElementById('externalDocSearchInput');
             if (searchInput) {
                 searchInput.value = '';
-                searchInput.placeholder = 'Search documents or browse all...';
+                // Update placeholder based on attachment type
+                const attachmentTypeText = this.getAttachmentTypeDisplayText();
+                searchInput.placeholder = `Search ${attachmentTypeText} or browse all...`;
             }
+            
+            // Update modal title to show what type of files we're looking for
+            this.updateModalTitle();
             
             // Load integrations and immediately load all documents
             this.loadActiveIntegrations().then(() => {
@@ -231,9 +289,12 @@ export class ExternalDocManager {
     }
 
     async searchPaperless(query, page = 1) {
+        // When filtering by attachment type, load more results to account for filtering
+        const pageSize = this.currentAttachmentType ? Math.max(this.pageSize * 3, 50) : this.pageSize;
+        
         const params = new URLSearchParams({
             page: page.toString(),
-            page_size: this.pageSize.toString()
+            page_size: pageSize.toString()
         });
         
         if (query && query.trim()) {
@@ -259,6 +320,7 @@ export class ExternalDocManager {
                 mimeType: doc.mime_type,
                 fileSize: doc.file_size,
                 modified: doc.modified,
+                originalFileName: doc.original_file_name, // Include original filename for extension extraction
                 attachedAt: new Date().toISOString()
             })),
             count: data.count || 0,
@@ -271,10 +333,39 @@ export class ExternalDocManager {
         const resultsContainer = document.getElementById('externalDocResults');
         if (!resultsContainer) return;
 
-        const results = data.results || [];
+        let results = data.results || [];
+        
+        // Filter results based on attachment type
+        if (this.currentAttachmentType && (this.fileExtensionFilters[this.currentAttachmentType] || this.mimeTypeFilters[this.currentAttachmentType])) {
+            results = results.filter(doc => {
+                // Use originalFileName if available, otherwise fall back to title
+                const fileNameForExtraction = doc.originalFileName || doc.title;
+                const isValid = this.isValidFileType(doc.mimeType, this.currentAttachmentType, fileNameForExtraction);
+                
+                // Debug specific problematic document
+                if (doc.title && doc.title.includes('Passport Information')) {
+                    console.log('DEBUG: Passport document details:', {
+                        title: doc.title,
+                        originalFileName: doc.originalFileName,
+                        mimeType: doc.mimeType,
+                        attachmentType: this.currentAttachmentType,
+                        isValid: isValid,
+                        extractedExtension: this.extractFileExtension(fileNameForExtraction),
+                        allowedExtensions: this.fileExtensionFilters[this.currentAttachmentType],
+                        allowedMimeTypes: this.mimeTypeFilters[this.currentAttachmentType]
+                    });
+                }
+                
+                return isValid;
+            });
+        }
 
         if (results.length === 0) {
-            const message = query ? `No documents found for "${query}"` : 'No documents available';
+            const attachmentTypeText = this.currentAttachmentType ? 
+                ` matching file type for ${this.currentAttachmentType}s` : '';
+            const message = query ? 
+                `No documents found for "${query}"${attachmentTypeText}` : 
+                `No documents available${attachmentTypeText}`;
             resultsContainer.innerHTML = `<div class="no-results"><p>${message}</p></div>`;
             this.hidePagination();
             return;
@@ -312,17 +403,25 @@ export class ExternalDocManager {
         linkButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const docId = button.id.split('-')[1];
-                const docData = data.results.find(doc => doc.id === parseInt(docId,
-                    10));
+                // Use filtered results instead of original data.results
+                const docData = results.find(doc => doc.id === parseInt(docId, 10));
                 if (docData) {
                     this.linkDocument(docData);
                 } else {
-                    globalThis.logError(`Document with ID ${docId} not found in results`);
+                    globalThis.logError(`Document with ID ${docId} not found in filtered results`);
                 }
             });
         });
         
-        this.updatePagination(data, query);
+        // Update pagination with filtered results
+        const filteredData = {
+            ...data,
+            count: results.length,
+            // For now, disable pagination when filtering since we're filtering client-side
+            next: null,
+            previous: null
+        };
+        this.updatePagination(filteredData, query);
     }
 
     updatePagination(data, query) {
@@ -383,6 +482,132 @@ export class ExternalDocManager {
         const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    /**
+     * Check if a file's MIME type is valid for the current attachment type
+     * @param {string} mimeType - The MIME type of the file
+     * @param {string} attachmentType - The attachment type (photo, receipt, manual)
+     * @returns {boolean} - Whether the file type is valid
+     */
+    isValidFileType(mimeType, attachmentType, documentTitle = '') {
+        // If no attachment type, allow everything
+        if (!attachmentType) return true;
+        
+        // Try file extension filtering first (more reliable)
+        const fileExtension = this.extractFileExtension(documentTitle);
+        if (fileExtension) {
+            const allowedExtensions = this.fileExtensionFilters[attachmentType];
+            if (allowedExtensions) {
+                const isValidByExtension = allowedExtensions.includes(fileExtension.toLowerCase());
+                console.log('File extension filtering:', {
+                    title: documentTitle,
+                    extension: fileExtension,
+                    attachmentType,
+                    allowedExtensions,
+                    isValid: isValidByExtension
+                });
+                return isValidByExtension;
+            }
+        }
+        
+        // Fallback to MIME type filtering if no file extension available
+        if (!mimeType) {
+            console.log('WARNING: Document has no MIME type or file extension, filtering based on attachment type:', attachmentType);
+            return attachmentType !== 'photo'; // Be strict for photos, allow for receipts/manuals
+        }
+        
+        const allowedTypes = this.mimeTypeFilters[attachmentType];
+        if (!allowedTypes) return true; // If no filter defined, don't filter
+        
+        // Normalize MIME type (lowercase, trim)
+        const normalizedMimeType = mimeType.toLowerCase().trim();
+        
+        console.log('MIME type filtering (fallback):', {
+            mimeType: normalizedMimeType,
+            attachmentType,
+            allowedTypes
+        });
+        
+        // Check exact match first
+        if (allowedTypes.includes(normalizedMimeType)) return true;
+        
+        // Check for wildcard matches (e.g., image/* for any image type)
+        const baseType = normalizedMimeType.split('/')[0];
+        if (allowedTypes.some(type => type.startsWith(baseType + '/'))) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Extract file extension from document title
+     * @param {string} title - Document title
+     * @returns {string|null} - File extension with dot (e.g., '.pdf') or null
+     */
+    extractFileExtension(title) {
+        if (!title) return null;
+        
+        // Look for file extension pattern at the end of the title
+        const match = title.match(/\.([a-zA-Z0-9]+)(?:\s|$)/);
+        if (match) {
+            return '.' + match[1].toLowerCase();
+        }
+        
+        // Try to extract from the very end if no spaces
+        const lastDotIndex = title.lastIndexOf('.');
+        if (lastDotIndex > -1 && lastDotIndex < title.length - 1) {
+            const extension = title.substring(lastDotIndex).toLowerCase();
+            // Only return if it looks like a valid extension (2-5 characters)
+            if (/^\.[a-z]{2,5}$/.test(extension)) {
+                return extension;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get display text for the current attachment type
+     * @returns {string} - Display text for the attachment type
+     */
+    getAttachmentTypeDisplayText() {
+        const typeMap = {
+            photo: 'images',
+            receipt: 'receipts',
+            manual: 'manuals'
+        };
+        return typeMap[this.currentAttachmentType] || 'documents';
+    }
+
+    /**
+     * Update the modal title to show the attachment type and file type filter
+     */
+    updateModalTitle() {
+        const modalTitle = document.querySelector('#externalDocModal .modal-title');
+        if (!modalTitle) return;
+        
+        const attachmentTypeText = this.getAttachmentTypeDisplayText();
+        const fileTypeHint = this.getFileTypeHint();
+        
+        modalTitle.innerHTML = `
+            Link External ${attachmentTypeText.charAt(0).toUpperCase() + attachmentTypeText.slice(1)}
+            ${fileTypeHint ? `<span class="file-type-hint">${fileTypeHint}</span>` : ''}
+        `;
+    }
+
+    /**
+     * Get file type hint text for the current attachment type
+     * @returns {string} - File type hint text
+     */
+    getFileTypeHint() {
+        const hintMap = {
+            photo: '(Images: JPG, PNG, GIF, WebP, etc.)',
+            receipt: '(Images & Documents: JPG, PNG, PDF, DOC, etc.)',
+            manual: '(Documents: PDF, DOC, XLS, PPT, etc.)'
+        };
+        return hintMap[this.currentAttachmentType] || '';
     }
 
     async linkDocument(docData) {
