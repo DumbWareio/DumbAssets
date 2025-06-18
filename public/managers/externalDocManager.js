@@ -3,7 +3,7 @@
  * Supports Paperless NGX initially, extensible for Nextcloud, SharePoint, etc.
  */
 
-import { API_PAPERLESS_ENDPOINT } from '../../src/constants.js';
+import { API_PAPERLESS_ENDPOINT, API_PAPRA_ENDPOINT } from '../../src/constants.js';
 
 export class ExternalDocManager {
     constructor({ modalManager, setButtonLoading }) {
@@ -163,7 +163,7 @@ export class ExternalDocManager {
         this.activeIntegrations.forEach(integration => {
             const btn = document.createElement('button');
             btn.className = 'integration-filter-btn';
-            btn.textContent = integration.name;
+            btn.textContent = integration.name || this.getSourceDisplayName(integration.id);
             btn.addEventListener('click', () => this.toggleIntegrationFilter(integration.id));
             filtersContainer.appendChild(btn);
         });
@@ -250,7 +250,7 @@ export class ExternalDocManager {
         this.showLoading('Searching documents...');
 
         try {
-            const results = await this.searchPaperless(query, this.currentPage);
+            const results = await this.searchAllIntegrations(query, this.currentPage);
             this.displayResults(results, query);
         } catch (error) {
             resultsContainer.innerHTML = `<div class="search-error"><p>Search failed: ${error.message}</p></div>`;
@@ -267,7 +267,7 @@ export class ExternalDocManager {
         this.showLoading('Loading documents...');
 
         try {
-            const results = await this.searchPaperless('', this.currentPage);
+            const results = await this.searchAllIntegrations('', this.currentPage);
             this.displayResults(results, '');
         } catch (error) {
             const resultsContainer = document.getElementById('externalDocResults');
@@ -286,6 +286,40 @@ export class ExternalDocManager {
             resultsContainer.innerHTML = `<div class="search-loading"><div class="spinner"></div><span>${message}</span></div>`;
         }
         this.hidePagination();
+    }
+
+    async searchAllIntegrations(query, page = 1) {
+        // Get integrations based on selected filters
+        const targetIntegrations = this.getTargetIntegrations();
+        
+        if (targetIntegrations.length === 0) {
+            return { results: [], count: 0, next: null, previous: null };
+        }
+
+        // For now, search from the first available integration
+        // TODO: Implement parallel searching across multiple integrations
+        const integration = targetIntegrations[0];
+        
+        switch (integration.id) {
+            case 'paperless':
+                return await this.searchPaperless(query, page);
+            case 'papra':
+                return await this.searchPapra(query, page);
+            default:
+                throw new Error(`Unsupported integration: ${integration.id}`);
+        }
+    }
+
+    getTargetIntegrations() {
+        // If "all" is selected, return all active integrations
+        if (this.selectedIntegrations.has('all')) {
+            return this.activeIntegrations;
+        }
+        
+        // Return only selected integrations that are active
+        return this.activeIntegrations.filter(integration => 
+            this.selectedIntegrations.has(integration.id)
+        );
     }
 
     async searchPaperless(query, page = 1) {
@@ -326,6 +360,47 @@ export class ExternalDocManager {
             count: data.count || 0,
             next: data.next,
             previous: data.previous
+        };
+    }
+
+    async searchPapra(query, page = 0) {
+        // When filtering by attachment type, load more results to account for filtering
+        const pageSize = this.currentAttachmentType ? Math.max(this.pageSize * 3, 50) : this.pageSize;
+        
+        const params = new URLSearchParams({
+            pageIndex: page.toString(),
+            pageSize: pageSize.toString()
+        });
+        
+        if (query && query.trim()) {
+            params.append('searchQuery', query.trim());
+        }
+
+        const searchEndpoint = `${globalThis.getApiBaseUrl()}/${API_PAPRA_ENDPOINT}/search?${params.toString()}`;
+        const response = await fetch(searchEndpoint);
+        const responseValidation = await globalThis.validateResponse(response);
+        if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
+
+        const data = await response.json();
+        
+        // Store pagination info
+        this.totalDocuments = data.documentsCount || 0;
+        
+        return {
+            results: (data.documents || []).map(doc => ({
+                id: doc.id,
+                title: doc.name,
+                source: 'papra',
+                downloadUrl: `${globalThis.getApiBaseUrl()}/${API_PAPRA_ENDPOINT}/document/${doc.id}/download`,
+                mimeType: doc.content || 'application/octet-stream', // Papra might not have MIME type
+                fileSize: doc.size,
+                modified: doc.updatedAt || doc.createdAt,
+                originalFileName: doc.name, // Use document name as filename
+                attachedAt: new Date().toISOString()
+            })),
+            count: data.documentsCount || 0,
+            next: null, // Papra uses different pagination
+            previous: null
         };
     }
 
@@ -376,12 +451,15 @@ export class ExternalDocManager {
             const formattedSize = doc.fileSize ? this.formatFileSize(doc.fileSize) : '';
             const meta = [formattedDate, formattedSize].filter(Boolean).join(' • ');
             
+            // Get the display name for the source
+            const sourceDisplayName = this.getSourceDisplayName(doc.source);
+            
             const html = `
-                <div class="external-doc-item">
+                <div class="external-doc-item ${doc.source}-document">
                     <div class="external-doc-info">
                         <div class="external-doc-title">
                             ${this.escapeHtml(doc.title)}
-                            <span class="external-doc-source">Paperless NGX</span>
+                            <span class="external-doc-source ${doc.source}-badge">${sourceDisplayName}</span>
                         </div>
                         ${meta ? `<div class="external-doc-meta">${this.escapeHtml(meta)}</div>` : ''}
                     </div>
@@ -652,6 +730,14 @@ export class ExternalDocManager {
     }
 
 
+
+    getSourceDisplayName(sourceId) {
+        const sourceNames = {
+            'paperless': 'Paperless NGX',
+            'papra': 'Papra'
+        };
+        return sourceNames[sourceId] || sourceId.charAt(0).toUpperCase() + sourceId.slice(1);
+    }
 
     escapeHtml(text) {
         const div = document.createElement('div');
