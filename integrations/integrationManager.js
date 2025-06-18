@@ -5,6 +5,7 @@
 
 const { TOKENMASK } = require('../src/constants');
 const PaperlessIntegration = require('./paperless'); // Import Paperless schema
+const PapraIntegration = require('./papra'); // Import Papra schema
 
 class IntegrationManager {
     constructor() {
@@ -18,6 +19,9 @@ class IntegrationManager {
     registerBuiltInIntegrations() {
         // Register Paperless NGX integration
         this.registerIntegration('paperless', PaperlessIntegration.SCHEMA);
+
+        // Register Papra integration
+        this.registerIntegration('papra', PapraIntegration.SCHEMA);
 
         // Future integrations can be added here
         // this.registerIntegration('nextcloud', { ... });
@@ -34,6 +38,7 @@ class IntegrationManager {
      */
     registerRoutes(app, getSettings) {
         PaperlessIntegration.registerRoutes(app, getSettings);
+        PapraIntegration.registerRoutes(app, getSettings);
         // Future integrations can register their routes here
     }
 

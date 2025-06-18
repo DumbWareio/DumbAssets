@@ -34,3 +34,4 @@ export const API_TEST_SUCCESS = 'connected';
 // API ENDPOINTS
 export const API_INTEGRATIONS_ENPOINT = 'api/integrations';
 export const API_PAPERLESS_ENDPOINT = API_INTEGRATIONS_ENPOINT + '/paperless';
+export const API_PAPRA_ENDPOINT = API_INTEGRATIONS_ENPOINT + '/papra';
