@@ -144,10 +144,27 @@ class PapraIntegration {
     }
 
     try {
+      const data = await this.getDocuments(config, 0, 1);
+      return {
+        status: API_TEST_SUCCESS,
+        message: `Successfully connected to Papra (${data.documentsCount || 0} documents available)`,
+        documentCount: data.documentsCount || 0
+      };
+    } catch (error) {
+      console.error('Papra connection test failed:', error);
+    }
+  }
+
+  /** Load Papra Documents */
+  static async getDocuments(config, page = 0, pageSize = 50) {
+    try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const url = new URL(`${config.hostUrl.replace(/\/$/, '')}/api/organizations/${config.organizationId}/documents`);
+      url.searchParams.append('pageIndex', page.toString());
+      url.searchParams.append('pageSize', pageSize.toString());
 
-      const response = await fetch(`${config.hostUrl.replace(/\/$/, '')}/api/organizations/${config.organizationId}/documents?pageSize=1`, {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${config.apiToken}`,
           'Content-Type': 'application/json'
@@ -170,11 +187,7 @@ class PapraIntegration {
       }
 
       const data = await response.json();
-      return {
-        status: API_TEST_SUCCESS,
-        message: `Successfully connected to Papra (${data.documentsCount || 0} documents available)`,
-        documentCount: data.documentsCount || 0
-      };
+      return data;
     } catch (error) {
       if (error.name === 'AbortError') {
         throw new Error('Connection timeout - Papra instance may be slow or unreachable');
@@ -191,38 +204,42 @@ class PapraIntegration {
   /**
    * Search Papra documents
    */
-  static async searchDocuments(config, query, page = 0, pageSize = 20) {
+  static async searchDocuments(config, query, page = 0, pageSize = 50) {
     if (!config.hostUrl || !config.organizationId || !config.apiToken) {
       throw new Error('Papra integration not configured');
     }
 
     try {
-      const url = new URL(`${config.hostUrl.replace(/\/$/, '')}/api/organizations/${config.organizationId}/documents/search`);
-      
-      if (query) {
-        url.searchParams.append('searchQuery', query);
+      if (query && query.trim().length > 0) {
+        const url = new URL(`${config.hostUrl.replace(/\/$/, '')}/api/organizations/${config.organizationId}/documents/search`);
+        
+        const searchQuery = !query || !query.trim() ? '' : query;
+        url.searchParams.append('searchQuery', searchQuery);
+        url.searchParams.append('pageIndex', page.toString());
+        url.searchParams.append('pageSize', pageSize.toString());
+  
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+  
+        const response = await fetch(url.toString(), {
+          headers: {
+            'Authorization': `Bearer ${config.apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        });
+  
+        clearTimeout(timeoutId);
+  
+        if (!response.ok) {
+          throw new Error(`Search failed: HTTP ${response.status}`);
+        }
+  
+        return await response.json();
+      } else {
+        const data = await this.getDocuments(config, page, pageSize);
+        return data;
       }
-      url.searchParams.append('pageIndex', page.toString());
-      url.searchParams.append('pageSize', pageSize.toString());
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': `Bearer ${config.apiToken}`,
-          'Content-Type': 'application/json'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Search failed: HTTP ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       if (error.name === 'AbortError') {
         throw new Error('Search timeout - Papra instance may be slow or unreachable');
