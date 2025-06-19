@@ -487,7 +487,15 @@ export class ExternalDocManager {
             button.addEventListener('click', () => {
                 const docId = button.id.split('-')[1];
                 // Use filtered results instead of original data.results
-                const docData = results.find(doc => doc.id === parseInt(docId, 10));
+                // Handle both string IDs (Papra) and integer IDs (Paperless)
+                const docData = results.find(doc => {
+                    // Try exact string match first
+                    if (doc.id === docId) return true;
+                    // Try integer comparison for backward compatibility
+                    const parsedId = parseInt(docId, 10);
+                    if (!isNaN(parsedId) && doc.id === parsedId) return true;
+                    return false;
+                });
                 if (docData) {
                     this.linkDocument(docData);
                 } else {
