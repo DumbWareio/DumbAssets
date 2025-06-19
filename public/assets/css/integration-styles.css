@@ -354,10 +354,6 @@
 }
 
 /* Badge Styles */
-/* Paperless Document Styles */
-.paperless-document {
-  position: relative;
-}
 
 .integration-badge {
   position: absolute;
@@ -386,6 +382,6 @@
 .integration-badge img {
   width: 20px;
   height: 20px;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  /* object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); */
 }
