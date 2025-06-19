@@ -23,7 +23,7 @@ class HomeAssistantIntegration {
     description: 'Integration for importing devices and sensors from Home Assistant into your asset inventory.',
     version: '1.0.0',
     icon: 'home',
-    logoHref: 'assets/integrations/homeassistant/homeassistant-logo.svg',
+    logoHref: 'assets/integrations/homeassistant/homeassistant.png',
     colorScheme: '#41BDF5',
     category: 'monitoring',
     apiEndpoint: API_HOMEASSISTANT_ENDPOINT,
