@@ -10,7 +10,7 @@
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
  */
-export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null, isPaperlessDocument = false) {
+export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null, integrationId = null) {
     const previewItem = document.createElement('div');
     previewItem.className = 'file-preview-item';
     
@@ -19,8 +19,8 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
         fileName = filePath.split('/').pop();
     }
     
-    const paperlessBadge = isPaperlessDocument ? 
-        '<div class="paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
+    const integrationBadge = integrationId ? 
+        getIntegrationBadge(integrationId) : '';
     
     previewItem.innerHTML = `
         <div class="file-preview">
@@ -28,7 +28,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
                 <img src="${filePath}" alt="Photo Preview">
             </div>
         </div>
-        ${paperlessBadge}
+        ${integrationBadge}
         <button type="button" class="delete-preview-btn" title="Delete Image">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -58,7 +58,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
  */
-export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null, isPaperlessDocument = false) {
+export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null, integrationId = null) {
     const previewItem = document.createElement('div');
     previewItem.className = 'file-preview-item';
     
@@ -97,8 +97,8 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
         fileName = filePath.split('/').pop();
     }
     
-    const paperlessBadge = isPaperlessDocument ? 
-        '<div class="paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" /></div>' : '';
+    const integrationBadge = integrationId ? 
+        getIntegrationBadge(integrationId) : '';
     
     previewItem.innerHTML = `
         <div class="file-preview">
@@ -106,7 +106,7 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
                 ${fileIcon}
             </div>
         </div>
-        ${paperlessBadge}
+        ${integrationBadge}
         <button type="button" class="delete-preview-btn" title="${title}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -182,7 +182,7 @@ export function setupFilePreview(container, type, displayPath, originalPath, fil
  * @param {Object} modalManager - The instance of the modal manager to update delete flags
  * @param {string} fileName - The name of the file
  * @param {string} fileSize - The size of the file (in bytes)
- * @param {Object} fileInfo - Additional file information (e.g., isPaperlessDocument)
+ * @param {Object} fileInfo - Additional file information (e.g., integrationId)
  */
 export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null, fileInfo = {}) {
     if (!container || !displayPath || !fileInput) return;
@@ -226,11 +226,11 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
     let previewElement;
     
     // Create the preview element directly with the server path (not mock file)
-    const isPaperlessDocument = fileInfo.isPaperlessDocument || false;
+    const integrationId = fileInfo.integrationId || null;
     if (type === 'photo') {
-        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize, isPaperlessDocument);
+        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize, integrationId);
     } else {
-        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize, isPaperlessDocument);
+        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize, integrationId);
     }
     
     // Add the preview to the container
@@ -260,9 +260,25 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
     }
 }
 
+/**
+ * Get the appropriate integration badge HTML based on integration ID
+ * @param {string} integrationId - The integration identifier
+ * @returns {string} - The badge HTML
+ */
+function getIntegrationBadge(integrationId) {
+    const integrationBadges = {
+        'paperless': '<div class="integration-badge paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" /></div>',
+        'papra': '<div class="integration-badge papra-badge"><img src="/assets/integrations/papra/papra.png" alt="Papra" /></div>',
+        // Add more integrations as needed
+    };
+    
+    return integrationBadges[integrationId] || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+}
+
 export default {
     createPhotoPreview,
     createDocumentPreview,
     setupFilePreview,
-    setupExistingFilePreview
+    setupExistingFilePreview,
+    getIntegrationBadge
 };

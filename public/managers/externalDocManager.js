@@ -705,7 +705,8 @@ export class ExternalDocManager {
             if (clickedButton) this.setButtonLoading(clickedButton, true);
             
             const attachment = {
-                paperlessId: docData.id,
+                externalId: docData.id,
+                integrationId: docData.source, // Use the source (paperless, papra, etc.)
                 title: docData.title,
                 downloadUrl: docData.downloadUrl,
                 mimeType: docData.mimeType,

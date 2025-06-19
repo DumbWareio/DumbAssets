@@ -5,6 +5,7 @@ This guide explains how to add new third-party integrations to DumbAssets using 
 ## Overview
 
 DumbAssets uses a centralized integration system where:
+
 - Integration classes define schemas and API routes
 - UI is automatically generated from schemas
 - Integration Manager handles registration and routing
@@ -26,126 +27,143 @@ When adding a new integration, you need to modify these files:
 Create `/integrations/your-integration.js`:
 
 ```javascript
-const { API_TEST_SUCCESS, API_YOUR_INTEGRATION_ENDPOINT } = require('../src/constants.js');
+const {
+  API_TEST_SUCCESS,
+  API_YOUR_INTEGRATION_ENDPOINT,
+} = require("../src/constants.js");
 
 class YourIntegration {
-    static SCHEMA = {
-        id: 'your-integration',
-        name: 'Your Integration Name',
-        description: 'Brief description',
-        category: 'document-management',
-        icon: '/assets/integrations/your-integration/icon.png',
-        
-        config: {
-            enabled: {
-                type: 'boolean',
-                label: 'Enable Integration',
-                default: false,
-                required: true
-            },
-            hostUrl: {
-                type: 'url',
-                label: 'Server URL',
-                required: true
-            },
-            apiToken: {
-                type: 'password',
-                label: 'API Token',
-                required: true,
-                sensitive: true
-            }
-        },
+  static SCHEMA = {
+    id: "your-integration",
+    name: "Your Integration Name",
+    description: "Brief description",
+    category: "document-management",
+    icon: "/assets/integrations/your-integration/icon.png",
+    logoHref: "/assets/integrations/your-integration/icon.png",
+    colorScheme: "#your-brand-color",
 
-        endpoints: {
-            testConnection: '/api/integrations/your-integration/test',
-            search: '/api/integrations/your-integration/search',
-            download: '/api/integrations/your-integration/document/:id/download'
-        },
+    config: {
+      enabled: {
+        type: "boolean",
+        label: "Enable Integration",
+        default: false,
+        required: true,
+      },
+      hostUrl: {
+        type: "url",
+        label: "Server URL",
+        required: true,
+      },
+      apiToken: {
+        type: "password",
+        label: "API Token",
+        required: true,
+        sensitive: true,
+      },
+    },
 
-        capabilities: {
-            search: true,
-            download: true
+    endpoints: {
+      testConnection: "/api/integrations/your-integration/test",
+      search: "/api/integrations/your-integration/search",
+      download: "/api/integrations/your-integration/document/:id/download",
+    },
+
+    capabilities: {
+      search: true,
+      download: true,
+    },
+  };
+
+  static registerRoutes(app, getSettings) {
+    console.log("📄 Your Integration endpoints registered");
+
+    app.get("/api/integrations/your-integration/test", async (req, res) => {
+      try {
+        const result = await YourIntegration.testConnection(getSettings);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+      }
+    });
+
+    app.get("/api/integrations/your-integration/search", async (req, res) => {
+      try {
+        const { searchQuery, pageIndex = 0, pageSize = 25 } = req.query;
+        const result = await YourIntegration.searchDocuments(
+          getSettings,
+          searchQuery,
+          parseInt(pageIndex),
+          parseInt(pageSize)
+        );
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+      }
+    });
+
+    app.get(
+      "/api/integrations/your-integration/document/:id/download",
+      async (req, res) => {
+        try {
+          const result = await YourIntegration.downloadDocument(
+            getSettings,
+            req.params.id
+          );
+          res.setHeader("Content-Type", result.contentType);
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${result.filename}"`
+          );
+          result.stream.pipe(res);
+        } catch (error) {
+          res.status(500).json({ success: false, message: error.message });
         }
+      }
+    );
+  }
+
+  static async testConnection(getSettings) {
+    const settings = getSettings();
+    const config = settings.integrations?.["your-integration"];
+
+    if (!config?.enabled) {
+      throw new Error("Integration not enabled");
+    }
+
+    // Test your API connection here
+    return { success: true, message: "Connected successfully" };
+  }
+
+  static async searchDocuments(getSettings, searchQuery, pageIndex, pageSize) {
+    const settings = getSettings();
+    const config = settings.integrations?.["your-integration"];
+
+    if (!config?.enabled) {
+      throw new Error("Integration not enabled");
+    }
+
+    // Implement search logic
+    return {
+      documents: [],
+      documentsCount: 0,
     };
+  }
 
-    static registerRoutes(app, getSettings) {
-        console.log('📄 Your Integration endpoints registered');
+  static async downloadDocument(getSettings, documentId) {
+    const settings = getSettings();
+    const config = settings.integrations?.["your-integration"];
 
-        app.get('/api/integrations/your-integration/test', async (req, res) => {
-            try {
-                const result = await YourIntegration.testConnection(getSettings);
-                res.json(result);
-            } catch (error) {
-                res.status(500).json({ success: false, message: error.message });
-            }
-        });
-
-        app.get('/api/integrations/your-integration/search', async (req, res) => {
-            try {
-                const { searchQuery, pageIndex = 0, pageSize = 25 } = req.query;
-                const result = await YourIntegration.searchDocuments(
-                    getSettings, searchQuery, parseInt(pageIndex), parseInt(pageSize)
-                );
-                res.json(result);
-            } catch (error) {
-                res.status(500).json({ success: false, message: error.message });
-            }
-        });
-
-        app.get('/api/integrations/your-integration/document/:id/download', async (req, res) => {
-            try {
-                const result = await YourIntegration.downloadDocument(getSettings, req.params.id);
-                res.setHeader('Content-Type', result.contentType);
-                res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-                result.stream.pipe(res);
-            } catch (error) {
-                res.status(500).json({ success: false, message: error.message });
-            }
-        });
+    if (!config?.enabled) {
+      throw new Error("Integration not enabled");
     }
 
-    static async testConnection(getSettings) {
-        const settings = getSettings();
-        const config = settings.integrations?.['your-integration'];
-        
-        if (!config?.enabled) {
-            throw new Error('Integration not enabled');
-        }
-
-        // Test your API connection here
-        return { success: true, message: 'Connected successfully' };
-    }
-
-    static async searchDocuments(getSettings, searchQuery, pageIndex, pageSize) {
-        const settings = getSettings();
-        const config = settings.integrations?.['your-integration'];
-        
-        if (!config?.enabled) {
-            throw new Error('Integration not enabled');
-        }
-
-        // Implement search logic
-        return {
-            documents: [],
-            documentsCount: 0
-        };
-    }
-
-    static async downloadDocument(getSettings, documentId) {
-        const settings = getSettings();
-        const config = settings.integrations?.['your-integration'];
-        
-        if (!config?.enabled) {
-            throw new Error('Integration not enabled');
-        }
-
-        // Implement download logic
-        return {
-            stream: null,
-            filename: 'document.pdf',
-            contentType: 'application/pdf'
-        };
-    }
+    // Implement download logic
+    return {
+      stream: null,
+      filename: "document.pdf",
+      contentType: "application/pdf",
+    };
+  }
 }
 
 module.exports = YourIntegration;
@@ -156,7 +174,8 @@ module.exports = YourIntegration;
 In `/src/constants.js`, add:
 
 ```javascript
-export const API_YOUR_INTEGRATION_ENDPOINT = API_INTEGRATIONS_ENPOINT + '/your-integration';
+export const API_YOUR_INTEGRATION_ENDPOINT =
+  API_INTEGRATIONS_ENPOINT + "/your-integration";
 ```
 
 ## Step 3: Register in Integration Manager
@@ -165,10 +184,10 @@ In `/integrations/integrationManager.js`:
 
 ```javascript
 // Add import
-const YourIntegration = require('./your-integration');
+const YourIntegration = require("./your-integration");
 
 // In registerBuiltInIntegrations()
-this.registerIntegration('your-integration', YourIntegration.SCHEMA);
+this.registerIntegration("your-integration", YourIntegration.SCHEMA);
 
 // In registerRoutes()
 YourIntegration.registerRoutes(app, getSettings);
@@ -189,12 +208,12 @@ case 'your-integration':
 // Add search method
 async searchYourIntegration(query, page = 0) {
     const pageSize = this.currentAttachmentType ? Math.max(this.pageSize * 3, 50) : this.pageSize;
-    
+
     const params = new URLSearchParams({
         pageIndex: page.toString(),
         pageSize: pageSize.toString()
     });
-    
+
     if (query && query.trim()) {
         params.append('searchQuery', query.trim());
     }
@@ -205,7 +224,7 @@ async searchYourIntegration(query, page = 0) {
     if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
 
     const data = await response.json();
-    
+
     return {
         results: (data.documents || []).map(doc => ({
             id: doc.id,
@@ -238,6 +257,7 @@ getSourceDisplayName(sourceId) {
 ## Step 5: Add Assets
 
 Create directory structure:
+
 ```
 /public/assets/integrations/your-integration/
 ├── icon.png
@@ -263,14 +283,15 @@ Create `/public/assets/css/your-integration-styles.css`:
 ```
 
 Include in `/public/index.html`:
+
 ```html
-<link rel="stylesheet" href="assets/css/your-integration-styles.css">
+<link rel="stylesheet" href="assets/css/your-integration-styles.css" />
 ```
 
 ## Schema Field Types
 
 - `text` - Single line text
-- `password` - Masked input  
+- `password` - Masked input
 - `url` - URL with validation
 - `number` - Numeric input
 - `boolean` - Checkbox
@@ -290,7 +311,7 @@ Include in `/public/index.html`:
 ## Testing Checklist
 
 - [ ] Test connection endpoint
-- [ ] Test search functionality  
+- [ ] Test search functionality
 - [ ] Test document download
 - [ ] Test UI generation
 - [ ] Test form validation
@@ -299,6 +320,7 @@ Include in `/public/index.html`:
 ## Example Integrations
 
 Reference existing integrations:
+
 - `paperless.js` - Paperless NGX
 - `papra.js` - Papra
 
@@ -308,4 +330,4 @@ Reference existing integrations:
 - Centralized integration management
 - Consistent patterns across integrations
 - Modular search system
-- Easy extensibility 
+- Easy extensibility

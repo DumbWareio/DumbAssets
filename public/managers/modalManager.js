@@ -1100,14 +1100,14 @@ export class ModalManager {
     }
 
     /**
-     * Attach a Paperless document to the current asset/sub-asset
-     * @param {Object} attachment - The attachment object from PaperlessManager
+     * Attach an external document to the current asset/sub-asset
+     * @param {Object} attachment - The attachment object from any external integration
      * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
      * @param {boolean} isSubAsset - Whether this is for a sub-asset
      */
     async attachPaperlessDocument(attachment, attachmentType, isSubAsset) {
         try {
-            // Generate preview for the Paperless document
+            // Generate preview for the external document
             const previewId = isSubAsset ? 
                 `sub${attachmentType.charAt(0).toUpperCase() + attachmentType.slice(1)}Preview` :
                 `${attachmentType}Preview`;
@@ -1117,7 +1117,7 @@ export class ModalManager {
                 throw new Error(`Preview container ${previewId} not found`);
             }
 
-            // Create a preview element for the Paperless document
+            // Create a preview element for the external document
             const previewElement = this._createPaperlessPreview(attachment, attachmentType);
             previewContainer.appendChild(previewElement);
 
@@ -1134,21 +1134,22 @@ export class ModalManager {
             if (!targetAsset[pathsKey]) targetAsset[pathsKey] = [];
             if (!targetAsset[infoKey]) targetAsset[infoKey] = [];
 
-            // Add the Paperless document as a "file"
+            // Add the external document as a "file"
             targetAsset[pathsKey].push(attachment.downloadUrl);
             targetAsset[infoKey].push({
                 originalName: attachment.title,
                 size: attachment.fileSize,
-                isPaperlessDocument: true,
-                paperlessId: attachment.paperlessId,
+                integrationId: attachment.integrationId,
+                externalId: attachment.externalId,
                 mimeType: attachment.mimeType,
                 attachedAt: attachment.attachedAt
             });
 
-            console.log(`Attached Paperless document to ${isSubAsset ? 'sub-asset' : 'asset'}:`, {
+            console.log(`Attached external document to ${isSubAsset ? 'sub-asset' : 'asset'}:`, {
                 type: attachmentType,
                 title: attachment.title,
-                paperlessId: attachment.paperlessId
+                integrationId: attachment.integrationId,
+                externalId: attachment.externalId
             });
 
         } catch (error) {
@@ -1158,14 +1159,14 @@ export class ModalManager {
     }
 
     /**
-     * Create a preview element for a Paperless document
+     * Create a preview element for an external document
      * @param {Object} attachment - The attachment object
      * @param {string} type - The attachment type
      * @returns {HTMLElement} - The preview element
      */
     _createPaperlessPreview(attachment, type) {
         const previewItem = document.createElement('div');
-        previewItem.className = 'file-preview-item paperless-document';
+        previewItem.className = `file-preview-item external-document ${attachment.integrationId}-document`;
         
         // Determine if this is an image or document
         const isImage = attachment.mimeType && attachment.mimeType.startsWith('image/');
@@ -1175,7 +1176,7 @@ export class ModalManager {
         if (isImage) {
             // Try to show image preview, fall back to document icon
             previewContent = `
-                <img src="${attachment.downloadUrl}" alt="Paperless Document Preview" 
+                <img src="${attachment.downloadUrl}" alt="External Document Preview" 
                      style="max-width: 100%; max-height: 85px; object-fit: contain; border-radius: var(--app-border-radius);"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="preview-content" style="display:none;">
@@ -1207,12 +1208,13 @@ export class ModalManager {
             `;
         }
 
+        // Get integration badge based on integrationId
+        const integrationBadge = this._getIntegrationBadge(attachment.integrationId);
+
         previewItem.innerHTML = `
             <div class="file-preview">
                 ${previewContent}
-                <div class="paperless-badge">
-                    <img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX">
-                </div>
+                ${integrationBadge}
             </div>
             <button type="button" class="delete-preview-btn" title="Remove attachment">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1249,7 +1251,7 @@ export class ModalManager {
     }
 
     /**
-     * Remove a Paperless document attachment
+     * Remove an external document attachment
      * @param {HTMLElement} previewElement - The preview element to remove
      * @param {Object} attachment - The attachment object
      * @param {string} type - The attachment type
@@ -1274,6 +1276,21 @@ export class ModalManager {
         previewElement.remove();
 
         globalThis.toaster.show(`Removed "${attachment.title}" from attachments`, 'success');
+    }
+
+    /**
+     * Get the appropriate integration badge HTML based on integration ID
+     * @param {string} integrationId - The integration identifier
+     * @returns {string} - The badge HTML
+     */
+    _getIntegrationBadge(integrationId) {
+        const integrationBadges = {
+            'paperless': '<div class="integration-badge paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>',
+            'papra': '<div class="integration-badge papra-badge"><img src="/assets/integrations/papra/papra.png" alt="Papra" title="From Papra"></div>',
+            // Add more integrations as needed
+        };
+        
+        return integrationBadges[integrationId] || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
     }
 
     /**
