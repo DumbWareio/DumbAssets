@@ -359,7 +359,7 @@
   position: relative;
 }
 
-.paperless-badge {
+.integration-badge {
   position: absolute;
   top: 4px;
   left: 4px;
@@ -372,18 +372,18 @@
 }
 
 /* Position badge relative to file-preview-item in modals */
-.file-preview-item .paperless-badge {
+.file-preview-item .integration-badge {
   top: 14px;
   left: 8px;
 }
 
 /* Position badge relative to file-item in asset details */
-.file-item .paperless-badge {
+.file-item .integration-badge {
   top: 8px;
   left: 8px;
 }
 
-.paperless-badge img {
+.integration-badge img {
   width: 20px;
   height: 20px;
   object-fit: contain;
