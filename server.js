@@ -934,55 +934,112 @@ async function handleFileDuplication(source, duplicate, selectedProperties) {
     duplicate.photoPath = null;
     duplicate.receiptPath = null;
     duplicate.manualPath = null;
-    
-    // Handle photos
+
+    // Helper to check if a file is external (integrationId or /external/ path)
+    function isExternalFile(filePath, fileInfo) {
+        if (!filePath && !fileInfo) return false;
+        if (fileInfo && fileInfo.integrationId) return true;
+        if (filePath && typeof filePath === 'string' && filePath.includes('/external/')) return true;
+        return false;
+    }
+
+    // --- PHOTOS ---
     if (selectedProperties.photoPath) {
+        // Array version
         if (source.photoPaths && Array.isArray(source.photoPaths)) {
-            for (const photoPath of source.photoPaths) {
-                const newPhotoPath = await copyFile(photoPath, 'Images');
-                if (newPhotoPath) duplicate.photoPaths.push(newPhotoPath);
+            for (let i = 0; i < source.photoPaths.length; i++) {
+                const pathVal = source.photoPaths[i];
+                const infoVal = (source.photoInfo && source.photoInfo[i]) ? source.photoInfo[i] : null;
+                if (isExternalFile(pathVal, infoVal)) {
+                    // External: copy as-is
+                    duplicate.photoPaths.push(pathVal);
+                    duplicate.photoInfo.push(infoVal);
+                } else {
+                    // Local: duplicate file
+                    const newPath = await copyFile(pathVal, 'Images');
+                    if (newPath) {
+                        duplicate.photoPaths.push('/' + newPath.replace(/^[\/]+/, ''));
+                        duplicate.photoInfo.push({ ...infoVal, fileName: newPath.split('/').pop() });
+                    }
+                }
             }
         }
-        if (source.photoInfo && Array.isArray(source.photoInfo)) {
-            duplicate.photoInfo = [...source.photoInfo];
-        }
+        // Single path version (legacy)
         if (source.photoPath && !source.photoPaths) {
-            const newPhotoPath = await copyFile(source.photoPath, 'Images');
-            if (newPhotoPath) duplicate.photoPath = newPhotoPath;
+            if (isExternalFile(source.photoPath, source.photoInfo && source.photoInfo[0])) {
+                duplicate.photoPath = source.photoPath;
+                duplicate.photoInfo = source.photoInfo ? [source.photoInfo[0]] : [];
+            } else {
+                const newPath = await copyFile(source.photoPath, 'Images');
+                if (newPath) {
+                    duplicate.photoPath = '/' + newPath.replace(/^[\/]+/, '');
+                    duplicate.photoInfo = [{ ...(source.photoInfo && source.photoInfo[0]), fileName: newPath.split('/').pop() }];
+                }
+            }
         }
     }
-    
-    // Handle receipts
+
+    // --- RECEIPTS ---
     if (selectedProperties.receiptPath) {
         if (source.receiptPaths && Array.isArray(source.receiptPaths)) {
-            for (const receiptPath of source.receiptPaths) {
-                const newReceiptPath = await copyFile(receiptPath, 'Receipts');
-                if (newReceiptPath) duplicate.receiptPaths.push(newReceiptPath);
+            for (let i = 0; i < source.receiptPaths.length; i++) {
+                const pathVal = source.receiptPaths[i];
+                const infoVal = (source.receiptInfo && source.receiptInfo[i]) ? source.receiptInfo[i] : null;
+                if (isExternalFile(pathVal, infoVal)) {
+                    duplicate.receiptPaths.push(pathVal);
+                    duplicate.receiptInfo.push(infoVal);
+                } else {
+                    const newPath = await copyFile(pathVal, 'Receipts');
+                    if (newPath) {
+                        duplicate.receiptPaths.push('/' + newPath.replace(/^[\/]+/, ''));
+                        duplicate.receiptInfo.push({ ...infoVal, fileName: newPath.split('/').pop() });
+                    }
+                }
             }
-        }
-        if (source.receiptInfo && Array.isArray(source.receiptInfo)) {
-            duplicate.receiptInfo = [...source.receiptInfo];
         }
         if (source.receiptPath && !source.receiptPaths) {
-            const newReceiptPath = await copyFile(source.receiptPath, 'Receipts');
-            if (newReceiptPath) duplicate.receiptPath = newReceiptPath;
-        }
-    }
-    
-    // Handle manuals
-    if (selectedProperties.manualPath) {
-        if (source.manualPaths && Array.isArray(source.manualPaths)) {
-            for (const manualPath of source.manualPaths) {
-                const newManualPath = await copyFile(manualPath, 'Manuals');
-                if (newManualPath) duplicate.manualPaths.push(newManualPath);
+            if (isExternalFile(source.receiptPath, source.receiptInfo && source.receiptInfo[0])) {
+                duplicate.receiptPath = source.receiptPath;
+                duplicate.receiptInfo = source.receiptInfo ? [source.receiptInfo[0]] : [];
+            } else {
+                const newPath = await copyFile(source.receiptPath, 'Receipts');
+                if (newPath) {
+                    duplicate.receiptPath = '/' + newPath.replace(/^[\/]+/, '');
+                    duplicate.receiptInfo = [{ ...(source.receiptInfo && source.receiptInfo[0]), fileName: newPath.split('/').pop() }];
+                }
             }
         }
-        if (source.manualInfo && Array.isArray(source.manualInfo)) {
-            duplicate.manualInfo = [...source.manualInfo];
+    }
+
+    // --- MANUALS ---
+    if (selectedProperties.manualPath) {
+        if (source.manualPaths && Array.isArray(source.manualPaths)) {
+            for (let i = 0; i < source.manualPaths.length; i++) {
+                const pathVal = source.manualPaths[i];
+                const infoVal = (source.manualInfo && source.manualInfo[i]) ? source.manualInfo[i] : null;
+                if (isExternalFile(pathVal, infoVal)) {
+                    duplicate.manualPaths.push(pathVal);
+                    duplicate.manualInfo.push(infoVal);
+                } else {
+                    const newPath = await copyFile(pathVal, 'Manuals');
+                    if (newPath) {
+                        duplicate.manualPaths.push('/' + newPath.replace(/^[\/]+/, ''));
+                        duplicate.manualInfo.push({ ...infoVal, fileName: newPath.split('/').pop() });
+                    }
+                }
+            }
         }
         if (source.manualPath && !source.manualPaths) {
-            const newManualPath = await copyFile(source.manualPath, 'Manuals');
-            if (newManualPath) duplicate.manualPath = newManualPath;
+            if (isExternalFile(source.manualPath, source.manualInfo && source.manualInfo[0])) {
+                duplicate.manualPath = source.manualPath;
+                duplicate.manualInfo = source.manualInfo ? [source.manualInfo[0]] : [];
+            } else {
+                const newPath = await copyFile(source.manualPath, 'Manuals');
+                if (newPath) {
+                    duplicate.manualPath = '/' + newPath.replace(/^[\/]+/, '');
+                    duplicate.manualInfo = [{ ...(source.manualInfo && source.manualInfo[0]), fileName: newPath.split('/').pop() }];
+                }
+            }
         }
     }
 }
