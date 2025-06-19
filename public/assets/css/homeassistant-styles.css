@@ -1,0 +1,213 @@
+/**
+ * Home Assistant Integration Styles
+ * Styles specific to the Home Assistant integration UI
+ */
+
+/* Home Assistant brand colors */
+:root {
+  --homeassistant-primary: #41BDF5;
+  --homeassistant-primary-dark: #2B9FE3;
+  --homeassistant-secondary: #03A9F4;
+  --homeassistant-accent: #FFC107;
+}
+
+/* Integration card styling */
+.integration-card[data-integration="homeassistant"] {
+  border-left: 4px solid var(--homeassistant-primary);
+}
+
+.integration-card[data-integration="homeassistant"] .integration-icon {
+  color: var(--homeassistant-primary);
+}
+
+/* Test connection button styling for Home Assistant */
+.integration-card[data-integration="homeassistant"] .test-connection-btn {
+  background-color: var(--homeassistant-primary);
+  border-color: var(--homeassistant-primary);
+}
+
+.integration-card[data-integration="homeassistant"] .test-connection-btn:hover {
+  background-color: var(--homeassistant-primary-dark);
+  border-color: var(--homeassistant-primary-dark);
+}
+
+/* Device import specific styles */
+.homeassistant-device-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  background-color: var(--bg-color);
+}
+
+.homeassistant-device-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.homeassistant-device-item:hover {
+  background-color: var(--hover-bg-color);
+}
+
+.homeassistant-device-item:last-child {
+  border-bottom: none;
+}
+
+.homeassistant-device-checkbox {
+  margin-right: 1rem;
+}
+
+.homeassistant-device-info {
+  flex: 1;
+}
+
+.homeassistant-device-name {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+.homeassistant-device-entity {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.homeassistant-device-details {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.homeassistant-device-domain {
+  display: inline-block;
+  background-color: var(--homeassistant-primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.homeassistant-device-state {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* Filter controls */
+.homeassistant-filters {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: var(--card-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.homeassistant-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.homeassistant-filter-tag {
+  display: inline-block;
+  background-color: var(--homeassistant-secondary);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.homeassistant-filter-tag:hover {
+  background-color: var(--homeassistant-primary-dark);
+  transform: translateY(-1px);
+}
+
+.homeassistant-filter-tag.active {
+  background-color: var(--homeassistant-accent);
+  color: var(--text-color);
+}
+
+/* Import summary */
+.homeassistant-import-summary {
+  background-color: var(--success-bg-color);
+  border: 1px solid var(--success-border-color);
+  color: var(--success-text-color);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.homeassistant-import-summary strong {
+  color: var(--success-text-color);
+}
+
+/* Loading states */
+.homeassistant-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.homeassistant-loading::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--homeassistant-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error states */
+.homeassistant-error {
+  background-color: var(--error-bg-color);
+  border: 1px solid var(--error-border-color);
+  color: var(--error-text-color);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+/* Success states */
+.homeassistant-success {
+  background-color: var(--success-bg-color);
+  border: 1px solid var(--success-border-color);
+  color: var(--success-text-color);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .homeassistant-device-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .homeassistant-device-checkbox {
+    margin-bottom: 0.5rem;
+    margin-right: 0;
+  }
+  
+  .homeassistant-filter-group {
+    justify-content: center;
+  }
+} 

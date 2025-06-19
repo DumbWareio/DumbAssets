@@ -6,6 +6,7 @@
 const { TOKENMASK } = require('../src/constants');
 const PaperlessIntegration = require('./paperless'); // Import Paperless schema
 const PapraIntegration = require('./papra'); // Import Papra schema
+const HomeAssistantIntegration = require('./homeassistant'); // Import Home Assistant schema
 
 class IntegrationManager {
     constructor() {
@@ -23,6 +24,9 @@ class IntegrationManager {
         // Register Papra integration
         this.registerIntegration('papra', PapraIntegration.SCHEMA);
 
+        // Register Home Assistant integration
+        this.registerIntegration('homeassistant', HomeAssistantIntegration.SCHEMA);
+
         // Future integrations can be added here
         // this.registerIntegration('nextcloud', { ... });
         // this.registerIntegration('sharepoint', { ... });
@@ -39,6 +43,7 @@ class IntegrationManager {
     registerRoutes(app, getSettings) {
         PaperlessIntegration.registerRoutes(app, getSettings);
         PapraIntegration.registerRoutes(app, getSettings);
+        HomeAssistantIntegration.registerRoutes(app, getSettings);
         // Future integrations can register their routes here
     }
 
