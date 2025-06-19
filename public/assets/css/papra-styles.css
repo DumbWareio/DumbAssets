@@ -1,8 +1,4 @@
 /* Papra-specific document styling */
-.papra-document {
-  border-left: 3px solid #4f46e5; /* Papra purple/indigo brand color */
-}
-
 .papra-badge {
   display: inline-flex;
   align-items: center;

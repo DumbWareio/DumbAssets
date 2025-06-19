@@ -2,6 +2,7 @@
  * External Document Manager - Handles searching and linking documents from document management integrations
  * Only loads integrations with category 'document-management' (e.g., Paperless NGX, Papra)
  * Extensible for other document management systems like Nextcloud, SharePoint, etc.
+ * Dynamically applies integration color schemes instead of relying on hardcoded CSS classes.
  */
 
 import { API_PAPERLESS_ENDPOINT, API_PAPRA_ENDPOINT, INTEGRATION_CATEGORIES } from '../../src/constants.js';
@@ -605,12 +606,18 @@ export class ExternalDocManager {
             // Get the display name for the source
             const sourceDisplayName = this.getSourceDisplayName(doc.source);
             
+            // Get integration data and color scheme for dynamic styling
+            const integrationData = this.integrationsManager.getIntegration(doc.source);
+            const colorScheme = integrationData?.colorScheme || '#6b7280'; // Default gray if no color scheme
+            const borderLeftStyle = `border-left: 3px solid ${colorScheme};`;
+            const sourceSpanStyle = `background-color: ${colorScheme};`;
+            
             const html = `
-                <div class="external-doc-item ${doc.source}-document">
+                <div class="external-doc-item external-document" style="${borderLeftStyle}">
                     <div class="external-doc-info">
                         <div class="external-doc-title">
                             ${this.escapeHtml(doc.title)}
-                            <span class="external-doc-source">${sourceDisplayName}</span>
+                            <span class="external-doc-source" style="${sourceSpanStyle}">${sourceDisplayName}</span>
                         </div>
                         ${meta ? `<div class="external-doc-meta">${this.escapeHtml(meta)}</div>` : ''}
                     </div>
@@ -885,8 +892,6 @@ export class ExternalDocManager {
             globalThis.logError('Failed to link document:', error.message);
         }
     }
-
-
 
     getSourceDisplayName(sourceId) {
         const sourceNames = {
