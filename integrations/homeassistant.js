@@ -32,7 +32,7 @@ class HomeAssistantIntegration {
       enabled: {
         type: 'boolean',
         label: 'Enable Home Assistant Integration',
-        description: 'Enable integration with Home Assistant home automation system',
+        // description: 'Enable integration with Home Assistant home automation system',
         default: false,
         required: false
       },

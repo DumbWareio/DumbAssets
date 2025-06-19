@@ -387,16 +387,27 @@ export class ExternalDocManager {
             // We'll collect results from each integration and then paginate client-side
             const searchPromises = integrations.map(async integration => {
                 try {
-                    // For multi-integration search, we need to get enough results to fill multiple pages
-                    // Calculate how many pages we need to fetch based on current page
-                    const pagesToFetch = Math.min(page + 2, 5); // Fetch up to 5 pages max to avoid too many requests
                     let allResults = [];
                     let totalCount = 0;
                     
-                    for (let p = 1; p <= pagesToFetch; p++) {
+                    // When filtering by attachment type, we need to fetch more pages since filtering happens client-side
+                    const isFiltering = !!this.currentAttachmentType;
+                    const maxPages = isFiltering ? 10 : 5; // Fetch more pages when filtering
+                    const targetResults = isFiltering ? this.pageSize * 6 : this.pageSize * (page + 1); // Target more results when filtering
+                    
+                    for (let p = 1; p <= maxPages; p++) {
                         const result = await this.searchSingleIntegration(integration, query, p);
                         if (result.results && result.results.length > 0) {
-                            allResults.push(...result.results);
+                            // If filtering, apply the filter to see how many actually match
+                            let resultsToAdd = result.results;
+                            if (isFiltering) {
+                                resultsToAdd = result.results.filter(doc => {
+                                    const fileNameForExtraction = doc.originalFileName || doc.title;
+                                    return this.isValidFileType(doc.mimeType, this.currentAttachmentType, fileNameForExtraction);
+                                });
+                            }
+                            
+                            allResults.push(...resultsToAdd);
                         }
                         
                         // Update total count from the first page response
@@ -404,8 +415,13 @@ export class ExternalDocManager {
                             totalCount = result.count || 0;
                         }
                         
-                        // Stop if we have enough results or no more pages
-                        if (!result.next || allResults.length >= this.pageSize * (page + 1)) break;
+                        // Stop if no more pages available
+                        if (!result.next) break;
+                        
+                        // If not filtering, stop when we have enough raw results
+                        // If filtering, stop when we have enough filtered results or enough raw results to process
+                        if (!isFiltering && allResults.length >= this.pageSize * (page + 1)) break;
+                        if (isFiltering && allResults.length >= targetResults) break;
                     }
                     
                     return { 
@@ -426,6 +442,7 @@ export class ExternalDocManager {
             let totalCount = 0;
 
             results.forEach(result => {
+                // Results are already filtered if attachment type filtering was applied
                 combinedResults.push(...(result.results || []));
                 totalCount += result.count || 0;
             });
@@ -442,18 +459,18 @@ export class ExternalDocManager {
             const endIndex = startIndex + this.pageSize;
             const paginatedResults = combinedResults.slice(startIndex, endIndex);
 
-            // Calculate pagination info based on available results, not total count from APIs
+            // Calculate pagination info based on available results
             const availableResults = combinedResults.length;
             const hasNext = endIndex < availableResults;
             const hasPrevious = page > 1;
 
-            // Store total for display - use available results for pagination, but show estimated total
-            this.totalDocuments = Math.max(availableResults, totalCount);
+            // Store total for display - use available results for pagination
+            this.totalDocuments = availableResults;
 
             return {
                 results: paginatedResults,
                 count: availableResults, // Available results for pagination logic
-                totalCount: totalCount, // Total from APIs for display
+                totalCount: totalCount, // Total from APIs for display (may be higher than available if filtering)
                 next: hasNext ? true : null,
                 previous: hasPrevious ? true : null
             };
@@ -577,8 +594,11 @@ export class ExternalDocManager {
 
         let results = data.results || [];
         
-        // Filter results based on attachment type
-        if (this.currentAttachmentType && (this.fileExtensionFilters[this.currentAttachmentType] || this.mimeTypeFilters[this.currentAttachmentType])) {
+        // Only apply client-side filtering for single integration searches
+        // Multi-integration searches already have filtering applied
+        const isMultiIntegration = data.totalCount !== undefined;
+        
+        if (!isMultiIntegration && this.currentAttachmentType && (this.fileExtensionFilters[this.currentAttachmentType] || this.mimeTypeFilters[this.currentAttachmentType])) {
             results = results.filter(doc => {
                 // Use originalFileName if available, otherwise fall back to title
                 const fileNameForExtraction = doc.originalFileName || doc.title;
@@ -657,8 +677,18 @@ export class ExternalDocManager {
             });
         });
         
-        // Update pagination - preserve the original pagination behavior
-        this.updatePagination(data, query);
+        // Update pagination - for single integration searches with filtering, 
+        // update the data to reflect filtered results
+        let paginationData = data;
+        if (!isMultiIntegration && this.currentAttachmentType && results.length !== (data.results?.length || 0)) {
+            // Single integration with client-side filtering applied
+            paginationData = {
+                ...data,
+                results: results,
+                filteredCount: results.length
+            };
+        }
+        this.updatePagination(paginationData, query);
     }
 
     updatePagination(data, query) {
@@ -671,15 +701,38 @@ export class ExternalDocManager {
 
         // For multi-integration searches, use the combined total count
         const isMultiIntegration = data.totalCount !== undefined;
-        const totalCount = isMultiIntegration ? this.totalDocuments : (data.count || 0);
         const currentResults = data.results?.length || 0;
         
-        if (totalCount === 0) {
+        if (currentResults === 0) {
             paginationContainer.style.display = 'none';
             return;
         }
 
-        // Calculate display info
+        // When filtering by attachment type, show a simpler pagination info
+        if (this.currentAttachmentType) {
+            const attachmentTypeDisplay = this.getAttachmentTypeDisplayText();
+            paginationContainer.style.display = 'flex';
+            
+            if (isMultiIntegration || this.currentPage > 1 || (data.next && currentResults === this.pageSize)) {
+                // Show page-based info when pagination is relevant
+                paginationInfo.textContent = `Page ${this.currentPage} - ${currentResults} ${attachmentTypeDisplay} shown`;
+                
+                // Enable/disable pagination buttons based on data availability
+                prevBtn.disabled = this.currentPage <= 1;
+                nextBtn.disabled = !data.next || currentResults < this.pageSize;
+            } else {
+                // Single page of results
+                paginationInfo.textContent = `${currentResults} ${attachmentTypeDisplay} found`;
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+            }
+            return;
+        }
+
+        // For non-filtered results, use the original total count
+        const totalCount = isMultiIntegration ? this.totalDocuments : (data.count || 0);
+        
+        // Calculate display info for non-filtered results
         const startItem = ((this.currentPage - 1) * this.pageSize) + 1;
         const endItem = Math.min(startItem + currentResults - 1, totalCount);
         
