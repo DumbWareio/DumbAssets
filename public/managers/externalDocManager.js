@@ -1,9 +1,10 @@
 /**
- * External Document Manager - Handles searching and linking documents from multiple integrations
- * Supports Paperless NGX initially, extensible for Nextcloud, SharePoint, etc.
+ * External Document Manager - Handles searching and linking documents from document management integrations
+ * Only loads integrations with category 'document-management' (e.g., Paperless NGX, Papra)
+ * Extensible for other document management systems like Nextcloud, SharePoint, etc.
  */
 
-import { API_PAPERLESS_ENDPOINT, API_PAPRA_ENDPOINT } from '../../src/constants.js';
+import { API_PAPERLESS_ENDPOINT, API_PAPRA_ENDPOINT, INTEGRATION_CATEGORIES } from '../../src/constants.js';
 
 export class ExternalDocManager {
     constructor({ modalManager, setButtonLoading, integrationsManager }) {
@@ -123,7 +124,18 @@ export class ExternalDocManager {
             });
 
             // Use IntegrationsManager to get active integrations
-            this.activeIntegrations = await this.integrationsManager.getActiveIntegrations();
+            const allActiveIntegrations = await this.integrationsManager.getActiveIntegrations();
+            
+            // Filter to only include document-management category integrations
+            this.activeIntegrations = allActiveIntegrations.filter(integration => {
+                const integrationData = this.integrationsManager.getIntegration(integration.id);
+                return integrationData && integrationData.category === INTEGRATION_CATEGORIES.DOCUMENT_MANAGEMENT;
+            });
+
+            if (window.appConfig?.debug) {
+                console.log('ExternalDocManager: All active integrations:', allActiveIntegrations);
+                console.log('ExternalDocManager: Document management integrations:', this.activeIntegrations);
+            }
 
             if (this.activeIntegrations && this.activeIntegrations.length > 0) {
                 this.buttonIds.forEach(buttonId => {
@@ -148,7 +160,7 @@ export class ExternalDocManager {
         filtersContainer.innerHTML = '';
         
         if (this.activeIntegrations.length === 0) {
-            filtersContainer.innerHTML = '<div style="color: var(--text-color-secondary); padding: 0.5rem;">No document integrations enabled</div>';
+            filtersContainer.innerHTML = '<div style="color: var(--text-color-secondary); padding: 0.5rem;">No document management integrations enabled</div>';
             return;
         }
 
@@ -270,8 +282,8 @@ export class ExternalDocManager {
             if (resultsContainer) {
                 resultsContainer.innerHTML = `
                     <div class="no-results">
-                        <p>No document integrations are currently enabled.</p>
-                        <p>Please configure at least one integration to search external documents.</p>
+                        <p>No document management integrations are currently enabled.</p>
+                        <p>Please configure at least one document integration (like Paperless NGX or Papra) to search external documents.</p>
                     </div>
                 `;
             }
@@ -306,8 +318,8 @@ export class ExternalDocManager {
             if (resultsContainer) {
                 resultsContainer.innerHTML = `
                     <div class="no-results">
-                        <p>No document integrations are currently enabled.</p>
-                        <p>Please configure at least one integration (like Paperless NGX or Papra) to search and link external documents.</p>
+                        <p>No document management integrations are currently enabled.</p>
+                        <p>Please configure at least one document integration (like Paperless NGX or Papra) to search and link external documents.</p>
                     </div>
                 `;
             }
