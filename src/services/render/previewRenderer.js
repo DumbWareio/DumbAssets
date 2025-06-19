@@ -3,6 +3,9 @@
  * Provides centralized functions for rendering file previews consistently across the application
  */
 
+// IntegrationsManager reference - will be injected
+let integrationsManager;
+
 /**
  * Create a photo preview element
  * 
@@ -266,13 +269,15 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
  * @returns {string} - The badge HTML
  */
 function getIntegrationBadge(integrationId) {
-    const integrationBadges = {
-        'paperless': '<div class="integration-badge paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" /></div>',
-        'papra': '<div class="integration-badge papra-badge"><img src="/assets/integrations/papra/papra.png" alt="Papra" /></div>',
-        // Add more integrations as needed
-    };
-    
-    return integrationBadges[integrationId] || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+    return integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+}
+
+/**
+ * Initialize the preview renderer with required dependencies
+ * @param {Object} config Configuration object with dependencies
+ */
+export function initPreviewRenderer(config) {
+    integrationsManager = config.integrationsManager;
 }
 
 export default {
@@ -280,5 +285,6 @@ export default {
     createDocumentPreview,
     setupFilePreview,
     setupExistingFilePreview,
-    getIntegrationBadge
+    getIntegrationBadge,
+    initPreviewRenderer
 };

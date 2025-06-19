@@ -30,7 +30,8 @@ import {
     sortAssets,
     // Import file preview renderer
     setupFilePreview,
-    setupExistingFilePreview
+    setupExistingFilePreview,
+    initPreviewRenderer
 } from '/src/services/render/index.js';
 import { ChartManager } from '/managers/charts.js';
 import { registerServiceWorker } from './helpers/serviceWorkerHelper.js';
@@ -47,6 +48,7 @@ import { ModalManager } from './managers/modalManager.js';
 import { DashboardManager } from './managers/dashboardManager.js';
 import { DuplicationManager } from './managers/duplicationManager.js';
 import { ExternalDocManager } from './managers/externalDocManager.js';
+import { IntegrationsManager } from './managers/integrations.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize variables for app state
@@ -119,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let dashboardManager;
     let duplicationManager;
     let externalDocManager;
+    let integrationsManager;
     const chartManager = new ChartManager({ formatDate });
 
     // Acts as constructor for the app
@@ -127,6 +130,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Display demo banner if in demo mode
         if (window.appConfig?.demoMode) {
             document.getElementById('demo-banner').style.display = 'block';
+        }
+
+        // Initialize integrations manager and load integration data early for dynamic badge generation
+        integrationsManager = new IntegrationsManager({
+            setButtonLoading
+        });
+        
+        try {
+            await integrationsManager.loadIntegrations();
+            
+            // Initialize preview renderer with integrations manager
+            initPreviewRenderer({
+                integrationsManager
+            });
+        } catch (error) {
+            console.warn('Failed to load integrations for badge generation:', error);
         }
 
         addWindowEventListenersAndProperties();
@@ -210,7 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // DOM elements
             assetList,
             assetDetails,
-            subAssetContainer
+            subAssetContainer,
+            
+            // Managers
+            integrationsManager
         });
         
         // Initialize the list renderer module
@@ -297,12 +319,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Global state
             getAssets: () => assets,
             getSubAssets: () => subAssets,
+            
+            // Integrations
+            integrationsManager
         });
 
         // Initialize ExternalDocManager
         externalDocManager = new ExternalDocManager({
             modalManager,
-            setButtonLoading
+            setButtonLoading,
+            integrationsManager
         });
 
         // Initialize SettingsManager after DashboardManager is ready
@@ -318,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setButtonLoading,
                 renderDashboard: (animate = true) => dashboardManager.renderDashboard(animate),
                 loadActiveIntegrations: () => externalDocManager.loadActiveIntegrations(),
+                integrationsManager
             });
         }
 

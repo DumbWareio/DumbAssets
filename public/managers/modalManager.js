@@ -47,7 +47,10 @@ export class ModalManager {
         
         // Global state
         getAssets,
-        getSubAssets
+        getSubAssets,
+        
+        // Integrations
+        integrationsManager
     }) {
         // Store DOM elements
         this.assetModal = assetModal;
@@ -94,6 +97,9 @@ export class ModalManager {
         // Store global state getters
         this.getAssets = getAssets;
         this.getSubAssets = getSubAssets;
+        
+        // Store integrations manager
+        this.integrationsManager = integrationsManager;
         
         // Modal state
         this.isEditMode = false;
@@ -1284,13 +1290,7 @@ export class ModalManager {
      * @returns {string} - The badge HTML
      */
     _getIntegrationBadge(integrationId) {
-        const integrationBadges = {
-            'paperless': '<div class="integration-badge paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>',
-            'papra': '<div class="integration-badge papra-badge"><img src="/assets/integrations/papra/papra.png" alt="Papra" title="From Papra"></div>',
-            // Add more integrations as needed
-        };
-        
-        return integrationBadges[integrationId] || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+        return this.integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
     }
 
     /**

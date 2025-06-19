@@ -9,6 +9,8 @@ export class IntegrationsManager {
     }) {
         this.setButtonLoading = setButtonLoading;
         this.DEBUG = false;
+        this.integrations = new Map();
+        this.loadingPromise = null;
     }
 
     /**
@@ -22,6 +24,16 @@ export class IntegrationsManager {
      * Load and render integrations dynamically
      */
     async loadIntegrations() {
+        // Store the loading promise to avoid duplicate requests
+        if (this.loadingPromise) {
+            return this.loadingPromise;
+        }
+
+        this.loadingPromise = this._loadIntegrationsData();
+        return this.loadingPromise;
+    }
+
+    async _loadIntegrationsData() {
         const integrationsContainer = document.getElementById('integrationsContainer');
         const loadingElement = document.getElementById('integrationsLoading');
         const errorElement = document.getElementById('integrationsError');
@@ -43,35 +55,21 @@ export class IntegrationsManager {
 
             const integrations = await response.json();
             
+            // Store integrations in a Map for badge generation
+            this.integrations.clear();
+            integrations.forEach(integration => {
+                this.integrations.set(integration.id, integration);
+            });
+
+            console.log('Loaded integrations:', Array.from(this.integrations.keys()));
+            
             // Clear loading state
             if (loadingElement) loadingElement.style.display = 'none';
             
-            // Clear existing content except loading/error elements
-            const existingIntegrations = integrationsContainer.querySelectorAll('.integration-section');
-            existingIntegrations.forEach(el => el.remove());
-
-            if (integrations.length === 0) {
-                const noIntegrationsMsg = document.createElement('div');
-                noIntegrationsMsg.style.cssText = 'text-align: center; padding: 2rem; color: var(--text-color-secondary);';
-                noIntegrationsMsg.textContent = 'No integrations available';
-                integrationsContainer.appendChild(noIntegrationsMsg);
-                return;
+            // Only render UI if we're in settings context
+            if (integrationsContainer) {
+                this._renderIntegrationsUI(integrations, integrationsContainer);
             }
-
-            // Group integrations by category
-            const categories = this.groupIntegrationsByCategory(integrations);
-            
-            // Render each category
-            for (const [category, categoryIntegrations] of Object.entries(categories)) {
-                const categorySection = this.renderIntegrationCategory(category, categoryIntegrations);
-                integrationsContainer.appendChild(categorySection);
-            }
-
-            // Initialize collapsible sections for the rendered integrations
-            initCollapsibleSections();
-
-            // Bind events for all rendered integrations
-            this.bindIntegrationEvents();
 
         } catch (error) {
             console.error('Failed to load integrations:', error);
@@ -80,6 +78,127 @@ export class IntegrationsManager {
                 errorElement.style.display = 'block';
                 errorElement.textContent = `Failed to load integrations: ${error.message}`;
             }
+        }
+    }
+
+    _renderIntegrationsUI(integrations, integrationsContainer) {
+        // Clear existing content except loading/error elements
+        const existingIntegrations = integrationsContainer.querySelectorAll('.integration-section');
+        existingIntegrations.forEach(el => el.remove());
+
+        if (integrations.length === 0) {
+            const noIntegrationsMsg = document.createElement('div');
+            noIntegrationsMsg.style.cssText = 'text-align: center; padding: 2rem; color: var(--text-color-secondary);';
+            noIntegrationsMsg.textContent = 'No integrations available';
+            integrationsContainer.appendChild(noIntegrationsMsg);
+            return;
+        }
+
+        // Group integrations by category
+        const categories = this.groupIntegrationsByCategory(integrations);
+        
+        // Render each category
+        for (const [category, categoryIntegrations] of Object.entries(categories)) {
+            const categorySection = this.renderIntegrationCategory(category, categoryIntegrations);
+            integrationsContainer.appendChild(categorySection);
+        }
+
+        // Initialize collapsible sections for the rendered integrations
+        initCollapsibleSections();
+
+        // Bind events for all rendered integrations
+        this.bindIntegrationEvents();
+    }
+
+    /**
+     * Get integration by ID
+     * @param {string} integrationId - The integration identifier
+     * @returns {Object|null} - The integration object or null if not found
+     */
+    getIntegration(integrationId) {
+        return this.integrations.get(integrationId) || null;
+    }
+
+    /**
+     * Generate integration badge HTML based on integration ID
+     * @param {string} integrationId - The integration identifier
+     * @returns {string} - The badge HTML
+     */
+    getIntegrationBadge(integrationId) {
+        if (!integrationId) return '';
+
+        const integration = this.getIntegration(integrationId);
+        
+        if (integration && integration.logoHref) {
+            // Use dynamic integration data
+            const badgeClass = `integration-badge ${integrationId}-badge`;
+            const logoSrc = integration.logoHref.startsWith('/') ? integration.logoHref : `/${integration.logoHref}`;
+            const title = `From ${integration.name || integrationId}`;
+            const alt = integration.name || integrationId;
+            
+            return `<div class="${badgeClass}"><img src="${logoSrc}" alt="${alt}" title="${title}"></div>`;
+        } else {
+            // Fallback for unknown integrations or when data isn't loaded yet
+            return `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+        }
+    }
+
+    /**
+     * Get integration color scheme
+     * @param {string} integrationId - The integration identifier
+     * @returns {string|null} - The color scheme or null if not found
+     */
+    getIntegrationColorScheme(integrationId) {
+        const integration = this.getIntegration(integrationId);
+        return integration?.colorScheme || null;
+    }
+
+    /**
+     * Get integration name
+     * @param {string} integrationId - The integration identifier
+     * @returns {string} - The integration name or the ID as fallback
+     */
+    getIntegrationName(integrationId) {
+        const integration = this.getIntegration(integrationId);
+        return integration?.name || integrationId;
+    }
+
+    /**
+     * Check if integrations are loaded
+     * @returns {boolean}
+     */
+    isLoaded() {
+        return this.integrations.size > 0;
+    }
+
+    /**
+     * Get all integrations as an array
+     * @returns {Array} - Array of all integrations
+     */
+    getAllIntegrations() {
+        return Array.from(this.integrations.values());
+    }
+
+    /**
+     * Get enabled integrations by fetching settings and filtering
+     * @returns {Promise<Array>} - Array of enabled integrations
+     */
+    async getActiveIntegrations() {
+        try {
+            // Ensure integrations are loaded first
+            await this.loadIntegrations();
+            
+            // Fetch settings to check which integrations are enabled
+            const response = await fetch(`${globalThis.getApiBaseUrl()}/api/integrations/enabled`);
+            const responseValidation = await globalThis.validateResponse(response);
+            if (responseValidation.errorMessage) {
+                throw new Error(responseValidation.errorMessage);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to get active integrations:', error);
+            return [];
         }
     }
 

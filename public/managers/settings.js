@@ -13,7 +13,8 @@ export class SettingsManager {
         testNotificationSettings,
         setButtonLoading,
         renderDashboard,
-        loadActiveIntegrations
+        loadActiveIntegrations,
+        integrationsManager
     }) {
         this.localSettingsStorageKey = 'dumbAssetSettings';
         this.localSettingsLastOpenedPaneKey = 'dumbAssetSettingsLastOpenedPane';
@@ -27,13 +28,9 @@ export class SettingsManager {
         this.setButtonLoading = setButtonLoading;
         this.renderDashboard = renderDashboard;
         this.loadActiveIntegrations = loadActiveIntegrations;
+        this.integrationsManager = integrationsManager;
         this.selectedAssetId = null;
         this.DEBUG = false;
-        
-        // Initialize integrations manager
-        this.integrationsManager = new IntegrationsManager({
-            setButtonLoading: this.setButtonLoading
-        });
         
         this._bindEvents();
         this.defaultSettings = window.appConfig?.defaultSettings || {

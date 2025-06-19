@@ -6,9 +6,10 @@
 import { API_PAPERLESS_ENDPOINT, API_PAPRA_ENDPOINT } from '../../src/constants.js';
 
 export class ExternalDocManager {
-    constructor({ modalManager, setButtonLoading }) {
+    constructor({ modalManager, setButtonLoading, integrationsManager }) {
         this.modalManager = modalManager;
         this.setButtonLoading = setButtonLoading;
+        this.integrationsManager = integrationsManager;
         this.currentAttachmentType = null;
         this.currentIsSubAsset = false;
         this.searchTimeout = null;
@@ -121,11 +122,8 @@ export class ExternalDocManager {
                 }
             });
 
-            const response = await fetch(`${globalThis.getApiBaseUrl()}/api/integrations/enabled`);
-            const responseValidation = await globalThis.validateResponse(response);
-            if (responseValidation.errorMessage) throw new Error(responseValidation.errorMessage);
-            
-            this.activeIntegrations = await response.json();
+            // Use IntegrationsManager to get active integrations
+            this.activeIntegrations = await this.integrationsManager.getActiveIntegrations();
 
             if (this.activeIntegrations && this.activeIntegrations.length > 0) {
                 this.buttonIds.forEach(buttonId => {
@@ -163,21 +161,42 @@ export class ExternalDocManager {
         this.activeIntegrations.forEach(integration => {
             const btn = document.createElement('button');
             btn.className = 'integration-filter-btn';
-            if (integration.colorScheme) btn.style.backgroundColor = integration.colorScheme;
-            btn.textContent = integration.name || this.getSourceDisplayName(integration.id);
+            
+            // Get color scheme from IntegrationsManager
+            const integrationData = this.integrationsManager.getIntegration(integration.id);
+            if (integrationData && integrationData.colorScheme) {
+                btn.style.backgroundColor = integrationData.colorScheme;
+            }
+            
+            btn.textContent = this.integrationsManager.getIntegrationName(integration.id);
             btn.addEventListener('click', () => this.toggleIntegrationFilter(integration.id));
             filtersContainer.appendChild(btn);
         });
     }
 
     toggleIntegrationFilter(integrationId) {
-        // Simplified toggle logic for now
+        // Update selected integrations
         this.selectedIntegrations.clear();
         this.selectedIntegrations.add(integrationId === 'all' ? 'all' : integrationId);
         
+        // Update UI - find the correct button
         const buttons = document.querySelectorAll('.integration-filter-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            // Check if this button corresponds to the selected integration
+            if ((integrationId === 'all' && btn.textContent === 'All Sources') ||
+                (integrationId !== 'all' && btn.textContent === this.integrationsManager.getIntegrationName(integrationId))) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Reset pagination and reload data with new filter
+        this.currentPage = 1;
+        if (this.currentQuery) {
+            this.performSearch(this.currentQuery);
+        } else {
+            this.loadAllDocuments();
+        }
     }
 
     handleLinkExternalDocs(event, buttonId) {
@@ -244,6 +263,22 @@ export class ExternalDocManager {
         }
 
         if (this.isLoading) return;
+        
+        // Check if we have any active integrations
+        if (!this.activeIntegrations || this.activeIntegrations.length === 0) {
+            const resultsContainer = document.getElementById('externalDocResults');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        <p>No document integrations are currently enabled.</p>
+                        <p>Please configure at least one integration to search external documents.</p>
+                    </div>
+                `;
+            }
+            this.hidePagination();
+            return;
+        }
+        
         this.isLoading = true;
 
         const resultsContainer = document.getElementById('externalDocResults');
@@ -264,6 +299,22 @@ export class ExternalDocManager {
 
     async loadAllDocuments() {
         if (this.isLoading) return;
+        
+        // Check if we have any active integrations
+        if (!this.activeIntegrations || this.activeIntegrations.length === 0) {
+            const resultsContainer = document.getElementById('externalDocResults');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        <p>No document integrations are currently enabled.</p>
+                        <p>Please configure at least one integration (like Paperless NGX or Papra) to search and link external documents.</p>
+                    </div>
+                `;
+            }
+            this.hidePagination();
+            return;
+        }
+        
         this.isLoading = true;
 
         this.showLoading('Loading documents...');
@@ -291,17 +342,115 @@ export class ExternalDocManager {
     }
 
     async searchAllIntegrations(query, page = 1) {
-        // Get integrations based on selected filters
         const targetIntegrations = this.getTargetIntegrations();
         
         if (targetIntegrations.length === 0) {
             return { results: [], count: 0, next: null, previous: null };
         }
 
-        // For now, search from the first available integration
-        // TODO: Implement parallel searching across multiple integrations
-        const integration = targetIntegrations[0];
-        
+        // If "All Sources" is selected, search across all integrations
+        if (this.selectedIntegrations.has('all')) {
+            return await this.searchMultipleIntegrations(targetIntegrations, query, page);
+        } else {
+            // Search specific integration(s)
+            const selectedIntegrations = targetIntegrations.filter(integration => 
+                this.selectedIntegrations.has(integration.id)
+            );
+            
+            if (selectedIntegrations.length === 0) {
+                return { results: [], count: 0, next: null, previous: null };
+            } else if (selectedIntegrations.length === 1) {
+                return await this.searchSingleIntegration(selectedIntegrations[0], query, page);
+            } else {
+                // Multiple specific integrations selected
+                return await this.searchMultipleIntegrations(selectedIntegrations, query, page);
+            }
+        }
+    }
+
+    async searchMultipleIntegrations(integrations, query, page = 1) {
+        try {
+            // For multiple integrations, we need to handle pagination differently
+            // We'll collect results from each integration and then paginate client-side
+            const searchPromises = integrations.map(async integration => {
+                try {
+                    // For multi-integration search, we need to get enough results to fill multiple pages
+                    // Calculate how many pages we need to fetch based on current page
+                    const pagesToFetch = Math.min(page + 2, 5); // Fetch up to 5 pages max to avoid too many requests
+                    let allResults = [];
+                    let totalCount = 0;
+                    
+                    for (let p = 1; p <= pagesToFetch; p++) {
+                        const result = await this.searchSingleIntegration(integration, query, p);
+                        if (result.results && result.results.length > 0) {
+                            allResults.push(...result.results);
+                        }
+                        
+                        // Update total count from the first page response
+                        if (p === 1) {
+                            totalCount = result.count || 0;
+                        }
+                        
+                        // Stop if we have enough results or no more pages
+                        if (!result.next || allResults.length >= this.pageSize * (page + 1)) break;
+                    }
+                    
+                    return { 
+                        results: allResults, 
+                        count: totalCount,
+                        integration: integration.id 
+                    };
+                } catch (error) {
+                    console.warn(`Search failed for ${integration.id}:`, error);
+                    return { results: [], count: 0, integration: integration.id };
+                }
+            });
+
+            const results = await Promise.all(searchPromises);
+            
+            // Combine results from all integrations
+            const combinedResults = [];
+            let totalCount = 0;
+
+            results.forEach(result => {
+                combinedResults.push(...(result.results || []));
+                totalCount += result.count || 0;
+            });
+
+            // Sort combined results by modified date (newest first)
+            combinedResults.sort((a, b) => {
+                const dateA = new Date(a.modified || 0);
+                const dateB = new Date(b.modified || 0);
+                return dateB - dateA;
+            });
+
+            // Apply client-side pagination for combined results
+            const startIndex = (page - 1) * this.pageSize;
+            const endIndex = startIndex + this.pageSize;
+            const paginatedResults = combinedResults.slice(startIndex, endIndex);
+
+            // Calculate pagination info based on available results, not total count from APIs
+            const availableResults = combinedResults.length;
+            const hasNext = endIndex < availableResults;
+            const hasPrevious = page > 1;
+
+            // Store total for display - use available results for pagination, but show estimated total
+            this.totalDocuments = Math.max(availableResults, totalCount);
+
+            return {
+                results: paginatedResults,
+                count: availableResults, // Available results for pagination logic
+                totalCount: totalCount, // Total from APIs for display
+                next: hasNext ? true : null,
+                previous: hasPrevious ? true : null
+            };
+        } catch (error) {
+            console.error('Failed to search multiple integrations:', error);
+            throw error;
+        }
+    }
+
+    async searchSingleIntegration(integration, query, page = 1) {
         switch (integration.id) {
             case 'paperless':
                 return await this.searchPaperless(query, page);
@@ -421,21 +570,6 @@ export class ExternalDocManager {
                 // Use originalFileName if available, otherwise fall back to title
                 const fileNameForExtraction = doc.originalFileName || doc.title;
                 const isValid = this.isValidFileType(doc.mimeType, this.currentAttachmentType, fileNameForExtraction);
-                
-                // Debug specific problematic document
-                if (doc.title && doc.title.includes('Passport Information')) {
-                    console.log('DEBUG: Passport document details:', {
-                        title: doc.title,
-                        originalFileName: doc.originalFileName,
-                        mimeType: doc.mimeType,
-                        attachmentType: this.currentAttachmentType,
-                        isValid: isValid,
-                        extractedExtension: this.extractFileExtension(fileNameForExtraction),
-                        allowedExtensions: this.fileExtensionFilters[this.currentAttachmentType],
-                        allowedMimeTypes: this.mimeTypeFilters[this.currentAttachmentType]
-                    });
-                }
-                
                 return isValid;
             });
         }
@@ -504,15 +638,8 @@ export class ExternalDocManager {
             });
         });
         
-        // Update pagination with filtered results
-        const filteredData = {
-            ...data,
-            count: results.length,
-            // For now, disable pagination when filtering since we're filtering client-side
-            next: null,
-            previous: null
-        };
-        this.updatePagination(filteredData, query);
+        // Update pagination - preserve the original pagination behavior
+        this.updatePagination(data, query);
     }
 
     updatePagination(data, query) {
@@ -523,20 +650,41 @@ export class ExternalDocManager {
 
         if (!paginationContainer || !paginationInfo || !prevBtn || !nextBtn) return;
 
-        const totalPages = Math.ceil(data.count / this.pageSize);
-        const startItem = (this.currentPage - 1) * this.pageSize + 1;
-        const endItem = Math.min(this.currentPage * this.pageSize, data.count);
-
-        if (totalPages <= 1) {
+        // For multi-integration searches, use the combined total count
+        const isMultiIntegration = data.totalCount !== undefined;
+        const totalCount = isMultiIntegration ? this.totalDocuments : (data.count || 0);
+        const currentResults = data.results?.length || 0;
+        
+        if (totalCount === 0) {
             paginationContainer.style.display = 'none';
             return;
         }
 
-        paginationContainer.style.display = 'flex';
-        paginationInfo.textContent = `${startItem}-${endItem} of ${data.count} documents`;
+        // Calculate display info
+        const startItem = ((this.currentPage - 1) * this.pageSize) + 1;
+        const endItem = Math.min(startItem + currentResults - 1, totalCount);
         
-        prevBtn.disabled = !data.previous;
-        nextBtn.disabled = !data.next;
+        // Calculate total pages
+        const totalPages = Math.ceil(totalCount / this.pageSize);
+        
+        // Show pagination if there are more results than one page OR if we're not on page 1
+        if (totalPages > 1 || this.currentPage > 1) {
+            paginationContainer.style.display = 'flex';
+            paginationInfo.textContent = `${startItem}-${endItem} of ${totalCount} documents`;
+            
+            // Update button states based on integration type
+            if (isMultiIntegration) {
+                // Multi-integration search - use client-side pagination logic
+                prevBtn.disabled = this.currentPage <= 1;
+                nextBtn.disabled = data.next === null || data.next === false;
+            } else {
+                // Single integration search - use server-side pagination
+                prevBtn.disabled = !data.previous;
+                nextBtn.disabled = !data.next;
+            }
+        } else {
+            paginationContainer.style.display = 'none';
+        }
     }
 
     hidePagination() {
@@ -579,6 +727,7 @@ export class ExternalDocManager {
      * Check if a file's MIME type is valid for the current attachment type
      * @param {string} mimeType - The MIME type of the file
      * @param {string} attachmentType - The attachment type (photo, receipt, manual)
+     * @param {string} documentTitle - The document title/filename for extension extraction
      * @returns {boolean} - Whether the file type is valid
      */
     isValidFileType(mimeType, attachmentType, documentTitle = '') {
@@ -590,22 +739,14 @@ export class ExternalDocManager {
         if (fileExtension) {
             const allowedExtensions = this.fileExtensionFilters[attachmentType];
             if (allowedExtensions) {
-                const isValidByExtension = allowedExtensions.includes(fileExtension.toLowerCase());
-                console.log('File extension filtering:', {
-                    title: documentTitle,
-                    extension: fileExtension,
-                    attachmentType,
-                    allowedExtensions,
-                    isValid: isValidByExtension
-                });
-                return isValidByExtension;
+                return allowedExtensions.includes(fileExtension.toLowerCase());
             }
         }
         
         // Fallback to MIME type filtering if no file extension available
         if (!mimeType) {
-            console.log('WARNING: Document has no MIME type or file extension, filtering based on attachment type:', attachmentType);
-            return attachmentType !== 'photo'; // Be strict for photos, allow for receipts/manuals
+            // Be strict for photos, allow for receipts/manuals if no MIME type
+            return attachmentType !== 'photo';
         }
         
         const allowedTypes = this.mimeTypeFilters[attachmentType];
@@ -613,12 +754,6 @@ export class ExternalDocManager {
         
         // Normalize MIME type (lowercase, trim)
         const normalizedMimeType = mimeType.toLowerCase().trim();
-        
-        console.log('MIME type filtering (fallback):', {
-            mimeType: normalizedMimeType,
-            attachmentType,
-            allowedTypes
-        });
         
         // Check exact match first
         if (allowedTypes.includes(normalizedMimeType)) return true;

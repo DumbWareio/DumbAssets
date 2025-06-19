@@ -33,19 +33,16 @@ let assetList;
 let assetDetails;
 let subAssetContainer;
 
+// IntegrationsManager reference - will be injected
+let integrationsManager;
+
 /**
  * Get the appropriate integration badge HTML based on integration ID
  * @param {string} integrationId - The integration identifier
  * @returns {string} - The badge HTML
  */
 function getIntegrationBadge(integrationId) {
-    const integrationBadges = {
-        'paperless': '<div class="integration-badge paperless-badge"><img src="/assets/integrations/paperless/paperless-ngx.png" alt="Paperless NGX" title="From Paperless NGX"></div>',
-        'papra': '<div class="integration-badge papra-badge"><img src="/assets/integrations/papra/papra.png" alt="Papra" title="From Papra"></div>',
-        // Add more integrations as needed
-    };
-    
-    return integrationBadges[integrationId] || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+    return integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
 }
 
 /**
@@ -80,6 +77,9 @@ function initRenderer(config) {
     assetList = config.assetList;
     assetDetails = config.assetDetails;
     subAssetContainer = config.subAssetContainer;
+    
+    // Store reference to integrations manager
+    integrationsManager = config.integrationsManager;
 }
 
 /**
