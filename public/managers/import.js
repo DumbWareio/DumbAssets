@@ -266,7 +266,7 @@ export class ImportManager {
             return;
         }
         
-        // Client-side validation: read file and check required fields, date columns, tags
+                    // Client-side validation: read file and check required fields, date columns, tags
         try {
             const fileText = await file.text();
             
@@ -304,7 +304,11 @@ export class ImportManager {
                 for (const col of dateCols) {
                     const idx = mappings[col] !== '' ? parseInt(mappings[col]) : -1;
                     if (idx !== -1 && row[idx] && row[idx].trim()) {
-                        const val = row[idx].replace(/"/g, '');
+                        // Handle quoted values properly
+                        let val = row[idx].trim();
+                        if (val.startsWith('"') && val.endsWith('"')) {
+                            val = val.slice(1, -1);
+                        }
                         if (isNaN(Date.parse(val))) {
                             globalThis.toaster.show(`Row ${i+2}: Invalid date in column '${headers[idx]}' (${val})`, 'error');
                             this.setButtonLoading(this.startImportBtn, false);
