@@ -1997,6 +1997,64 @@ function getAppSettings() {
     return config;
 }
 
+// Helper function to properly parse CSV content handling quoted fields with commas
+function parseCSV(csvContent) {
+    const lines = [];
+    let currentLine = [];
+    let currentField = '';
+    let inQuotes = false;
+    let i = 0;
+    
+    while (i < csvContent.length) {
+        const char = csvContent[i];
+        const nextChar = csvContent[i + 1];
+        
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                // Escaped quote within quoted field
+                currentField += '"';
+                i += 2; // Skip both quotes
+                continue;
+            } else if (inQuotes) {
+                // End of quoted field
+                inQuotes = false;
+            } else {
+                // Start of quoted field
+                inQuotes = true;
+            }
+        } else if (char === ',' && !inQuotes) {
+            // Field separator
+            currentLine.push(currentField);
+            currentField = '';
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+            // End of line
+            if (currentField || currentLine.length > 0) {
+                currentLine.push(currentField);
+                lines.push(currentLine);
+                currentLine = [];
+                currentField = '';
+            }
+            // Skip \r\n sequences
+            if (char === '\r' && nextChar === '\n') {
+                i++;
+            }
+        } else {
+            // Regular character
+            currentField += char;
+        }
+        
+        i++;
+    }
+    
+    // Add the last field and line if not empty
+    if (currentField || currentLine.length > 0) {
+        currentLine.push(currentField);
+        lines.push(currentLine);
+    }
+    
+    return lines.filter(line => line.length > 0);
+}
+
 // Import assets route
 app.post('/api/import-assets', upload.single('file'), (req, res) => {
     try {
@@ -2004,28 +2062,46 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
-        // If only headers are requested (first step), return headers
-        if (!req.body.mappings) {
+        
+        const fileContent = file.buffer.toString('utf-8');
+        const fileExtension = '.' + file.originalname.split('.').pop().toLowerCase();
+        
+        let headers = [];
+        let rows = [];
+        
+        if (fileExtension === '.csv') {
+            // Use proper CSV parsing for CSV files
+            const parsedCSV = parseCSV(fileContent);
+            if (parsedCSV.length === 0) {
+                return res.status(400).json({ error: 'Empty CSV file' });
+            }
+            headers = parsedCSV[0] || [];
+            rows = parsedCSV.slice(1);
+        } else {
+            // Use XLSX for Excel files
             let workbook = XLSX.read(file.buffer, { type: 'buffer' });
             let sheet = workbook.Sheets[workbook.SheetNames[0]];
             let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-            const headers = json[0] || [];
+            headers = json[0] || [];
+            rows = json.slice(1);
+        }
+        
+        // If only headers are requested (first step), return headers
+        if (!req.body.mappings) {
             return res.json({ headers });
         }
+        
         // Parse mappings
         const mappings = JSON.parse(req.body.mappings);
-        let workbook = XLSX.read(file.buffer, { type: 'buffer' });
-        let sheet = workbook.Sheets[workbook.SheetNames[0]];
-        let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        const headers = json[0] || [];
-        const rows = json.slice(1);
         let importedCount = 0;
         let assets = readJsonFile(assetsFilePath);
+        
         for (const row of rows) {
             if (!row.length) continue;
             const get = idx => (mappings[idx] !== undefined && mappings[idx] !== "" && row[mappings[idx]] !== undefined) ? row[mappings[idx]] : "";
             const name = get('name');
             if (!name) continue;
+            
             // Parse lifetime warranty value
             const lifetimeValue = get('lifetime');
             const isLifetime = lifetimeValue ? 
@@ -2057,18 +2133,30 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
+            
             // Parse tags if mapped
             if (mappings.tags !== undefined && mappings.tags !== "" && row[mappings.tags] !== undefined) {
                 const tagsRaw = row[mappings.tags];
                 if (typeof tagsRaw === 'string') {
-                    asset.tags = tagsRaw.split(/[,;]+/).map(t => t.trim()).filter(Boolean);
+                    // Handle quoted comma-separated values and regular comma-separated values
+                    let tagString = tagsRaw.trim();
+                    
+                    // If the entire string is quoted, remove the outer quotes
+                    if (tagString.startsWith('"') && tagString.endsWith('"')) {
+                        tagString = tagString.slice(1, -1);
+                    }
+                    
+                    // Split by comma and clean up each tag
+                    asset.tags = tagString.split(/[,;]+/).map(t => t.trim()).filter(Boolean);
                 } else if (Array.isArray(tagsRaw)) {
                     asset.tags = tagsRaw.map(t => String(t).trim()).filter(Boolean);
                 }
             }
+            
             assets.push(asset);
             importedCount++;
         }
+        
         writeJsonFile(assetsFilePath, assets);
         res.json({ importedCount });
     } catch (err) {
