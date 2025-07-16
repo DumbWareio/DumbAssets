@@ -527,18 +527,31 @@ export class ExternalDocManager {
         this.totalDocuments = data.count || 0;
         
         return {
-            results: (data.results || []).map(doc => ({
-                id: doc.id,
-                title: doc.title,
-                source: 'paperless',
-                downloadUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/download`,
-                previewUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/preview`,
-                mimeType: doc.mime_type,
-                fileSize: doc.file_size,
-                modified: doc.modified,
-                originalFileName: doc.original_file_name, // Include original filename for extension extraction
-                attachedAt: new Date().toISOString()
-            })),
+            results: (data.results || []).map(doc => {
+                // Check if the original file was an image
+                const originalFileName = doc.original_file_name || doc.title;
+                const isOriginalImage = originalFileName && 
+                    (originalFileName.toLowerCase().endsWith('.jpg') ||
+                     originalFileName.toLowerCase().endsWith('.jpeg') ||
+                     originalFileName.toLowerCase().endsWith('.png') ||
+                     originalFileName.toLowerCase().endsWith('.gif') ||
+                     originalFileName.toLowerCase().endsWith('.bmp') ||
+                     originalFileName.toLowerCase().endsWith('.webp'));
+                
+                return {
+                    id: doc.id,
+                    title: doc.title,
+                    source: 'paperless',
+                    downloadUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/download`,
+                    previewUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/preview`,
+                    mimeType: doc.mime_type,
+                    fileSize: doc.file_size,
+                    modified: doc.modified,
+                    originalFileName: originalFileName,
+                    isOriginalImage: isOriginalImage, // Flag to help with UI decisions
+                    attachedAt: new Date().toISOString()
+                };
+            }),
             count: data.count || 0,
             next: data.next,
             previous: data.previous
