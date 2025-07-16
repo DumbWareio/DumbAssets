@@ -1189,16 +1189,11 @@ export class ModalManager {
                      style="max-width: 100%; max-height: 85px; object-fit: contain; border-radius: var(--app-border-radius);"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; console.log('Image preview failed for ${attachment.title}, may be processed as PDF by document management system');">
                 <div class="preview-content" style="display:none; flex-direction: column; align-items: center; justify-content: center; min-height: 85px; background: var(--bg-alt-color); border-radius: var(--app-border-radius);">
-                    ${attachment.isOriginalImage ? 
-                        `<svg class="external-doc-icon" width="32" height="32" fill="var(--text-color)" viewBox="0 0 24 24">
-                            <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/>
-                        </svg>` :
-                        `<svg class="external-doc-icon" width="32" height="32" fill="var(--text-color)" viewBox="0 0 24 24">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                        </svg>`
-                    }
+                    <svg class="external-doc-icon" width="32" height="32" fill="var(--text-color)" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
                     <small style="color: var(--text-muted); margin-top: 4px; text-align: center;">
-                        ${attachment.isOriginalImage ? 'Image (processed as PDF)' : 'Document preview'}
+                        ${attachment.isOriginalImage ? 'Original image processed as PDF' : 'Document preview'}
                     </small>
                 </div>
             `;
