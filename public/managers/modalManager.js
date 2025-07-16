@@ -1145,10 +1145,12 @@ export class ModalManager {
             targetAsset[infoKey].push({
                 originalName: attachment.title,
                 size: attachment.fileSize,
+                attachedAt: attachment.attachedAt,
                 integrationId: attachment.integrationId,
                 externalId: attachment.externalId,
                 mimeType: attachment.mimeType,
-                attachedAt: attachment.attachedAt
+                downloadUrl: attachment.downloadUrl,
+                previewUrl: attachment.previewUrl
             });
 
             console.log(`Attached external document to ${isSubAsset ? 'sub-asset' : 'asset'}:`, {
@@ -1180,9 +1182,10 @@ export class ModalManager {
         // For images, show actual preview if possible, otherwise show document icon
         let previewContent;
         if (isImage) {
-            // Try to show image preview, fall back to document icon
+            // Use preview URL for images if available, fallback to download URL, then to document icon
+            const imageUrl = attachment.previewUrl || attachment.downloadUrl;
             previewContent = `
-                <img src="${attachment.downloadUrl}" alt="External Document Preview" 
+                <img src="${imageUrl}" alt="External Document Preview" 
                      style="max-width: 100%; max-height: 85px; object-fit: contain; border-radius: var(--app-border-radius);"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="preview-content" style="display:none;">

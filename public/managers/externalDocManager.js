@@ -532,6 +532,7 @@ export class ExternalDocManager {
                 title: doc.title,
                 source: 'paperless',
                 downloadUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/download`,
+                previewUrl: `${globalThis.getApiBaseUrl()}/${API_PAPERLESS_ENDPOINT}/document/${doc.id}/preview`,
                 mimeType: doc.mime_type,
                 fileSize: doc.file_size,
                 modified: doc.modified,
@@ -576,6 +577,7 @@ export class ExternalDocManager {
                 title: doc.name,
                 source: 'papra',
                 downloadUrl: `${globalThis.getApiBaseUrl()}/${API_PAPRA_ENDPOINT}/document/${doc.id}/download`,
+                previewUrl: `${globalThis.getApiBaseUrl()}/${API_PAPRA_ENDPOINT}/document/${doc.id}/preview`,
                 mimeType: doc.content || 'application/octet-stream', // Papra might not have MIME type
                 fileSize: doc.size,
                 modified: doc.updatedAt || doc.createdAt,
@@ -916,6 +918,7 @@ export class ExternalDocManager {
                 integrationId: docData.source, // Use the source (paperless, papra, etc.)
                 title: docData.title,
                 downloadUrl: docData.downloadUrl,
+                previewUrl: docData.previewUrl,
                 mimeType: docData.mimeType,
                 fileSize: docData.fileSize,
                 attachedAt: docData.attachedAt

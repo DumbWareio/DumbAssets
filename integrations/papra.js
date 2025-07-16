@@ -76,6 +76,7 @@ class PapraIntegration {
       `GET /${API_PAPRA_ENDPOINT}/search`,
       `GET /${API_PAPRA_ENDPOINT}/document/:id/info`,
       `GET /${API_PAPRA_ENDPOINT}/document/:id/download`,
+      `GET /${API_PAPRA_ENDPOINT}/document/:id/preview`,
       `GET /${API_PAPRA_ENDPOINT}/test`
     ],
     
@@ -448,6 +449,33 @@ class PapraIntegration {
         res.send(Buffer.from(buffer));
       } catch (error) {
         console.error('Failed to download document:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Proxy Papra document preview for images (for UI display)
+    app.get(BASE_PATH + `/${API_PAPRA_ENDPOINT}/document/:id/preview`, async (req, res) => {
+      try {
+        const config = await getPapraConfig();
+        const documentId = req.params.id;
+        
+        const response = await this.downloadDocument(config, documentId);
+        
+        // Only allow image content types for preview
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.startsWith('image/')) {
+          return res.status(400).json({ error: 'Document is not an image' });
+        }
+        
+        // Set appropriate headers for image display
+        res.setHeader('content-type', contentType);
+        res.setHeader('cache-control', 'private, max-age=3600'); // Cache for 1 hour
+        
+        // Get the response as a buffer and send it
+        const buffer = await response.arrayBuffer();
+        res.send(Buffer.from(buffer));
+      } catch (error) {
+        console.error('Failed to preview document:', error);
         res.status(500).json({ error: error.message });
       }
     });

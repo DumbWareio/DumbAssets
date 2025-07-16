@@ -195,6 +195,12 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
         fileName = displayPath.split('/').pop();
     }
 
+    // For external images with integration info, use preview URL if available
+    let actualDisplayPath = displayPath;
+    if (type === 'photo' && fileInfo.integrationId && fileInfo.previewUrl) {
+        actualDisplayPath = fileInfo.previewUrl;
+    }
+
     // Create the delete handler that integrates with the modal manager's filesToDelete system
     const confirmMessage = `Are you sure you want to delete this ${type}?`;
     const onDelete = () => {
@@ -231,36 +237,13 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
     // Create the preview element directly with the server path (not mock file)
     const integrationId = fileInfo.integrationId || null;
     if (type === 'photo') {
-        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize, integrationId);
+        previewElement = createPhotoPreview(actualDisplayPath, onDelete, fileName, fileSize, integrationId);
     } else {
-        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize, integrationId);
+        previewElement = createDocumentPreview(type, actualDisplayPath, onDelete, fileName, fileSize, integrationId);
     }
     
     // Add the preview to the container
     container.appendChild(previewElement);
-    
-    // If file upload helpers are available, create a representation of the existing file
-    // This ensures the file system knows about the existing file but won't upload it
-    if (fileInput._fileUploadHelpers) {
-        try {
-            // Create a marker file that represents the existing file
-            const existingFileMarker = new File(['EXISTING_FILE'], fileName, {
-                type: type === 'photo' ? 'image/jpeg' : 'application/pdf',
-                lastModified: Date.now() - Math.random() * 1000000000 // Unique timestamp
-            });
-            
-            // Mark this as an existing file with metadata
-            existingFileMarker._originalPath = originalPath;
-            existingFileMarker._displayPath = displayPath;
-            existingFileMarker._isExisting = true;
-            existingFileMarker._previewElement = previewElement;
-            
-            // Add as existing file (won't be uploaded)
-            fileInput._fileUploadHelpers.addExistingFile(existingFileMarker);
-        } catch (error) {
-            console.warn('Could not create file marker for existing file:', error);
-        }
-    }
 }
 
 /**
