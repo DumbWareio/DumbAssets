@@ -2148,7 +2148,7 @@ a:hover {
 .file-item.photo .asset-image {
   width: 100%;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: var(--app-border-radius);
   border: none;
   flex: 1;
@@ -2629,7 +2629,7 @@ a:hover {
 .compact-file-item.photo img.compact-asset-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* Tag styles */
