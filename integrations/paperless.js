@@ -428,60 +428,12 @@ class PaperlessIntegration {
         const config = await getPaperlessConfig();
         const documentId = req.params.id;
         
-        // First, get document information to check if it's an original image
-        const docInfo = await this.getDocumentInfo(config, documentId);
-        
-        // Check if this is an original image file
-        const isOriginalImage = docInfo.original_file_name && 
-          (docInfo.original_file_name.toLowerCase().endsWith('.jpg') ||
-           docInfo.original_file_name.toLowerCase().endsWith('.jpeg') ||
-           docInfo.original_file_name.toLowerCase().endsWith('.png') ||
-           docInfo.original_file_name.toLowerCase().endsWith('.gif') ||
-           docInfo.original_file_name.toLowerCase().endsWith('.bmp') ||
-           docInfo.original_file_name.toLowerCase().endsWith('.webp'));
-        
-        // If it's an original image, try to get the original file first
-        if (isOriginalImage) {
-          try {
-            // Try to get the original file instead of the archived PDF
-            const originalResponse = await fetch(`${config.hostUrl.replace(/\/$/, '')}/api/documents/${documentId}/download/?original=true`, {
-              headers: {
-                'Authorization': `Token ${config.apiToken}`
-              }
-            });
-            
-            if (originalResponse.ok) {
-              const contentType = originalResponse.headers.get('content-type');
-              
-              // Verify it's actually an image
-              if (contentType && contentType.startsWith('image/')) {
-                // Set appropriate headers for image display
-                res.setHeader('content-type', contentType);
-                res.setHeader('cache-control', 'private, max-age=3600'); // Cache for 1 hour
-                
-                // Get the response as a buffer and send it
-                const buffer = await originalResponse.arrayBuffer();
-                return res.send(Buffer.from(buffer));
-              }
-            }
-          } catch (originalError) {
-            console.log('Failed to get original image, falling back to archive:', originalError.message);
-          }
-        }
-        
-        // Fallback: Try to get the archived version (might be PDF)
         const response = await this.downloadDocument(config, documentId);
-        const contentType = response.headers.get('content-type');
         
-        // If it's a PDF but we know the original was an image, we might want to convert
-        // For now, we'll only serve actual images
+        // Only allow image content types for preview
+        const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.startsWith('image/')) {
-          return res.status(400).json({ 
-            error: 'Document is not an image or original image is not available. Paperless may have processed it into a PDF.', 
-            suggestion: 'Use the download endpoint to get the processed document.',
-            originalFileName: docInfo.original_file_name,
-            mimeType: contentType
-          });
+          return res.status(400).json({ error: 'Document is not an image' });
         }
         
         // Set appropriate headers for image display

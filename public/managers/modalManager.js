@@ -1187,21 +1187,31 @@ export class ModalManager {
             previewContent = `
                 <img src="${imageUrl}" alt="External Document Preview" 
                      style="max-width: 100%; max-height: 85px; object-fit: contain; border-radius: var(--app-border-radius);"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; console.log('Image preview failed for ${attachment.title}, may be processed as PDF by document management system');">
-                <div class="preview-content" style="display:none; flex-direction: column; align-items: center; justify-content: center; min-height: 85px; background: var(--bg-alt-color); border-radius: var(--app-border-radius);">
-                    <svg class="external-doc-icon" width="32" height="32" fill="var(--text-color)" viewBox="0 0 24 24">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="preview-content" style="display:none;">
+                    <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
                     </svg>
-                    <small style="color: var(--text-muted); margin-top: 4px; text-align: center;">
-                        ${attachment.isOriginalImage ? 'Original image processed as PDF' : 'Document preview'}
-                    </small>
-                </div>
-            `;
-        } else {
+                </div>`;
+        }
+        else if (type === 'receipt') {
+            previewContent = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
+                              </svg>`;
+        }
+        else {
+            // Show document icon
             previewContent = `
                 <div class="preview-content">
-                    <svg class="external-doc-icon" width="32" height="32" fill="var(--text-color)" viewBox="0 0 24 24">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                 </div>
             `;
