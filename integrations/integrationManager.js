@@ -42,7 +42,6 @@ class IntegrationManager {
         this.registerIntegration('papra', this.integrationClasses.PapraIntegration.SCHEMA);
 
         // Register Home Assistant integration
-        console.log('🔍 Home Assistant SCHEMA before registration:', JSON.stringify(this.integrationClasses.HomeAssistantIntegration.SCHEMA, null, 2));
         this.registerIntegration('homeassistant', this.integrationClasses.HomeAssistantIntegration.SCHEMA);
 
         // Future integrations can be added here

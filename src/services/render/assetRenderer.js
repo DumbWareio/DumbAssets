@@ -579,3 +579,12 @@ function renderAssetDetails(assetId, isSubAsset = false) {
         renderSubAssets(assetId);
     }
 }
+
+// Export functions for use by other modules
+export {
+    initRenderer,
+    updateState,
+    updateSelectedIds,
+    renderAssetDetails,
+    formatFilePath
+};
