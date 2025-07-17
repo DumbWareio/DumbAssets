@@ -47,7 +47,7 @@ export class IntegrationsManager {
             if (loadingElement) loadingElement.style.display = 'block';
             if (errorElement) errorElement.style.display = 'none';
 
-            const response = await fetch(`${globalThis.getApiBaseUrl()}/api/integrations`);
+            const response = await fetch(`${globalThis.getApiBaseUrl()}/api/integrations?t=${new Date().getTime()}`);
             const responseValidation = await globalThis.validateResponse(response);
             if (responseValidation.errorMessage) {
                 throw new Error(responseValidation.errorMessage);
@@ -63,6 +63,7 @@ export class IntegrationsManager {
 
             console.log('Loaded integrations:', Array.from(this.integrations.keys()));
             
+            // Now that data is loaded, proceed with UI rendering
             // Clear loading state
             if (loadingElement) loadingElement.style.display = 'none';
             
@@ -78,6 +79,8 @@ export class IntegrationsManager {
                 errorElement.style.display = 'block';
                 errorElement.textContent = `Failed to load integrations: ${error.message}`;
             }
+        } finally {
+            this.loadingPromise = null; // Reset promise to allow re-fetching if needed
         }
     }
 
@@ -460,6 +463,7 @@ export class IntegrationsManager {
      * Check if integration supports test connection
      */
     integrationSupportsTestConnection(integration) {
+        if (integration.comingSoon) return false;
         return integration.endpoints && integration.endpoints.some(endpoint => 
             endpoint.includes('test-connection') || endpoint.includes('/test')
         );
@@ -527,35 +531,24 @@ export class IntegrationsManager {
         const section = document.querySelector(`[data-integration-id="${integrationId}"]`);
         if (!section) return;
 
-        // Check if this is a "coming soon" integration
         const integration = this.integrations.get(integrationId);
         const isComingSoon = integration && integration.comingSoon;
 
         // For coming soon integrations, always hide dependent fields and test button
         if (isComingSoon) {
-            const dependentFields = section.querySelectorAll('.integration-field.depends-on-enabled');
-            dependentFields.forEach(field => {
-                field.style.display = 'none';
-            });
-
-            const testBtn = section.querySelector('.test-integration-btn');
-            if (testBtn) {
-                testBtn.style.display = 'none';
-            }
-            return;
+            enabled = false;
         }
 
-        // Normal behavior for other integrations
         // Toggle fields that depend on enabled state
         const dependentFields = section.querySelectorAll('.integration-field.depends-on-enabled');
         dependentFields.forEach(field => {
-            field.style.display = enabled ? 'block' : 'none';
+            field.style.display = enabled ? 'flex' : 'none'; // Use flex for proper alignment
         });
 
         // Toggle test button
         const testBtn = section.querySelector('.test-integration-btn');
         if (testBtn) {
-            testBtn.style.display = enabled ? 'block' : 'none';
+            testBtn.style.display = enabled ? 'flex' : 'none'; // Use flex for proper alignment
         }
     }
 
@@ -655,10 +648,9 @@ export class IntegrationsManager {
             const section = document.querySelector(`[data-integration-id="${integrationId}"]`);
             if (!section) return;
 
-            // Check if this is a coming soon integration
             const integration = this.integrations.get(integrationId);
             if (integration && integration.comingSoon) {
-                // For coming soon integrations, just ensure fields are hidden
+                // For coming soon integrations, just ensure fields are hidden and do not save any settings
                 this.toggleIntegrationFields(integrationId, false);
                 return;
             }
