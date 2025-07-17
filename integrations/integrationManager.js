@@ -4,13 +4,20 @@
  */
 
 const { TOKENMASK } = require('../src/constants');
-const PaperlessIntegration = require('./paperless'); // Import Paperless schema
-const PapraIntegration = require('./papra'); // Import Papra schema
-const HomeAssistantIntegration = require('./homeassistant'); // Import Home Assistant schema
+
+function clearModuleCache(modulePath) {
+    try {
+        const fullPath = require.resolve(modulePath);
+        delete require.cache[fullPath];
+    } catch (err) {
+        console.warn(`Failed to clear cache for ${modulePath}:`, err.message);
+    }
+}
 
 class IntegrationManager {
     constructor() {
         this.integrations = new Map();
+        this.integrationClasses = {}; // Store integration classes for route registration
         this.registerBuiltInIntegrations();
     }
 
@@ -18,14 +25,25 @@ class IntegrationManager {
      * Register built-in integrations
      */
     registerBuiltInIntegrations() {
+        // Clear module cache for all integrations to ensure fresh loading
+        clearModuleCache('./paperless');
+        clearModuleCache('./papra');
+        clearModuleCache('./homeassistant');
+
+        // Import integrations fresh after cache clearing
+        this.integrationClasses.PaperlessIntegration = require('./paperless');
+        this.integrationClasses.PapraIntegration = require('./papra');
+        this.integrationClasses.HomeAssistantIntegration = require('./homeassistant');
+
         // Register Paperless NGX integration
-        this.registerIntegration('paperless', PaperlessIntegration.SCHEMA);
+        this.registerIntegration('paperless', this.integrationClasses.PaperlessIntegration.SCHEMA);
 
         // Register Papra integration
-        this.registerIntegration('papra', PapraIntegration.SCHEMA);
+        this.registerIntegration('papra', this.integrationClasses.PapraIntegration.SCHEMA);
 
         // Register Home Assistant integration
-        this.registerIntegration('homeassistant', HomeAssistantIntegration.SCHEMA);
+        console.log('🔍 Home Assistant SCHEMA before registration:', JSON.stringify(this.integrationClasses.HomeAssistantIntegration.SCHEMA, null, 2));
+        this.registerIntegration('homeassistant', this.integrationClasses.HomeAssistantIntegration.SCHEMA);
 
         // Future integrations can be added here
         // this.registerIntegration('nextcloud', { ... });
@@ -41,9 +59,9 @@ class IntegrationManager {
      * It allows each integration to define its own API endpoints
      */
     registerRoutes(app, getSettings) {
-        PaperlessIntegration.registerRoutes(app, getSettings);
-        PapraIntegration.registerRoutes(app, getSettings);
-        HomeAssistantIntegration.registerRoutes(app, getSettings);
+        this.integrationClasses.PaperlessIntegration.registerRoutes(app, getSettings);
+        this.integrationClasses.PapraIntegration.registerRoutes(app, getSettings);
+        this.integrationClasses.HomeAssistantIntegration.registerRoutes(app, getSettings);
         // Future integrations can register their routes here
     }
 
@@ -63,6 +81,7 @@ class IntegrationManager {
             logoHref: config.logoHref || null, // Optional logo URL for frontend display
             colorScheme: config.colorScheme || 'default', // Default color scheme for UI
             category: config.category || 'general',
+            comingSoon: config.comingSoon || false, // Coming soon flag for integrations under development
             
             // Configuration schema for settings UI
             configSchema: config.configSchema || {},
