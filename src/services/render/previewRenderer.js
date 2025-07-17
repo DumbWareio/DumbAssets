@@ -56,7 +56,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
 /**
  * Create a document preview element (receipt or manual)
  * 
- * @param {string} type - Type of document ('receipt' or 'manual')
+ * @param {string} type - Type of document ('receipt', 'manual', or 'image')
  * @param {string} filePath - Path to the document file
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
@@ -76,24 +76,36 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
         case 'import':
             typeLabel = 'Import';
             break;
+        case 'image':
+            typeLabel = 'Image';
+            break;
         default:
             typeLabel = 'Document';
             break;
     }
     const title = `Delete ${typeLabel}`;
 
-    const fileIcon = type === 'receipt' 
-      ? `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    let fileIcon;
+    if (type === 'receipt') {
+        fileIcon = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
           <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
-        </svg>` 
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        </svg>`;
+    } else if (type === 'image') {
+        fileIcon = `<svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+        </svg>`;
+    } else {
+        fileIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
               <polyline points="10 9 9 9 8 9"></polyline>
           </svg>`;
+    }
     
     // Extract file name from path if not provided
     if (!fileName && typeof filePath === 'string') {
@@ -236,8 +248,20 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
     
     // Create the preview element directly with the server path (not mock file)
     const integrationId = fileInfo.integrationId || null;
-    if (type === 'photo') {
+    
+    // Special handling for Paperless images - show image icon instead of trying to load actual image
+    const isPaperlessImage = type === 'photo' && 
+                            integrationId === 'paperless' && 
+                            fileInfo.mimeType && 
+                            fileInfo.mimeType.startsWith('image/');
+    
+    if (isPaperlessImage) {
+        // For Paperless images, use document preview with image icon to avoid broken image links
+        previewElement = createDocumentPreview('image', actualDisplayPath, onDelete, fileName, fileSize, integrationId);
+    } else if (type === 'photo') {
         previewElement = createPhotoPreview(actualDisplayPath, onDelete, fileName, fileSize, integrationId);
+    } else if (type === 'image') {
+        previewElement = createDocumentPreview(type, actualDisplayPath, onDelete, fileName, fileSize, integrationId);
     } else {
         previewElement = createDocumentPreview(type, actualDisplayPath, onDelete, fileName, fileSize, integrationId);
     }
