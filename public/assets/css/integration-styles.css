@@ -385,3 +385,166 @@
   /* object-fit: contain;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); */
 }
+
+/* Integration Settings Styles */
+.integration-section {
+  /* Remove conflicting margin and border styles - let collapsible-section handle them */
+}
+
+.integration-header-content {
+  display: flex;
+  text-align: left;
+  align-items: center;
+  gap: 1rem;
+}
+
+.integration-logo {
+  width: 18px;
+  height: 18px;
+  /* border-radius: 50%; */
+  /* background-color: var(--primary-transparent); */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.integration-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.integration-description {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+}
+
+.integration-fields-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0.5rem;
+}
+
+.integration-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: space-between;
+  /* flex-direction: column; */
+}
+
+.integration-field label {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+.integration-field input[type="text"],
+.integration-field input[type="url"],
+.integration-field input[type="password"] {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--background-color);
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+.integration-field input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.field-description {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  opacity: 0.8;
+  text-align: left;
+}
+
+.test-integration-btn {
+  /* margin: 1rem 0; */
+  /* float: right; */
+  max-width: 140px;
+  background: var(--success-color);
+}
+
+/* Integration field visibility based on dependencies */
+.integration-field.depends-on-enabled {
+  transition: opacity 0.2s ease, max-height 0.3s ease;
+}
+
+.integration-field.depends-on-enabled[style*="display: none"] {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+}
+
+/* Integration category styles */
+.integration-category {
+  margin-bottom: 1.5rem;
+}
+
+.integration-category:last-child {
+  margin-bottom: 0;
+}
+
+/* Switch styles for integration toggles - scoped to integration section */
+.integration-section .switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.integration-section .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.integration-section .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-color);
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.integration-section .slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.integration-section input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+.integration-section input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* File source styling */
+.file-source {
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  font-style: italic;
+  margin-top: 0.25rem;
+  display: block;
+}
