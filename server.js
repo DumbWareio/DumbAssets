@@ -2189,13 +2189,17 @@ app.get('/api/settings', (req, res) => {
 
 // Get available integrations for settings UI
 app.get('/api/integrations', (req, res) => {
-    try {
-        const integrations = integrationManager.getIntegrationsForSettings();
-        res.json(integrations);
-    } catch (error) {
-        console.error('Failed to get integrations:', error);
-        res.status(500).json({ error: 'Failed to get integrations' });
+    const integrations = integrationManager.getAllIntegrations();
+    
+    // Debug: Log Home Assistant schema
+    const haIntegration = integrations.find(i => i.id === 'homeassistant');
+    if (haIntegration) {
+        console.log('Loaded Home Assistant Schema:', JSON.stringify(haIntegration, null, 2));
+    } else {
+        console.log('Home Assistant integration not found in loaded schemas');
     }
+    
+    res.json(integrations);
 });
 
 // Get enabled integrations for external document search
