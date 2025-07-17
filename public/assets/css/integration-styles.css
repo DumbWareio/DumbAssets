@@ -548,3 +548,36 @@
   margin-top: 0.25rem;
   display: block;
 }
+
+/* Coming Soon message styling */
+.coming-soon-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coming-soon-message span {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.25rem !important;
+  background-color: rgba(79, 172, 254, 0.1) !important;
+  border: 1px solid rgba(79, 172, 254, 0.3) !important;
+  display: inline-block !important;
+  animation: pulse-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from {
+    box-shadow: 0 0 5px rgba(79, 172, 254, 0.2);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 10px rgba(79, 172, 254, 0.4);
+    transform: scale(1.02);
+  }
+}

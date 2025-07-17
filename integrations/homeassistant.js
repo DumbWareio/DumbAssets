@@ -27,6 +27,7 @@ class HomeAssistantIntegration {
     colorScheme: '#41BDF5',
     category: 'monitoring',
     apiEndpoint: API_HOMEASSISTANT_ENDPOINT,
+    comingSoon: true,
     
     configSchema: {
       enabled: {

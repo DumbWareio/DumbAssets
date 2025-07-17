@@ -397,6 +397,32 @@ export class IntegrationsManager {
                 break;
                 
             case 'boolean':
+                // Check if this is the enable field for a "coming soon" integration
+                if (fieldName === 'enabled') {
+                    const integration = this.integrations.get(integrationId);
+                    if (integration && integration.comingSoon) {
+                        // Show "Coming Soon!" message instead of toggle
+                        input = document.createElement('div');
+                        input.className = 'coming-soon-message';
+                        input.innerHTML = `
+                            <span style="
+                                background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+                                -webkit-background-clip: text;
+                                -webkit-text-fill-color: transparent;
+                                background-clip: text;
+                                font-weight: 600;
+                                font-size: 0.875rem;
+                                padding: 0.25rem 0.5rem;
+                                border-radius: 0.25rem;
+                                background-color: rgba(79, 172, 254, 0.1);
+                                border: 1px solid rgba(79, 172, 254, 0.3);
+                                display: inline-block;
+                            ">Coming Soon!</span>
+                        `;
+                        break;
+                    }
+                }
+                
                 // For boolean fields other than 'enabled', render as checkbox
                 input = document.createElement('div');
                 input.className = 'checkbox-container';
@@ -465,6 +491,13 @@ export class IntegrationsManager {
             this.toggleIntegrationFields(integrationId, toggle.checked);
         });
 
+        // For coming soon integrations, ensure fields are always hidden
+        this.integrations.forEach((integration, integrationId) => {
+            if (integration.comingSoon) {
+                this.toggleIntegrationFields(integrationId, false);
+            }
+        });
+
         // Sensitive field focus events for password fields
         document.querySelectorAll('.integration-section input[data-sensitive="true"]').forEach(field => {
             field.addEventListener('focus', () => {
@@ -494,6 +527,25 @@ export class IntegrationsManager {
         const section = document.querySelector(`[data-integration-id="${integrationId}"]`);
         if (!section) return;
 
+        // Check if this is a "coming soon" integration
+        const integration = this.integrations.get(integrationId);
+        const isComingSoon = integration && integration.comingSoon;
+
+        // For coming soon integrations, always hide dependent fields and test button
+        if (isComingSoon) {
+            const dependentFields = section.querySelectorAll('.integration-field.depends-on-enabled');
+            dependentFields.forEach(field => {
+                field.style.display = 'none';
+            });
+
+            const testBtn = section.querySelector('.test-integration-btn');
+            if (testBtn) {
+                testBtn.style.display = 'none';
+            }
+            return;
+        }
+
+        // Normal behavior for other integrations
         // Toggle fields that depend on enabled state
         const dependentFields = section.querySelectorAll('.integration-field.depends-on-enabled');
         dependentFields.forEach(field => {
@@ -602,6 +654,14 @@ export class IntegrationsManager {
         Object.entries(integrationSettings).forEach(([integrationId, config]) => {
             const section = document.querySelector(`[data-integration-id="${integrationId}"]`);
             if (!section) return;
+
+            // Check if this is a coming soon integration
+            const integration = this.integrations.get(integrationId);
+            if (integration && integration.comingSoon) {
+                // For coming soon integrations, just ensure fields are hidden
+                this.toggleIntegrationFields(integrationId, false);
+                return;
+            }
 
             // Set enabled state
             const enabledToggle = section.querySelector(`#${integrationId}Enabled`);
