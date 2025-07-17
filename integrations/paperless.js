@@ -108,7 +108,7 @@ class PaperlessIntegration {
       }
         
       try {
-        return await this.testConnection(config);
+        return await PaperlessIntegration.testConnection(config);
       } catch (error) {
         return { status: 'error', message: error.message };
       }

@@ -121,7 +121,7 @@ class PapraIntegration {
       }
         
       try {
-        return await this.testConnection(config);
+        return await PapraIntegration.testConnection(config);
       } catch (error) {
         return { status: 'error', message: error.message };
       }
@@ -154,6 +154,7 @@ class PapraIntegration {
       };
     } catch (error) {
       console.error('Papra connection test failed:', error);
+      throw error;
     }
   }
 

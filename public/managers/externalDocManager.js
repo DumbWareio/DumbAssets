@@ -29,6 +29,9 @@ export class ExternalDocManager {
             'linkExternalSubPhotos', 'linkExternalSubReceipts', 'linkExternalSubManuals'
         ];
         
+        // Store event handlers for proper cleanup
+        this.eventHandlers = new Map();
+        
         // File extension filters for different attachment types (more reliable than MIME types)
         this.fileExtensionFilters = {
             photo: [
@@ -119,7 +122,11 @@ export class ExternalDocManager {
             this.buttonIds.forEach(buttonId => {
                 const button = document.getElementById(buttonId);
                 if (button) {
-                    button.removeEventListener('click', (e) => this.handleLinkExternalDocs(e, buttonId));
+                    const handler = this.eventHandlers.get(buttonId);
+                    if (handler) {
+                        button.removeEventListener('click', handler);
+                        this.eventHandlers.delete(buttonId);
+                    }
                     button.style.display = 'none';
                 }
             });
@@ -142,7 +149,9 @@ export class ExternalDocManager {
                 this.buttonIds.forEach(buttonId => {
                     const button = document.getElementById(buttonId);
                     if (button) {
-                        button.addEventListener('click', (e) => this.handleLinkExternalDocs(e, buttonId));
+                        const handler = (e) => this.handleLinkExternalDocs(e, buttonId);
+                        this.eventHandlers.set(buttonId, handler);
+                        button.addEventListener('click', handler);
                         button.style.display = 'flex';
                     }
                 });
