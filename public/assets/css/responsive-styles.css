@@ -110,18 +110,19 @@
   .sidebar {
     position: fixed;
     top: 0;
-    left: -300px; /* Hidden by default */
+    left: 0;
     width: 300px;
     height: 100vh;
     z-index: 999;
-    transition: left 0.3s ease;
+    transform: translateX(-100%); /* Hidden by default using transform */
+    transition: transform 0.3s ease;
     border-right: var(--app-border);
     background-color: var(--background-color);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   }
 
   .sidebar.open {
-    left: 0; /* Show sidebar when open */
+    transform: translateX(0); /* Show sidebar when open */
   }
 
   .sidebar-overlay {
