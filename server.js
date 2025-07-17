@@ -918,10 +918,13 @@ async function createSubAssetDuplicate(source, index, selectedProperties, allSub
 }
 
 /**
- * Handles file duplication for assets and sub-assets
- * @param {Object} source - The source asset/sub-asset
- * @param {Object} duplicate - The duplicate asset/sub-asset
- * @param {Object} selectedProperties - Which properties to copy
+ * Duplicates file references and associated metadata for asset or sub-asset objects, handling both local and external files.
+ *
+ * For each selected property (photos, receipts, manuals), copies local files to new locations and updates file info, while external files (identified by integration ID or external path) are referenced as-is in the duplicate object.
+ * 
+ * @param {Object} source - The original asset or sub-asset containing file references and metadata.
+ * @param {Object} duplicate - The duplicate asset or sub-asset object to populate with duplicated file references and metadata.
+ * @param {Object} selectedProperties - An object indicating which file properties (photoPath, receiptPath, manualPath) should be duplicated.
  */
 async function handleFileDuplication(source, duplicate, selectedProperties) {
     // Initialize file arrays and paths
@@ -935,7 +938,13 @@ async function handleFileDuplication(source, duplicate, selectedProperties) {
     duplicate.receiptPath = null;
     duplicate.manualPath = null;
 
-    // Helper to check if a file is external (integrationId or /external/ path)
+    /**
+     * Determines whether a file is considered external based on its path or associated file information.
+     * A file is external if its file info contains an `integrationId` or its path includes `/external/`.
+     * @param {string} filePath - The file path to check.
+     * @param {Object} fileInfo - Optional file information object.
+     * @return {boolean} True if the file is external; otherwise, false.
+     */
     function isExternalFile(filePath, fileInfo) {
         if (!filePath && !fileInfo) return false;
         if (fileInfo && fileInfo.integrationId) return true;
@@ -2057,6 +2066,10 @@ function parseExcelDate(value) {
     return '';
 }
 
+/**
+ * Retrieves the current application settings, merging saved configuration from disk with default settings.
+ * @returns {Object} The combined application settings object.
+ */
 function getAppSettings() {
     const configPath = path.join(DATA_DIR, 'config.json');
     // Return default settings if config does not exist
@@ -2068,7 +2081,13 @@ function getAppSettings() {
     return config;
 }
 
-// Use before sending settings to frontend
+/**
+ * Returns a copy of the application settings with sensitive integration tokens removed from integration configurations.
+ * 
+ * Uses the integration manager to sanitize each integration's settings before exposing them to the frontend.
+ * @param {Object} appSettings - The full application settings object.
+ * @return {Object} The sanitized settings object safe for frontend use.
+ */
 function stripIntegrationTokens(appSettings) {
     const sanitizedSettings = { ...appSettings };
     
@@ -2084,7 +2103,12 @@ function stripIntegrationTokens(appSettings) {
     return sanitizedSettings;
 }
 
-// Use integration manager for validation and sensitive data handling
+/**
+ * Validates and applies integration settings to the server configuration using the integration manager.
+ * @param {object} serverConfig - The current server configuration.
+ * @param {object} updatedConfig - The updated configuration containing new integration settings.
+ * @return {object} The result of applying and validating the integration settings.
+ */
 function applyIntegrationSettings(serverConfig, updatedConfig) {
     return integrationManager.applyIntegrationSettings(serverConfig, updatedConfig);
 }

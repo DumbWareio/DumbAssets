@@ -7,11 +7,14 @@
 let integrationsManager;
 
 /**
- * Create a photo preview element
- * 
- * @param {string} filePath - Path to the photo file
- * @param {Function} onDeleteCallback - Callback function when delete button is clicked
- * @return {HTMLElement} The created preview element
+ * Creates an HTML element displaying a photo file preview, including an optional integration badge and delete button.
+ *
+ * @param {string} filePath - The path to the photo file.
+ * @param {Function} onDeleteCallback - Function to call when the delete button is clicked.
+ * @param {string|null} [fileName=null] - Optional display name for the file; extracted from the path if not provided.
+ * @param {number|null} [fileSize=null] - Optional file size (unused in preview rendering).
+ * @param {string|null} [integrationId=null] - Optional integration ID to display an associated badge.
+ * @return {HTMLElement} The constructed photo preview element.
  */
 export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null, integrationId = null) {
     const previewItem = document.createElement('div');
@@ -54,12 +57,17 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
 }
 
 /**
- * Create a document preview element (receipt or manual)
- * 
- * @param {string} type - Type of document ('receipt', 'manual', or 'image')
- * @param {string} filePath - Path to the document file
- * @param {Function} onDeleteCallback - Callback function when delete button is clicked
- * @return {HTMLElement} The created preview element
+ * Creates an HTML element representing a document preview, including icon, file name, and optional integration badge.
+ *
+ * Supports document types such as 'receipt', 'manual', 'import', 'image', and defaults to 'document'. The preview includes a type-specific icon, a delete button, and displays the file name. If an integration ID is provided, an integration badge is shown.
+ *
+ * @param {string} type - The type of document ('receipt', 'manual', 'import', 'image', or other).
+ * @param {string} filePath - The path to the document file.
+ * @param {Function} onDeleteCallback - Callback invoked when the delete button is clicked.
+ * @param {string|null} [fileName=null] - Optional file name to display; extracted from filePath if not provided.
+ * @param {number|null} [fileSize=null] - Optional file size (not displayed in the preview).
+ * @param {string|null} [integrationId=null] - Optional integration ID for displaying an integration badge.
+ * @return {HTMLElement} The constructed document preview element.
  */
 export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null, integrationId = null) {
     const previewItem = document.createElement('div');
@@ -187,17 +195,19 @@ export function setupFilePreview(container, type, displayPath, originalPath, fil
 }
 
 /**
- * Add existing file preview using the new file upload helpers (prevents re-upload duplication)
- * 
- * @param {Element} container - The container element to add preview to
- * @param {string} type - Type of preview ('photo', 'receipt', or 'manual')
- * @param {string} displayPath - Path to the file for display (e.g., with base URL)
- * @param {string} originalPath - Original path of the file as stored on the server
- * @param {Element} fileInput - The file input element
- * @param {Object} modalManager - The instance of the modal manager to update delete flags
- * @param {string} fileName - The name of the file
- * @param {string} fileSize - The size of the file (in bytes)
- * @param {Object} fileInfo - Additional file information (e.g., integrationId)
+ * Adds a preview element for an existing file to a container, supporting integration badges and preventing duplicate uploads.
+ *
+ * For files linked to integrations, displays the appropriate badge and uses a preview URL if available. Handles special cases for Paperless integration images by rendering a document preview with an image icon. When a file is deleted, updates the modal manager's deletion list and, if file upload helpers are present, adds a marker file to track the deletion.
+ *
+ * @param {Element} container - The container to which the preview element will be appended.
+ * @param {string} type - The type of file preview ('photo', 'receipt', 'manual', 'import', 'image', or other document types).
+ * @param {string} displayPath - The display path or URL for the file.
+ * @param {string} originalPath - The original server-side path of the file.
+ * @param {Element} fileInput - The file input element associated with the upload.
+ * @param {Object} modalManager - The modal manager instance used to track files marked for deletion.
+ * @param {string} [fileName=null] - The file's name; if not provided, it is extracted from the display path.
+ * @param {string} [fileSize=null] - The file's size in bytes.
+ * @param {Object} [fileInfo={}] - Additional file metadata, such as integrationId, previewUrl, or mimeType.
  */
 export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null, fileInfo = {}) {
     if (!container || !displayPath || !fileInput) return;
@@ -271,17 +281,19 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
 }
 
 /**
- * Get the appropriate integration badge HTML based on integration ID
- * @param {string} integrationId - The integration identifier
- * @returns {string} - The badge HTML
+ * Returns the HTML string for an integration badge corresponding to the given integration ID.
+ * If a badge is not available from the integrations manager, a generic badge is returned.
+ * @param {string} integrationId - The unique identifier for the integration.
+ * @returns {string} The HTML markup for the integration badge.
  */
 function getIntegrationBadge(integrationId) {
     return integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
 }
 
 /**
- * Initialize the preview renderer with required dependencies
- * @param {Object} config Configuration object with dependencies
+ * Initializes the preview renderer with external dependencies.
+ * 
+ * Sets up required services such as the integrations manager for use in file preview rendering functions.
  */
 export function initPreviewRenderer(config) {
     integrationsManager = config.integrationsManager;
