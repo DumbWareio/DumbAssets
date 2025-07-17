@@ -504,4 +504,78 @@ function renderAssetDetails(assetId, isSubAsset = false) {
                     </div>
                 </div>
                 <div class="asset-actions">
-                    ${isSub ? `<button class="back-to-parent-btn" title="Back to Parent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>`
+                    ${isSub ? `<button class="back-to-parent-btn" title="Back to Parent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>` : ''}
+                    <button class="copy-link-btn" title="Copy Link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></button>
+                    <button class="edit-asset-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg></button>
+                    <button class="duplicate-asset-btn" title="Duplicate"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path stroke="none" d="M0 0h24v24H0z"/><path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"/><path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"/><path d="M11 14h6"/><path d="M14 11v6"/></svg></button>
+                    <button class="delete-asset-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+                </div>
+            </div>
+            <div class="asset-info">
+                ${generateAssetInfoHTML(asset)}
+                ${maintenanceScheduleHtml}
+            </div>
+            ${generateFileGridHTML(asset)}
+            ${asset.maintenanceEvents && asset.maintenanceEvents.length > 0 ? generateMaintenanceEventsHTML(asset.maintenanceEvents) : ''}
+        </fieldset>
+    `;
+
+    // Set up event listeners for asset actions
+    const copyLinkBtn = assetDetails.querySelector('.copy-link-btn');
+    const editBtn = assetDetails.querySelector('.edit-asset-btn');
+    const duplicateBtn = assetDetails.querySelector('.duplicate-asset-btn');
+    const deleteBtn = assetDetails.querySelector('.delete-asset-btn');
+    const backBtn = assetDetails.querySelector('.back-to-parent-btn');
+
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', () => {
+            const url = new URL(window.location);
+            url.searchParams.set('asset', asset.id);
+            if (isSub) url.searchParams.set('sub', 'true');
+            navigator.clipboard.writeText(url.toString()).then(() => {
+                globalThis.toaster?.show('Link copied to clipboard', 'success');
+            }).catch(() => {
+                globalThis.toaster?.show('Failed to copy link', 'error');
+            });
+        });
+    }
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            if (isSub) {
+                openSubAssetModal(asset);
+            } else {
+                openAssetModal(asset);
+            }
+        });
+    }
+
+    if (duplicateBtn) {
+        duplicateBtn.addEventListener('click', () => {
+            const type = isSub ? 'subAsset' : 'asset';
+            openDuplicateModal(type, asset.id);
+        });
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+            if (isSub) {
+                deleteSubAsset(asset.id);
+            } else {
+                deleteAsset(asset.id);
+            }
+        });
+    }
+
+    if (backBtn && isSub) {
+        backBtn.addEventListener('click', () => {
+            // Navigate back to parent asset
+            renderAssetDetails(asset.parentId, false);
+        });
+    }
+
+    // Show sub-assets container if this is a main asset
+    if (!isSub) {
+        renderSubAssets(assetId);
+    }
+}
