@@ -39,7 +39,7 @@ A stupid simple asset tracker for keeping track of your physical assets, their c
 ### Prerequisites
 
 - Docker (recommended)
-- Node.js >=14.0.0 (for local development)
+- Node.js >=20.0.0 (for local development)
 
 ### Option 1: Docker (For Dummies)
 
