@@ -295,14 +295,16 @@ export class SettingsManager {
             const settingsCopy = { ...settings };
             localStorage.setItem(this.localSettingsStorageKey, JSON.stringify(settingsCopy));
             
-            // this.closeSettingsModal();
-            
-            globalThis.toaster.show('Settings saved');
             
             if (!this.selectedAssetId && typeof this.renderDashboard === 'function') {
                 this.renderDashboard();
             }
-            this.loadActiveIntegrations(); // reload integrations
+            
+            // this.closeSettingsModal(); // Don't close modal automatically, let user decide
+            // Reload settings to ensure everything is up-to-date
+            await this.loadSettings();
+
+            globalThis.toaster.show('Settings saved');
         } catch (error) {
             globalThis.logError('Failed to save settings:', error.message);
         } finally {
