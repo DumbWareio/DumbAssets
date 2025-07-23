@@ -242,10 +242,10 @@ function generateAssetInfoHTML(asset) {
 /**
  * Format filename for display with truncation if needed
  * @param {string} fileName - The original filename
- * @param {number} maxLength - Maximum length (default 15)
+ * @param {number} maxLength - Maximum length (default 30)
  * @returns {string} Formatted filename
  */
-function formatDisplayFileName(fileName, maxLength = 15) {
+function formatDisplayFileName(fileName, maxLength = 30) {
     if (!fileName || fileName.length <= maxLength) {
         return fileName || 'Unknown File';
     }
@@ -273,9 +273,11 @@ function formatDisplayFileName(fileName, maxLength = 15) {
 
 function generateFileGridHTML(asset) {
     let html = '';
-    
+    // create a div and add compact-files-grid class to it
+        
     // Handle multiple photos
     if (asset.photoPaths && Array.isArray(asset.photoPaths) && asset.photoPaths.length > 0) {
+        html += `<div class="preview-grid">`;
         asset.photoPaths.forEach((photoPath, index) => {
             const photoInfo = asset.photoInfo?.[index] || {};
             const fileName = photoInfo.originalName || photoPath.split('/').pop();
@@ -298,7 +300,9 @@ function generateFileGridHTML(asset) {
                 </div>
             `;
         });
+        html += `</div>`;
     } else if (asset.photoPath) {
+        html += `<div class="preview-grid">`;
         // Backward compatibility for single photo
         const photoInfo = asset.photoInfo?.[0] || {};
         const fileName = photoInfo.originalName || asset.photoPath.split('/').pop();
@@ -313,10 +317,12 @@ function generateFileGridHTML(asset) {
                 </a>
             </div>
         `;
+        html += `</div>`;
     }
     
     // Handle multiple receipts
     if (asset.receiptPaths && Array.isArray(asset.receiptPaths) && asset.receiptPaths.length > 0) {
+        html += `<div class="preview-grid">`;
         asset.receiptPaths.forEach((receiptPath, index) => {
             const receiptInfo = asset.receiptInfo?.[index] || {};
             const fileName = receiptInfo.originalName || receiptPath.split('/').pop();
@@ -335,7 +341,9 @@ function generateFileGridHTML(asset) {
                 </div>
             `;
         });
+        html += `</div>`;
     } else if (asset.receiptPath) {
+        html += `<div class="preview-grid">`;
         // Backward compatibility for single receipt
         const receiptInfo = asset.receiptInfo?.[0] || {};
         const fileName = receiptInfo.originalName || asset.receiptPath.split('/').pop();
@@ -353,10 +361,12 @@ function generateFileGridHTML(asset) {
                 </a>
             </div>
         `;
+        html += `</div>`;
     }
     
     // Handle multiple manuals
     if (asset.manualPaths && Array.isArray(asset.manualPaths) && asset.manualPaths.length > 0) {
+        html += `<div class="preview-grid">`;
         asset.manualPaths.forEach((manualPath, index) => {
             const manualInfo = asset.manualInfo?.[index] || {};
             const fileName = manualInfo.originalName || manualPath.split('/').pop();
@@ -378,12 +388,14 @@ function generateFileGridHTML(asset) {
                 </div>
             `;
         });
+        html += `</div>`;
     } else if (asset.manualPath) {
         // Backward compatibility for single manual
         const manualInfo = asset.manualInfo?.[0] || {};
         const fileName = manualInfo.originalName || asset.manualPath.split('/').pop();
         const integrationClass = manualInfo.integrationId ? ` ${manualInfo.integrationId}-document` : '';
         const integrationBadge = manualInfo.integrationId ? getIntegrationBadge(manualInfo.integrationId) : '';
+        html += `<div class="preview-grid">`;
         html += `
             <div class="file-item manual external-document${integrationClass}">
                 <a href="${formatFilePath(asset.manualPath)}" target="_blank" class="file-preview">
@@ -399,8 +411,10 @@ function generateFileGridHTML(asset) {
                 </a>
             </div>
         `;
+        html += `<div class="preview-grid">`;
     }
     
+    html += `</div>`; // Close the compact-files-grid div
     return html || '<!-- No files available -->';
 }
 
