@@ -273,7 +273,6 @@ function formatDisplayFileName(fileName, maxLength = 30) {
 
 function generateFileGridHTML(asset) {
     let html = '';
-    // create a div and add compact-files-grid class to it
         
     // Handle multiple photos
     if (asset.photoPaths && Array.isArray(asset.photoPaths) && asset.photoPaths.length > 0) {
@@ -413,8 +412,7 @@ function generateFileGridHTML(asset) {
         `;
         html += `<div class="preview-grid">`;
     }
-    
-    html += `</div>`; // Close the compact-files-grid div
+
     return html || '<!-- No files available -->';
 }
 
