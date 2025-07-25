@@ -64,16 +64,25 @@ function setupCollapsible(section) {
     
     header.addEventListener('click', header._clickHandler);
     
-    // Set initial state based on data attribute
-    const startCollapsed = section.getAttribute('data-collapsed') === 'true';
+    // Preserve current expanded state if section is already expanded
+    const isCurrentlyExpanded = !section.classList.contains('collapsed') && content.style.height !== '0px' && content.style.height !== '';
     
-    if (startCollapsed) {
-        section.classList.add('collapsed');
-        content.style.height = '0px';
-    } else {
+    if (isCurrentlyExpanded) {
+        // Section is already expanded, just recalculate height to ensure proper sizing
         section.classList.remove('collapsed');
-        // Make sure the content has rendered before calculating height
         calculateCollapsibleContentHeight(content);
+    } else {
+        // Set initial state based on data attribute for new or collapsed sections
+        const startCollapsed = section.getAttribute('data-collapsed') === 'true';
+        
+        if (startCollapsed) {
+            section.classList.add('collapsed');
+            content.style.height = '0px';
+        } else {
+            section.classList.remove('collapsed');
+            // Make sure the content has rendered before calculating height
+            calculateCollapsibleContentHeight(content);
+        }
     }
 }
 
