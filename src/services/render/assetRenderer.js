@@ -37,18 +37,19 @@ let subAssetContainer;
 let integrationsManager;
 
 /**
- * Get the appropriate integration badge HTML based on integration ID
- * @param {string} integrationId - The integration identifier
- * @returns {string} - The badge HTML
+ * Returns the HTML for an integration badge corresponding to the given integration ID.
+ * If the integrations manager provides a badge, it is used; otherwise, a generic badge is returned.
+ * @param {string} integrationId - The unique identifier for the integration.
+ * @returns {string} HTML string representing the integration badge.
  */
 function getIntegrationBadge(integrationId) {
     return integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
 }
 
 /**
- * Initialize the renderer with required dependencies
- * 
- * @param {Object} config Configuration object with dependencies
+ * Initializes the asset renderer service with external dependencies and configuration.
+ *
+ * @param {Object} config - Object containing utility functions, module methods, global state, DOM references, and an integrations manager required for rendering assets and sub-assets.
  */
 function initRenderer(config) {
     // Store references to utility functions
@@ -271,6 +272,14 @@ function formatDisplayFileName(fileName, maxLength = 30) {
     return nameWithoutExt.substring(0, availableSpace) + '...' + extension;
 }
 
+/**
+ * Generates HTML markup for displaying asset-related files, including photos, receipts, and manuals, with integration badges and file labels.
+ *
+ * Supports both multiple and single file paths for backward compatibility. Integration-specific CSS classes and badges are applied when integration information is present. For photos, uses a preview URL if provided by an integration.
+ *
+ * @param {Object} asset - The asset object containing file paths and metadata.
+ * @returns {string} HTML string representing the file grid, or a comment if no files are available.
+ */
 function generateFileGridHTML(asset) {
     let html = '';
         

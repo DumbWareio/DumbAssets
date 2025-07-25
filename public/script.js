@@ -125,7 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartManager = new ChartManager({ formatDate });
 
     // Acts as constructor for the app
-    // will be called at the very end of the file
+    /**
+     * Initializes the DumbAssets application, setting up integrations, managers, UI components, event listeners, and loading initial data.
+     *
+     * This function bootstraps the entire app, including loading integrations for dynamic features, initializing all core managers and modules, configuring UI event handlers, and rendering the initial dashboard or asset view based on URL parameters.
+     */
     async function initialize() {
         // Display demo banner if in demo mode
         if (window.appConfig?.demoMode) {
