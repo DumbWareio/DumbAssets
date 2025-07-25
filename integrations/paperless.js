@@ -271,7 +271,7 @@ class PaperlessIntegration {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${config.hostUrl.replace(/\/$/, '')}/api/documents/${documentId}/download/`, {
+      const response = await fetch(`${config.hostUrl.replace(/\/$/, '')}/api/documents/${documentId}/download/?original=true`, {
         headers: {
           'Authorization': `Token ${config.apiToken}`
         },
@@ -422,21 +422,27 @@ class PaperlessIntegration {
       }
     });
 
-    // Proxy Paperless document preview for images (for UI display)
+    // Proxy Paperless document preview/thumbnail for images (optimized for UI display)
     app.get(BASE_PATH + `/${API_PAPERLESS_ENDPOINT}/document/:id/preview`, async (req, res) => {
       try {
         const config = await getPaperlessConfig();
         const documentId = req.params.id;
         
-        const response = await this.downloadDocument(config, documentId);
+        // Call the Paperless thumbnail API endpoint for optimized image previews
+        const thumbnailUrl = `${config.hostUrl.replace(/\/$/, '')}/api/documents/${documentId}/thumb/`;
         
-        // Only allow image content types for preview
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.startsWith('image/')) {
-          return res.status(400).json({ error: 'Document is not an image' });
+        const response = await fetch(thumbnailUrl, {
+          headers: {
+            'Authorization': `Token ${config.apiToken}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch thumbnail: ${response.status} ${response.statusText}`);
         }
         
         // Set appropriate headers for image display
+        const contentType = response.headers.get('content-type') || 'image/webp';
         res.setHeader('content-type', contentType);
         res.setHeader('cache-control', 'private, max-age=3600'); // Cache for 1 hour
         
