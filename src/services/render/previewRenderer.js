@@ -3,6 +3,9 @@
  * Provides centralized functions for rendering file previews consistently across the application
  */
 
+// IntegrationsManager reference - will be injected
+let integrationsManager;
+
 /**
  * Create a photo preview element
  * 
@@ -10,7 +13,7 @@
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
  */
-export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null) {
+export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, fileSize = null, integrationId = null) {
     const previewItem = document.createElement('div');
     previewItem.className = 'file-preview-item';
     
@@ -19,12 +22,16 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
         fileName = filePath.split('/').pop();
     }
     
+    const integrationBadge = integrationId ? 
+        getIntegrationBadge(integrationId) : '';
+    
     previewItem.innerHTML = `
         <div class="file-preview">
             <div class="preview-content">
                 <img src="${filePath}" alt="Photo Preview">
             </div>
         </div>
+        ${integrationBadge}
         <button type="button" class="delete-preview-btn" title="Delete Image">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -49,12 +56,12 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
 /**
  * Create a document preview element (receipt or manual)
  * 
- * @param {string} type - Type of document ('receipt' or 'manual')
+ * @param {string} type - Type of document ('receipt', 'manual', or 'image')
  * @param {string} filePath - Path to the document file
  * @param {Function} onDeleteCallback - Callback function when delete button is clicked
  * @return {HTMLElement} The created preview element
  */
-export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null) {
+export function createDocumentPreview(type, filePath, onDeleteCallback, fileName = null, fileSize = null, integrationId = null) {
     const previewItem = document.createElement('div');
     previewItem.className = 'file-preview-item';
     
@@ -69,29 +76,44 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
         case 'import':
             typeLabel = 'Import';
             break;
+        case 'image':
+            typeLabel = 'Image';
+            break;
         default:
             typeLabel = 'Document';
             break;
     }
     const title = `Delete ${typeLabel}`;
 
-    const fileIcon = type === 'receipt' 
-      ? `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    let fileIcon;
+    if (type === 'receipt') {
+        fileIcon = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
           <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
-        </svg>` 
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        </svg>`;
+    } else if (type === 'image') {
+        fileIcon = `<svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+        </svg>`;
+    } else {
+        fileIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
               <polyline points="10 9 9 9 8 9"></polyline>
           </svg>`;
+    }
     
     // Extract file name from path if not provided
     if (!fileName && typeof filePath === 'string') {
         fileName = filePath.split('/').pop();
     }
+    
+    const integrationBadge = integrationId ? 
+        getIntegrationBadge(integrationId) : '';
     
     previewItem.innerHTML = `
         <div class="file-preview">
@@ -99,6 +121,7 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
                 ${fileIcon}
             </div>
         </div>
+        ${integrationBadge}
         <button type="button" class="delete-preview-btn" title="${title}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -174,13 +197,20 @@ export function setupFilePreview(container, type, displayPath, originalPath, fil
  * @param {Object} modalManager - The instance of the modal manager to update delete flags
  * @param {string} fileName - The name of the file
  * @param {string} fileSize - The size of the file (in bytes)
+ * @param {Object} fileInfo - Additional file information (e.g., integrationId)
  */
-export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null) {
+export function setupExistingFilePreview(container, type, displayPath, originalPath, fileInput, modalManager, fileName = null, fileSize = null, fileInfo = {}) {
     if (!container || !displayPath || !fileInput) return;
 
     // Extract file name from path if not provided
     if (!fileName && typeof displayPath === 'string') {
         fileName = displayPath.split('/').pop();
+    }
+
+    // For external images with integration info, use preview URL if available
+    let actualDisplayPath = displayPath;
+    if (type === 'photo' && fileInfo.integrationId && fileInfo.previewUrl) {
+        actualDisplayPath = fileInfo.previewUrl;
     }
 
     // Create the delete handler that integrates with the modal manager's filesToDelete system
@@ -217,42 +247,51 @@ export function setupExistingFilePreview(container, type, displayPath, originalP
     let previewElement;
     
     // Create the preview element directly with the server path (not mock file)
-    if (type === 'photo') {
-        previewElement = createPhotoPreview(displayPath, onDelete, fileName, fileSize);
+    const integrationId = fileInfo.integrationId || null;
+    
+    // Special handling for Paperless images - show image icon instead of trying to load actual image
+    const isPaperlessImage = type === 'photo' && 
+                            integrationId === 'paperless' && 
+                            fileInfo.mimeType && 
+                            fileInfo.mimeType.startsWith('image/');
+    
+    if (isPaperlessImage) {
+        // For Paperless images, use document preview with image icon to avoid broken image links
+        previewElement = createDocumentPreview('image', actualDisplayPath, onDelete, fileName, fileSize, integrationId);
+    } else if (type === 'photo') {
+        previewElement = createPhotoPreview(actualDisplayPath, onDelete, fileName, fileSize, integrationId);
+    } else if (type === 'image') {
+        previewElement = createDocumentPreview(type, actualDisplayPath, onDelete, fileName, fileSize, integrationId);
     } else {
-        previewElement = createDocumentPreview(type, displayPath, onDelete, fileName, fileSize);
+        previewElement = createDocumentPreview(type, actualDisplayPath, onDelete, fileName, fileSize, integrationId);
     }
     
     // Add the preview to the container
     container.appendChild(previewElement);
-    
-    // If file upload helpers are available, create a representation of the existing file
-    // This ensures the file system knows about the existing file but won't upload it
-    if (fileInput._fileUploadHelpers) {
-        try {
-            // Create a marker file that represents the existing file
-            const existingFileMarker = new File(['EXISTING_FILE'], fileName, {
-                type: type === 'photo' ? 'image/jpeg' : 'application/pdf',
-                lastModified: Date.now() - Math.random() * 1000000000 // Unique timestamp
-            });
-            
-            // Mark this as an existing file with metadata
-            existingFileMarker._originalPath = originalPath;
-            existingFileMarker._displayPath = displayPath;
-            existingFileMarker._isExisting = true;
-            existingFileMarker._previewElement = previewElement;
-            
-            // Add as existing file (won't be uploaded)
-            fileInput._fileUploadHelpers.addExistingFile(existingFileMarker);
-        } catch (error) {
-            console.warn('Could not create file marker for existing file:', error);
-        }
-    }
+}
+
+/**
+ * Get the appropriate integration badge HTML based on integration ID
+ * @param {string} integrationId - The integration identifier
+ * @returns {string} - The badge HTML
+ */
+function getIntegrationBadge(integrationId) {
+    return integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+}
+
+/**
+ * Initialize the preview renderer with required dependencies
+ * @param {Object} config Configuration object with dependencies
+ */
+export function initPreviewRenderer(config) {
+    integrationsManager = config.integrationsManager;
 }
 
 export default {
     createPhotoPreview,
     createDocumentPreview,
     setupFilePreview,
-    setupExistingFilePreview
+    setupExistingFilePreview,
+    getIntegrationBadge,
+    initPreviewRenderer
 };

@@ -45,7 +45,8 @@ import {
     createPhotoPreview,
     createDocumentPreview,
     setupFilePreview,
-    setupExistingFilePreview
+    setupExistingFilePreview,
+    initPreviewRenderer
 } from './previewRenderer.js';
 
 // Export all render service functions
@@ -70,6 +71,7 @@ export {
     createDocumentPreview,
     setupFilePreview,
     setupExistingFilePreview,
+    initPreviewRenderer,
     
     // Sync helper function
     syncState

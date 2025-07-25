@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">DumbAssets</title>
     <script src="config.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/responsive-styles.css">
+    <link rel="stylesheet" href="assets/css/demo-styles.css">
+    <link rel="stylesheet" href="assets/css/integration-styles.css">
     <link rel="icon" type="image/svg+xml" href="assets/dumbassets.svg">
     <link rel="manifest" href="manifest.json">
     <script src="js/chart.js"></script>
@@ -261,7 +264,17 @@
                             </div>
                             <div class="collapsible-content">
                                 <div class="form-group">
-                                    <label for="assetPhoto">Photo</label>
+                                    <div class="file-upload-header">
+                                        <label for="assetPhoto">Photo</label>
+                                        <button type="button" id="linkExternalPhotos" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="assetPhoto">
                                             <input type="file" id="assetPhoto" accept="image/*" class="file-input" multiple>
@@ -278,7 +291,17 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="assetReceipt">Receipt</label>
+                                    <div class="file-upload-header">
+                                        <label for="assetReceipt">Receipt</label>
+                                        <button type="button" id="linkExternalReceipts" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="assetReceipt">
                                             <input type="file" id="assetReceipt" accept=".pdf,.jpg,.jpeg,.png" class="file-input" multiple>
@@ -294,7 +317,17 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="assetManual">Manual</label>
+                                    <div class="file-upload-header">
+                                        <label for="assetManual">Manual</label>
+                                        <button type="button" id="linkExternalManuals" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="assetManual">
                                             <input type="file" id="assetManual" accept=".pdf" class="file-input" multiple>
@@ -444,7 +477,17 @@
                             </div>
                             <div class="collapsible-content">
                                 <div class="form-group">
-                                    <label for="subAssetPhoto">Photo</label>
+                                    <div class="file-upload-header">
+                                        <label for="subAssetPhoto">Photo</label>
+                                        <button type="button" id="linkExternalSubPhotos" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="subAssetPhoto">
                                             <input type="file" id="subAssetPhoto" accept="image/*" class="file-input" multiple>
@@ -461,7 +504,17 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="subAssetReceipt">Receipt</label>
+                                    <div class="file-upload-header">
+                                        <label for="subAssetReceipt">Receipt</label>
+                                        <button type="button" id="linkExternalSubReceipts" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="subAssetReceipt">
                                             <input type="file" id="subAssetReceipt" accept=".pdf,.jpg,.jpeg,.png" class="file-input" multiple>
@@ -477,7 +530,17 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="subAssetManual">Manual</label>
+                                    <div class="file-upload-header">
+                                        <label for="subAssetManual">Manual</label>
+                                        <button type="button" id="linkExternalSubManuals" class="action-button uploader-external-link-button">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Link External
+                                        </button>
+                                    </div>
                                     <div class="file-upload-grid">
                                         <div class="file-upload-box" data-target="subAssetManual">
                                             <input type="file" id="subAssetManual" accept=".pdf,.doc,.docx,.md,.txt" class="file-input" multiple>
@@ -513,6 +576,47 @@
                             <button type="button" class="cancel-btn">Cancel</button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- External Document Search Modal -->
+            <div id="externalDocModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 900px;">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Link External Documents</h2>
+                        <div>
+                            <span class="close-btn">&times;</span>
+                        </div>
+                    </div>
+                    <!-- <div class="modal-subtitle">
+                        <p>You can link multiple documents - the modal will stay open until you close it.</p>
+                    </div> -->
+                    <div class="modal-body">
+                        <div class="external-doc-search">
+                            <div class="search-controls">
+                                <input type="text" id="externalDocSearchInput" placeholder="Search for documents..." 
+                                       class="external-doc-search-input">
+                                <div class="integration-filters" id="integrationFilters">
+                                    <!-- Integration filter buttons will be added dynamically -->
+                                </div>
+                            </div>
+                            <div class="external-doc-results-container">
+                                <div id="externalDocResults" class="external-doc-results">
+                                    <div class="search-loading">
+                                        <div class="spinner"></div>
+                                        <span>Loading documents...</span>
+                                    </div>
+                                </div>
+                                <div id="externalDocPagination" class="external-doc-pagination" style="display: none;">
+                                    <div class="pagination-info" id="paginationInfo"></div>
+                                    <div class="pagination-controls">
+                                        <button class="pagination-btn" id="prevPageBtn">Previous</button>
+                                        <button class="pagination-btn" id="nextPageBtn">Next</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -906,6 +1010,19 @@
                                                         </button>
                                                     </div>
                                                 </div>
+                                        </fieldset>
+                                        
+                                        <fieldset>
+                                            <legend>Integrations</legend>
+                                            <div id="integrationsContainer" class="integrations-section">
+                                                <!-- Dynamic integration sections will be rendered here -->
+                                                <div id="integrationsLoading" style="text-align: center; padding: 2rem; color: var(--text-color-secondary);">
+                                                    Loading integrations...
+                                                </div>
+                                                <div id="integrationsError" style="display: none; text-align: center; padding: 2rem; color: var(--error-color);">
+                                                    Failed to load integrations
+                                                </div>
+                                            </div>
                                         </fieldset>
                                     </form>
                                 </div>

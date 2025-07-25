@@ -1,4 +1,7 @@
 // SettingsManager handles all settings modal logic, loading, saving, and dashboard order drag/drop
+import { TOKENMASK } from '../src/constants.js';
+import { IntegrationsManager } from './integrations.js';
+
 export class SettingsManager {
     constructor({
         settingsBtn,
@@ -9,7 +12,9 @@ export class SettingsManager {
         settingsClose,
         testNotificationSettings,
         setButtonLoading,
-        renderDashboard
+        renderDashboard,
+        loadActiveIntegrations,
+        integrationsManager
     }) {
         this.localSettingsStorageKey = 'dumbAssetSettings';
         this.localSettingsLastOpenedPaneKey = 'dumbAssetSettingsLastOpenedPane';
@@ -22,8 +27,11 @@ export class SettingsManager {
         this.testNotificationSettings = testNotificationSettings;
         this.setButtonLoading = setButtonLoading;
         this.renderDashboard = renderDashboard;
+        this.loadActiveIntegrations = loadActiveIntegrations;
+        this.integrationsManager = integrationsManager;
         this.selectedAssetId = null;
         this.DEBUG = false;
+        
         this._bindEvents();
         this.defaultSettings = window.appConfig?.defaultSettings || {
             notificationSettings: {
@@ -207,6 +215,13 @@ export class SettingsManager {
             document.getElementById('toggleWarranties').checked = finalVisibility.warranties;
             document.getElementById('toggleAnalytics').checked = finalVisibility.analytics;
             document.getElementById('toggleEvents').checked = finalVisibility.events;
+            
+            // Load integrations dynamically
+            await this.integrationsManager.loadIntegrations();
+            
+            // Apply current integration settings to the dynamically loaded form
+            this.integrationsManager.applyIntegrationSettingsToForm(settings.integrationSettings || {});
+            
             // Card visibility toggles
             if (typeof window.renderCardVisibilityToggles === 'function') {
                 window.renderCardVisibilityToggles(settings);
@@ -259,7 +274,8 @@ export class SettingsManager {
                     expired: document.getElementById('toggleCardWarrantiesExpired')?.checked !== false,
                     active: document.getElementById('toggleCardWarrantiesActive')?.checked !== false
                 }
-            }
+            },
+            integrationSettings: this.integrationsManager.collectAllIntegrationSettings()
         };
         const dashboardSections = document.querySelectorAll('#dashboardSections .sortable-item');
         dashboardSections.forEach(section => {
@@ -278,11 +294,16 @@ export class SettingsManager {
 
             const settingsCopy = { ...settings };
             localStorage.setItem(this.localSettingsStorageKey, JSON.stringify(settingsCopy));
-            this.closeSettingsModal();
-            globalThis.toaster.show('Settings saved');
+            
+            // Reload settings to ensure everything is up-to-date
+            await this.loadSettings();
+            // this.closeSettingsModal(); // Don't close modal automatically, let user decide
+            
             if (!this.selectedAssetId && typeof this.renderDashboard === 'function') {
                 this.renderDashboard();
             }
+            
+            globalThis.toaster.show('Settings saved');
         } catch (error) {
             globalThis.logError('Failed to save settings:', error.message);
         } finally {

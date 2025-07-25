@@ -24,6 +24,8 @@ const { originValidationMiddleware, getCorsOptions } = require('./middleware/cor
 const { demoModeMiddleware } = require('./middleware/demo');
 const { sanitizeFileName } = require('./src/services/fileUpload/utils');
 const packageJson = require('./package.json');
+const { TOKENMASK } = require('./src/constants');
+const { integrationManager } = require('./integrations/integrationManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +63,13 @@ const DEFAULT_SETTINGS = {
             active: true
         }
     },
+    integrationSettings: {
+        paperless: {
+            enabled: false,
+            hostUrl: '',
+            apiToken: ''
+        }
+    }
 };
 
 // Currency configuration from environment variables
@@ -192,7 +201,7 @@ app.use(BASE_PATH, (req, res, next) => {
         '/verify-pin',
         '/config.js',
         '/assets/',
-        '/styles.css',
+        '/assets/css/',
         '/manifest.json',
         '/asset-manifest.json',
     ];
@@ -435,8 +444,10 @@ app.use(BASE_PATH + '/styles.css', express.static('public/styles.css'));
 app.use(BASE_PATH + '/script.js', express.static('public/script.js'));
 
 // Module files (need to be accessible for imports)
-app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
-app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
+app.use(BASE_PATH + '/src', express.static('src'));
+// app.use(BASE_PATH + '/src/services', express.static('src/services'));
+// app.use(BASE_PATH + '/src/services/fileUpload', express.static('src/services/fileUpload'));
+// app.use(BASE_PATH + '/src/services/render', express.static('src/services/render'));
 
 // Serve Chart.js from node_modules
 app.use(BASE_PATH + '/js/chart.js', express.static('node_modules/chart.js/dist/chart.umd.js'));
@@ -445,6 +456,9 @@ app.use(BASE_PATH + '/js/chart.js', express.static('node_modules/chart.js/dist/c
 app.use(BASE_PATH + '/Images', express.static('data/Images'));
 app.use(BASE_PATH + '/Receipts', express.static('data/Receipts'));
 app.use(BASE_PATH + '/Manuals', express.static('data/Manuals'));
+
+// INTEGRATIONS
+app.use(BASE_PATH + '/src/integrations', express.static('src/integrations'));
 
 // Protected API routes
 app.use('/api', (req, res, next) => {
@@ -920,55 +934,112 @@ async function handleFileDuplication(source, duplicate, selectedProperties) {
     duplicate.photoPath = null;
     duplicate.receiptPath = null;
     duplicate.manualPath = null;
-    
-    // Handle photos
+
+    // Helper to check if a file is external (integrationId or /external/ path)
+    function isExternalFile(filePath, fileInfo) {
+        if (!filePath && !fileInfo) return false;
+        if (fileInfo && fileInfo.integrationId) return true;
+        if (filePath && typeof filePath === 'string' && filePath.includes('/external/')) return true;
+        return false;
+    }
+
+    // --- PHOTOS ---
     if (selectedProperties.photoPath) {
+        // Array version
         if (source.photoPaths && Array.isArray(source.photoPaths)) {
-            for (const photoPath of source.photoPaths) {
-                const newPhotoPath = await copyFile(photoPath, 'Images');
-                if (newPhotoPath) duplicate.photoPaths.push(newPhotoPath);
+            for (let i = 0; i < source.photoPaths.length; i++) {
+                const pathVal = source.photoPaths[i];
+                const infoVal = (source.photoInfo && source.photoInfo[i]) ? source.photoInfo[i] : null;
+                if (isExternalFile(pathVal, infoVal)) {
+                    // External: copy as-is
+                    duplicate.photoPaths.push(pathVal);
+                    duplicate.photoInfo.push(infoVal);
+                } else {
+                    // Local: duplicate file
+                    const newPath = await copyFile(pathVal, 'Images');
+                    if (newPath) {
+                        duplicate.photoPaths.push('/' + newPath.replace(/^[\/]+/, ''));
+                        duplicate.photoInfo.push({ ...infoVal, fileName: newPath.split('/').pop() });
+                    }
+                }
             }
         }
-        if (source.photoInfo && Array.isArray(source.photoInfo)) {
-            duplicate.photoInfo = [...source.photoInfo];
-        }
+        // Single path version (legacy)
         if (source.photoPath && !source.photoPaths) {
-            const newPhotoPath = await copyFile(source.photoPath, 'Images');
-            if (newPhotoPath) duplicate.photoPath = newPhotoPath;
+            if (isExternalFile(source.photoPath, source.photoInfo && source.photoInfo[0])) {
+                duplicate.photoPath = source.photoPath;
+                duplicate.photoInfo = source.photoInfo ? [source.photoInfo[0]] : [];
+            } else {
+                const newPath = await copyFile(source.photoPath, 'Images');
+                if (newPath) {
+                    duplicate.photoPath = '/' + newPath.replace(/^[\/]+/, '');
+                    duplicate.photoInfo = [{ ...(source.photoInfo && source.photoInfo[0]), fileName: newPath.split('/').pop() }];
+                }
+            }
         }
     }
-    
-    // Handle receipts
+
+    // --- RECEIPTS ---
     if (selectedProperties.receiptPath) {
         if (source.receiptPaths && Array.isArray(source.receiptPaths)) {
-            for (const receiptPath of source.receiptPaths) {
-                const newReceiptPath = await copyFile(receiptPath, 'Receipts');
-                if (newReceiptPath) duplicate.receiptPaths.push(newReceiptPath);
+            for (let i = 0; i < source.receiptPaths.length; i++) {
+                const pathVal = source.receiptPaths[i];
+                const infoVal = (source.receiptInfo && source.receiptInfo[i]) ? source.receiptInfo[i] : null;
+                if (isExternalFile(pathVal, infoVal)) {
+                    duplicate.receiptPaths.push(pathVal);
+                    duplicate.receiptInfo.push(infoVal);
+                } else {
+                    const newPath = await copyFile(pathVal, 'Receipts');
+                    if (newPath) {
+                        duplicate.receiptPaths.push('/' + newPath.replace(/^[\/]+/, ''));
+                        duplicate.receiptInfo.push({ ...infoVal, fileName: newPath.split('/').pop() });
+                    }
+                }
             }
-        }
-        if (source.receiptInfo && Array.isArray(source.receiptInfo)) {
-            duplicate.receiptInfo = [...source.receiptInfo];
         }
         if (source.receiptPath && !source.receiptPaths) {
-            const newReceiptPath = await copyFile(source.receiptPath, 'Receipts');
-            if (newReceiptPath) duplicate.receiptPath = newReceiptPath;
-        }
-    }
-    
-    // Handle manuals
-    if (selectedProperties.manualPath) {
-        if (source.manualPaths && Array.isArray(source.manualPaths)) {
-            for (const manualPath of source.manualPaths) {
-                const newManualPath = await copyFile(manualPath, 'Manuals');
-                if (newManualPath) duplicate.manualPaths.push(newManualPath);
+            if (isExternalFile(source.receiptPath, source.receiptInfo && source.receiptInfo[0])) {
+                duplicate.receiptPath = source.receiptPath;
+                duplicate.receiptInfo = source.receiptInfo ? [source.receiptInfo[0]] : [];
+            } else {
+                const newPath = await copyFile(source.receiptPath, 'Receipts');
+                if (newPath) {
+                    duplicate.receiptPath = '/' + newPath.replace(/^[\/]+/, '');
+                    duplicate.receiptInfo = [{ ...(source.receiptInfo && source.receiptInfo[0]), fileName: newPath.split('/').pop() }];
+                }
             }
         }
-        if (source.manualInfo && Array.isArray(source.manualInfo)) {
-            duplicate.manualInfo = [...source.manualInfo];
+    }
+
+    // --- MANUALS ---
+    if (selectedProperties.manualPath) {
+        if (source.manualPaths && Array.isArray(source.manualPaths)) {
+            for (let i = 0; i < source.manualPaths.length; i++) {
+                const pathVal = source.manualPaths[i];
+                const infoVal = (source.manualInfo && source.manualInfo[i]) ? source.manualInfo[i] : null;
+                if (isExternalFile(pathVal, infoVal)) {
+                    duplicate.manualPaths.push(pathVal);
+                    duplicate.manualInfo.push(infoVal);
+                } else {
+                    const newPath = await copyFile(pathVal, 'Manuals');
+                    if (newPath) {
+                        duplicate.manualPaths.push('/' + newPath.replace(/^[\/]+/, ''));
+                        duplicate.manualInfo.push({ ...infoVal, fileName: newPath.split('/').pop() });
+                    }
+                }
+            }
         }
         if (source.manualPath && !source.manualPaths) {
-            const newManualPath = await copyFile(source.manualPath, 'Manuals');
-            if (newManualPath) duplicate.manualPath = newManualPath;
+            if (isExternalFile(source.manualPath, source.manualInfo && source.manualInfo[0])) {
+                duplicate.manualPath = source.manualPath;
+                duplicate.manualInfo = source.manualInfo ? [source.manualInfo[0]] : [];
+            } else {
+                const newPath = await copyFile(source.manualPath, 'Manuals');
+                if (newPath) {
+                    duplicate.manualPath = '/' + newPath.replace(/^[\/]+/, '');
+                    duplicate.manualInfo = [{ ...(source.manualInfo && source.manualInfo[0]), fileName: newPath.split('/').pop() }];
+                }
+            }
         }
     }
 }
@@ -1997,6 +2068,27 @@ function getAppSettings() {
     return config;
 }
 
+// Use before sending settings to frontend
+function stripIntegrationTokens(appSettings) {
+    const sanitizedSettings = { ...appSettings };
+    
+    // Use integration manager to sanitize all integration settings
+    if (sanitizedSettings.integrationSettings) {
+        Object.keys(sanitizedSettings.integrationSettings).forEach(integrationId => {
+            const integrationConfig = sanitizedSettings.integrationSettings[integrationId];
+            sanitizedSettings.integrationSettings[integrationId] = 
+                integrationManager.sanitizeConfigForFrontend(integrationId, integrationConfig);
+        });
+    }
+
+    return sanitizedSettings;
+}
+
+// Use integration manager for validation and sensitive data handling
+function applyIntegrationSettings(serverConfig, updatedConfig) {
+    return integrationManager.applyIntegrationSettings(serverConfig, updatedConfig);
+}
+
 // Import assets route
 app.post('/api/import-assets', upload.single('file'), (req, res) => {
     try {
@@ -2077,13 +2169,86 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
     }
 });
 
-// Get all settings
+// Get all settings (sanitized for frontend)
 app.get('/api/settings', (req, res) => {
     try {
         const appSettings = getAppSettings();
+        
+        // Sanitize integration settings for frontend using integration manager
+        if (appSettings.integrationSettings) {
+            for (const [integrationId, config] of Object.entries(appSettings.integrationSettings)) {
+                appSettings.integrationSettings[integrationId] = integrationManager.sanitizeConfigForFrontend(integrationId, config);
+            }
+        }
+        
         res.json(appSettings);
     } catch (err) {
         res.status(500).json({ error: 'Failed to load settings' });
+    }
+});
+
+// Get available integrations for settings UI
+app.get('/api/integrations', (req, res) => {
+    const integrations = integrationManager.getAllIntegrations();
+    
+    // Debug: Log Home Assistant schema
+    const haIntegration = integrations.find(i => i.id === 'homeassistant');
+    if (haIntegration) {
+        console.log('Loaded Home Assistant Schema:', JSON.stringify(haIntegration, null, 2));
+    } else {
+        console.log('Home Assistant integration not found in loaded schemas');
+    }
+    
+    res.json(integrations);
+});
+
+// Get enabled integrations for external document search
+app.get('/api/integrations/enabled', (req, res) => {
+    try {
+        const settings = getAppSettings();
+        const enabledIntegrations = integrationManager.getAllIntegrations()
+            .filter(integration => {
+                const integrationSettings = settings.integrationSettings?.[integration.id];
+                return integrationSettings?.enabled === true;
+            })
+            .map(integration => ({
+                id: integration.id,
+                name: integration.name,
+                description: integration.description,
+                icon: integration.icon,
+                logoHref: integration.logoHref,
+                colorScheme: integration.colorScheme,
+                category: integration.category
+            }));
+        
+        res.json(enabledIntegrations);
+    } catch (error) {
+        console.error('Failed to get enabled integrations:', error);
+        res.status(500).json({ error: 'Failed to get enabled integrations' });
+    }
+});
+
+// Test integration connection
+app.post('/api/integrations/:id/test', async (req, res) => {
+    try {
+        const integrationId = req.params.id;
+        const testConfig = req.body;
+        
+        // Prepare config by handling masked tokens
+        const preparedConfig = await integrationManager.prepareConfigForTesting(
+            integrationId, 
+            testConfig, 
+            getAppSettings
+        );
+        
+        const result = await integrationManager.checkIntegrationStatus(integrationId, preparedConfig);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error(`Failed to test integration ${req.params.id}:`, error);
+        res.status(400).json({ 
+            status: 'error',
+            message: error.message 
+        });
     }
 });
 
@@ -2092,7 +2257,14 @@ app.post('/api/settings', (req, res) => {
     try {
         const config = getAppSettings();
         // Update settings with the new values
-        const updatedConfig = { ...config, ...req.body };
+        let updatedConfig = { ...config, ...req.body };
+
+        try {
+            updatedConfig = applyIntegrationSettings(config, updatedConfig);
+        }
+        catch (error) {
+            return res.status(400).json({ error: error.message });
+        }
 
         const configPath = path.join(DATA_DIR, 'config.json');
         fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
@@ -2251,6 +2423,10 @@ setInterval(() => {
 
 // Warranty expiration notification cron
 startWarrantyCron();
+
+// --- INTEGRATION SYSTEM ---
+// Initialize and register integration routes
+integrationManager.registerRoutes(app, getAppSettings);
 
 // --- START SERVER ---
 app.listen(PORT, () => {

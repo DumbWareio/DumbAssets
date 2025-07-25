@@ -47,7 +47,10 @@ export class ModalManager {
         
         // Global state
         getAssets,
-        getSubAssets
+        getSubAssets,
+        
+        // Integrations
+        integrationsManager
     }) {
         // Store DOM elements
         this.assetModal = assetModal;
@@ -95,6 +98,9 @@ export class ModalManager {
         this.getAssets = getAssets;
         this.getSubAssets = getSubAssets;
         
+        // Store integrations manager
+        this.integrationsManager = integrationsManager;
+        
         // Modal state
         this.isEditMode = false;
         this.currentAsset = null;
@@ -127,6 +133,19 @@ export class ModalManager {
         this.isEditMode = !!asset;
         this.currentAsset = asset;
         this.filesToDelete = [];
+        
+        // For new assets, create a temporary asset object to store external document attachments
+        if (!this.isEditMode) {
+            this.currentAsset = {
+                id: this.generateId(),
+                photoPaths: [],
+                receiptPaths: [],
+                manualPaths: [],
+                photoInfo: [],
+                receiptInfo: [],
+                manualInfo: []
+            };
+        }
         
         document.getElementById('addAssetTitle').textContent = this.isEditMode ? 'Edit Asset' : 'Add Asset';
         this.assetForm.reset();
@@ -215,6 +234,19 @@ export class ModalManager {
         this.isEditMode = !!subAsset;
         this.currentSubAsset = subAsset;
         this.filesToDelete = [];
+        
+        // For new sub-assets, create a temporary sub-asset object to store external document attachments
+        if (!this.isEditMode) {
+            this.currentSubAsset = {
+                id: this.generateId(),
+                photoPaths: [],
+                receiptPaths: [],
+                manualPaths: [],
+                photoInfo: [],
+                receiptInfo: [],
+                manualInfo: []
+            };
+        }
         
         document.getElementById('addComponentTitle').textContent = this.isEditMode ? 'Edit Component' : 'Add Component';
         this.subAssetForm.reset();
@@ -529,7 +561,8 @@ export class ModalManager {
                     photoInput, 
                     this,
                     photoInfo.originalName || photoPath.split('/').pop(),
-                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                    photoInfo
                 );
             });
             containsExistingFiles = true;
@@ -544,7 +577,8 @@ export class ModalManager {
                 photoInput, 
                 this,
                 photoInfo.originalName || asset.photoPath.split('/').pop(),
-                photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                photoInfo
             );
             containsExistingFiles = true;
         }
@@ -561,7 +595,8 @@ export class ModalManager {
                     receiptInput, 
                     this,
                     receiptInfo.originalName || receiptPath.split('/').pop(),
-                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                    receiptInfo
                 );
             });
             containsExistingFiles = true;
@@ -576,7 +611,8 @@ export class ModalManager {
                 receiptInput, 
                 this,
                 receiptInfo.originalName || asset.receiptPath.split('/').pop(),
-                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                receiptInfo
             );
             containsExistingFiles = true;
         }
@@ -593,7 +629,8 @@ export class ModalManager {
                     manualInput, 
                     this,
                     manualInfo.originalName || manualPath.split('/').pop(),
-                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                    manualInfo
                 );
             });
             containsExistingFiles = true;
@@ -608,7 +645,8 @@ export class ModalManager {
                 manualInput, 
                 this,
                 manualInfo.originalName || asset.manualPath.split('/').pop(),
-                manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                manualInfo
             );
             containsExistingFiles = true;
         }
@@ -642,7 +680,8 @@ export class ModalManager {
                     photoInput, 
                     this,
                     photoInfo.originalName || photoPath.split('/').pop(),
-                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                    photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                    photoInfo
                 );
             });
             containsExistingFiles = true;
@@ -657,7 +696,8 @@ export class ModalManager {
                 photoInput, 
                 this,
                 photoInfo.originalName || subAsset.photoPath.split('/').pop(),
-                photoInfo.size ? this.formatFileSize(photoInfo.size) : null
+                photoInfo.size ? this.formatFileSize(photoInfo.size) : null,
+                photoInfo
             );
             containsExistingFiles = true;
         }
@@ -674,7 +714,8 @@ export class ModalManager {
                     receiptInput, 
                     this,
                     receiptInfo.originalName || receiptPath.split('/').pop(),
-                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                    receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                    receiptInfo
                 );
             });
             containsExistingFiles = true;
@@ -689,7 +730,8 @@ export class ModalManager {
                 receiptInput, 
                 this,
                 receiptInfo.originalName || subAsset.receiptPath.split('/').pop(),
-                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null
+                receiptInfo.size ? this.formatFileSize(receiptInfo.size) : null,
+                receiptInfo
             );
             containsExistingFiles = true;
         }
@@ -706,7 +748,8 @@ export class ModalManager {
                     manualInput, 
                     this,
                     manualInfo.originalName || manualPath.split('/').pop(),
-                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                    manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                    manualInfo
                 );
             });
             containsExistingFiles = true;
@@ -721,7 +764,8 @@ export class ModalManager {
                 manualInput, 
                 this,
                 manualInfo.originalName || subAsset.manualPath.split('/').pop(),
-                manualInfo.size ? this.formatFileSize(manualInfo.size) : null
+                manualInfo.size ? this.formatFileSize(manualInfo.size) : null,
+                manualInfo
             );
             containsExistingFiles = true;
         }
@@ -836,10 +880,17 @@ export class ModalManager {
             newAsset.manualInfo = this.currentAsset.manualInfo || [];
             newAsset.createdAt = this.currentAsset.createdAt;
         } else {
-            newAsset.id = this.generateId();
+            // For new assets, use the temporary asset data (including external document attachments)
+            newAsset.id = this.currentAsset ? this.currentAsset.id : this.generateId();
             newAsset.photoPath = null;
             newAsset.receiptPath = null;
             newAsset.manualPath = null;
+            newAsset.photoPaths = this.currentAsset ? this.currentAsset.photoPaths || [] : [];
+            newAsset.receiptPaths = this.currentAsset ? this.currentAsset.receiptPaths || [] : [];
+            newAsset.manualPaths = this.currentAsset ? this.currentAsset.manualPaths || [] : [];
+            newAsset.photoInfo = this.currentAsset ? this.currentAsset.photoInfo || [] : [];
+            newAsset.receiptInfo = this.currentAsset ? this.currentAsset.receiptInfo || [] : [];
+            newAsset.manualInfo = this.currentAsset ? this.currentAsset.manualInfo || [] : [];
             newAsset.createdAt = new Date().toISOString();
         }
         
@@ -894,12 +945,19 @@ export class ModalManager {
             
             // Handle file deletions - This is now handled by filesToDelete array
         } else {
-            const generatedId = this.generateId();
-            console.log('ModalManager: Create mode - generating new ID:', generatedId);
+            // For new sub-assets, use the temporary sub-asset data (including external document attachments)
+            const generatedId = this.currentSubAsset ? this.currentSubAsset.id : this.generateId();
+            console.log('ModalManager: Create mode - using ID:', generatedId);
             newSubAsset.id = generatedId;
             newSubAsset.photoPath = null;
             newSubAsset.receiptPath = null;
             newSubAsset.manualPath = null;
+            newSubAsset.photoPaths = this.currentSubAsset ? this.currentSubAsset.photoPaths || [] : [];
+            newSubAsset.receiptPaths = this.currentSubAsset ? this.currentSubAsset.receiptPaths || [] : [];
+            newSubAsset.manualPaths = this.currentSubAsset ? this.currentSubAsset.manualPaths || [] : [];
+            newSubAsset.photoInfo = this.currentSubAsset ? this.currentSubAsset.photoInfo || [] : [];
+            newSubAsset.receiptInfo = this.currentSubAsset ? this.currentSubAsset.receiptInfo || [] : [];
+            newSubAsset.manualInfo = this.currentSubAsset ? this.currentSubAsset.manualInfo || [] : [];
             newSubAsset.createdAt = new Date().toISOString();
         }
         
@@ -1034,5 +1092,218 @@ export class ModalManager {
         if (this.duplicationManager) {
             this.duplicationManager.openDuplicateModal(type, itemId);
         }
+    }
+
+    /**
+     * Attach an external document to the current asset/sub-asset
+     * @param {Object} attachment - The attachment object
+     * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
+     * @param {boolean} isSubAsset - Whether this is for a sub-asset
+     */
+    async attachExternalDocument(attachment, attachmentType, isSubAsset) {
+        // For backward compatibility, also support the old method name
+        return this.attachPaperlessDocument(attachment, attachmentType, isSubAsset);
+    }
+
+    /**
+     * Attach an external document to the current asset/sub-asset
+     * @param {Object} attachment - The attachment object from any external integration
+     * @param {string} attachmentType - Type of attachment ('photo', 'receipt', 'manual')
+     * @param {boolean} isSubAsset - Whether this is for a sub-asset
+     */
+    async attachPaperlessDocument(attachment, attachmentType, isSubAsset) {
+        try {
+            // Generate preview for the external document
+            const previewId = isSubAsset ? 
+                `sub${attachmentType.charAt(0).toUpperCase() + attachmentType.slice(1)}Preview` :
+                `${attachmentType}Preview`;
+            
+            const previewContainer = document.getElementById(previewId);
+            if (!previewContainer) {
+                throw new Error(`Preview container ${previewId} not found`);
+            }
+
+            // Create a preview element for the external document
+            const previewElement = this._createPaperlessPreview(attachment, attachmentType);
+            previewContainer.appendChild(previewElement);
+
+            // Store the attachment data for saving
+            const targetAsset = isSubAsset ? this.currentSubAsset : this.currentAsset;
+            if (!targetAsset) {
+                throw new Error('No asset currently being edited');
+            }
+
+            // Initialize arrays if they don't exist
+            const pathsKey = `${attachmentType}Paths`;
+            const infoKey = `${attachmentType}Info`;
+            
+            if (!targetAsset[pathsKey]) targetAsset[pathsKey] = [];
+            if (!targetAsset[infoKey]) targetAsset[infoKey] = [];
+
+            // Add the external document as a "file"
+            targetAsset[pathsKey].push(attachment.downloadUrl);
+            targetAsset[infoKey].push({
+                originalName: attachment.title,
+                size: attachment.fileSize,
+                attachedAt: attachment.attachedAt,
+                integrationId: attachment.integrationId,
+                externalId: attachment.externalId,
+                mimeType: attachment.mimeType,
+                downloadUrl: attachment.downloadUrl,
+                previewUrl: attachment.previewUrl
+            });
+
+            console.log(`Attached external document to ${isSubAsset ? 'sub-asset' : 'asset'}:`, {
+                type: attachmentType,
+                title: attachment.title,
+                integrationId: attachment.integrationId,
+                externalId: attachment.externalId
+            });
+
+        } catch (error) {
+            globalThis.logError('Failed to attach Paperless document:', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a preview element for an external document
+     * @param {Object} attachment - The attachment object
+     * @param {string} type - The attachment type
+     * @returns {HTMLElement} - The preview element
+     */
+    _createPaperlessPreview(attachment, type) {
+        const previewItem = document.createElement('div');
+        previewItem.className = `file-preview-item external-document ${attachment.integrationId}-document`;
+        
+        // Determine if this is an image or document
+        const isImage = attachment.mimeType && attachment.mimeType.startsWith('image/');
+        
+        // For images, show actual preview if possible, otherwise show document icon
+        let previewContent;
+        if (isImage) {
+            // Use preview URL for images if available, fallback to download URL, then to document icon
+            const imageUrl = attachment.previewUrl || attachment.downloadUrl;
+            previewContent = `
+                <img src="${imageUrl}" alt="External Document Preview" 
+                     style="max-width: 100%; max-height: 85px; object-fit: contain; border-radius: var(--app-border-radius);"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="preview-content" style="display:none;">
+                    <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                </div>`;
+        }
+        else if (type === 'receipt') {
+            previewContent = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
+                              </svg>`;
+        }
+        else {
+            // Show document icon
+            previewContent = `
+                <div class="preview-content">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+            `;
+        }
+
+        // Get integration badge based on integrationId
+        const integrationBadge = this._getIntegrationBadge(attachment.integrationId);
+
+        previewItem.innerHTML = `
+            <div class="file-preview">
+                ${previewContent}
+                ${integrationBadge}
+            </div>
+            <button type="button" class="delete-preview-btn" title="Remove attachment">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+            </button>
+            <div class="file-info-pill">
+                <span class="file-name" title="${this._escapeHtml(attachment.title)}">${this._escapeHtml(attachment.title)}</span>
+                ${attachment.fileSize ? `<span class="file-size">${this.formatFileSize(attachment.fileSize)}</span>` : ''}
+            </div>
+        `;
+
+        // Add click handler for preview/download
+        const filePreview = previewItem.querySelector('.file-preview');
+        if (filePreview) {
+            filePreview.addEventListener('click', () => {
+                window.open(attachment.downloadUrl, '_blank');
+            });
+            filePreview.style.cursor = 'pointer';
+        }
+
+        // Add delete button handler
+        const deleteBtn = previewItem.querySelector('.delete-preview-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                this._removePaperlessAttachment(previewItem, attachment, type);
+            });
+        }
+
+        return previewItem;
+    }
+
+    /**
+     * Remove an external document attachment
+     * @param {HTMLElement} previewElement - The preview element to remove
+     * @param {Object} attachment - The attachment object
+     * @param {string} type - The attachment type
+     */
+    _removePaperlessAttachment(previewElement, attachment, type) {
+        const targetAsset = this.currentSubAsset || this.currentAsset;
+        if (!targetAsset) return;
+
+        const pathsKey = `${type}Paths`;
+        const infoKey = `${type}Info`;
+
+        if (targetAsset[pathsKey] && targetAsset[infoKey]) {
+            // Find and remove the attachment
+            const index = targetAsset[pathsKey].indexOf(attachment.downloadUrl);
+            if (index > -1) {
+                targetAsset[pathsKey].splice(index, 1);
+                targetAsset[infoKey].splice(index, 1);
+            }
+        }
+
+        // Remove the preview element
+        previewElement.remove();
+
+        globalThis.toaster.show(`Removed "${attachment.title}" from attachments`, 'success');
+    }
+
+    /**
+     * Get the appropriate integration badge HTML based on integration ID
+     * @param {string} integrationId - The integration identifier
+     * @returns {string} - The badge HTML
+     */
+    _getIntegrationBadge(integrationId) {
+        return this.integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} - Escaped text
+     */
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }

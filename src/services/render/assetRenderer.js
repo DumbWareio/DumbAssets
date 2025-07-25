@@ -33,6 +33,18 @@ let assetList;
 let assetDetails;
 let subAssetContainer;
 
+// IntegrationsManager reference - will be injected
+let integrationsManager;
+
+/**
+ * Get the appropriate integration badge HTML based on integration ID
+ * @param {string} integrationId - The integration identifier
+ * @returns {string} - The badge HTML
+ */
+function getIntegrationBadge(integrationId) {
+    return integrationsManager?.getIntegrationBadge(integrationId) || `<div class="integration-badge generic-badge"><span title="From ${integrationId}">${integrationId}</span></div>`;
+}
+
 /**
  * Initialize the renderer with required dependencies
  * 
@@ -65,6 +77,9 @@ function initRenderer(config) {
     assetList = config.assetList;
     assetDetails = config.assetDetails;
     subAssetContainer = config.subAssetContainer;
+    
+    // Store reference to integrations manager
+    integrationsManager = config.integrationsManager;
 }
 
 /**
@@ -227,10 +242,10 @@ function generateAssetInfoHTML(asset) {
 /**
  * Format filename for display with truncation if needed
  * @param {string} fileName - The original filename
- * @param {number} maxLength - Maximum length (default 15)
+ * @param {number} maxLength - Maximum length (default 30)
  * @returns {string} Formatted filename
  */
-function formatDisplayFileName(fileName, maxLength = 15) {
+function formatDisplayFileName(fileName, maxLength = 30) {
     if (!fileName || fileName.length <= maxLength) {
         return fileName || 'Unknown File';
     }
@@ -258,76 +273,106 @@ function formatDisplayFileName(fileName, maxLength = 15) {
 
 function generateFileGridHTML(asset) {
     let html = '';
-    
+        
     // Handle multiple photos
     if (asset.photoPaths && Array.isArray(asset.photoPaths) && asset.photoPaths.length > 0) {
+        html += `<div class="preview-grid">`;
         asset.photoPaths.forEach((photoPath, index) => {
             const photoInfo = asset.photoInfo?.[index] || {};
             const fileName = photoInfo.originalName || photoPath.split('/').pop();
+            const integrationClass = photoInfo.integrationId ? ` ${photoInfo.integrationId}-document` : '';
+            const integrationBadge = photoInfo.integrationId ? getIntegrationBadge(photoInfo.integrationId) : '';
+            
+            // Use preview URL for external images if available
+            let displayPath = formatFilePath(photoPath);
+            if (photoInfo.integrationId && photoInfo.previewUrl) {
+                displayPath = photoInfo.previewUrl;
+            }
+            
             html += `
-                <div class="file-item photo">
+                <div class="file-item photo external-document${integrationClass}">
                     <a href="${formatFilePath(photoPath)}" target="_blank" class="file-preview">
-                        <img src="${formatFilePath(photoPath)}" alt="${asset.name}" class="asset-image">
+                        <img src="${displayPath}" alt="${asset.name}" class="asset-image">
+                        ${integrationBadge}
                         <div class="file-label">${formatDisplayFileName(fileName)}</div>
                     </a>
                 </div>
             `;
         });
+        html += `</div>`;
     } else if (asset.photoPath) {
+        html += `<div class="preview-grid">`;
         // Backward compatibility for single photo
         const photoInfo = asset.photoInfo?.[0] || {};
         const fileName = photoInfo.originalName || asset.photoPath.split('/').pop();
+        const integrationClass = photoInfo.integrationId ? ` ${photoInfo.integrationId}-document` : '';
+        const integrationBadge = photoInfo.integrationId ? getIntegrationBadge(photoInfo.integrationId) : '';
         html += `
-            <div class="file-item photo">
+            <div class="file-item photo external-document${integrationClass}">
                 <a href="${formatFilePath(asset.photoPath)}" target="_blank" class="file-preview">
                     <img src="${formatFilePath(asset.photoPath)}" alt="${asset.name}" class="asset-image">
+                    ${integrationBadge}
                     <div class="file-label">${formatDisplayFileName(fileName)}</div>
                 </a>
             </div>
         `;
+        html += `</div>`;
     }
     
     // Handle multiple receipts
     if (asset.receiptPaths && Array.isArray(asset.receiptPaths) && asset.receiptPaths.length > 0) {
+        html += `<div class="preview-grid">`;
         asset.receiptPaths.forEach((receiptPath, index) => {
             const receiptInfo = asset.receiptInfo?.[index] || {};
             const fileName = receiptInfo.originalName || receiptPath.split('/').pop();
+            const integrationClass = receiptInfo.integrationId ? ` ${receiptInfo.integrationId}-document` : '';
+            const integrationBadge = receiptInfo.integrationId ? getIntegrationBadge(receiptInfo.integrationId) : '';
             html += `
-                <div class="file-item receipt">
+                <div class="file-item receipt external-document${integrationClass}">
                     <a href="${formatFilePath(receiptPath)}" target="_blank" class="file-preview">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                             <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
                         </svg>
+                        ${integrationBadge}
                         <div class="file-label">${formatDisplayFileName(fileName)}</div>
                     </a>
                 </div>
             `;
         });
+        html += `</div>`;
     } else if (asset.receiptPath) {
+        html += `<div class="preview-grid">`;
         // Backward compatibility for single receipt
         const receiptInfo = asset.receiptInfo?.[0] || {};
         const fileName = receiptInfo.originalName || asset.receiptPath.split('/').pop();
+        const integrationClass = receiptInfo.integrationId ? ` ${receiptInfo.integrationId}-document` : '';
+        const integrationBadge = receiptInfo.integrationId ? getIntegrationBadge(receiptInfo.integrationId) : '';
         html += `
-            <div class="file-item receipt">
+            <div class="file-item receipt external-document${integrationClass}">
                 <a href="${formatFilePath(asset.receiptPath)}" target="_blank" class="file-preview">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                         <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
                     </svg>
+                    ${integrationBadge}
                     <div class="file-label">${formatDisplayFileName(fileName)}</div>
                 </a>
             </div>
         `;
+        html += `</div>`;
     }
     
     // Handle multiple manuals
     if (asset.manualPaths && Array.isArray(asset.manualPaths) && asset.manualPaths.length > 0) {
+        html += `<div class="preview-grid">`;
         asset.manualPaths.forEach((manualPath, index) => {
             const manualInfo = asset.manualInfo?.[index] || {};
             const fileName = manualInfo.originalName || manualPath.split('/').pop();
+            const integrationClass = manualInfo.integrationId ? ` ${manualInfo.integrationId}-document` : '';
+            const integrationBadge = manualInfo.integrationId ? getIntegrationBadge(manualInfo.integrationId) : '';
             html += `
-                <div class="file-item manual">
+                <div class="file-item manual external-document${integrationClass}">
                     <a href="${formatFilePath(manualPath)}" target="_blank" class="file-preview">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -336,17 +381,22 @@ function generateFileGridHTML(asset) {
                             <line x1="16" y1="17" x2="8" y2="17"></line>
                             <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
+                        ${integrationBadge}
                         <div class="file-label">${formatDisplayFileName(fileName)}</div>
                     </a>
                 </div>
             `;
         });
+        html += `</div>`;
     } else if (asset.manualPath) {
         // Backward compatibility for single manual
         const manualInfo = asset.manualInfo?.[0] || {};
         const fileName = manualInfo.originalName || asset.manualPath.split('/').pop();
+        const integrationClass = manualInfo.integrationId ? ` ${manualInfo.integrationId}-document` : '';
+        const integrationBadge = manualInfo.integrationId ? getIntegrationBadge(manualInfo.integrationId) : '';
+        html += `<div class="preview-grid">`;
         html += `
-            <div class="file-item manual">
+            <div class="file-item manual external-document${integrationClass}">
                 <a href="${formatFilePath(asset.manualPath)}" target="_blank" class="file-preview">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -355,12 +405,14 @@ function generateFileGridHTML(asset) {
                         <line x1="16" y1="17" x2="8" y2="17"></line>
                         <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
+                    ${integrationBadge}
                     <div class="file-label">${formatDisplayFileName(fileName)}</div>
                 </a>
             </div>
         `;
+        html += `<div class="preview-grid">`;
     }
-    
+
     return html || '<!-- No files available -->';
 }
 
@@ -465,211 +517,82 @@ function renderAssetDetails(assetId, isSubAsset = false) {
                 </div>
                 <div class="asset-actions">
                     ${isSub ? `<button class="back-to-parent-btn" title="Back to Parent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>` : ''}
-                    <button class="copy-link-btn" data-id="${asset.id}" data-parent-id="${asset.parentId || ''}" title="Copy Link">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    </button>
-                    <button class="edit-asset-btn" data-id="${asset.id}" title="Edit">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
-                    </button>
-                    <button class="duplicate-asset-btn" data-id="${asset.id}" data-type="${isSub ? 'subAsset' : 'asset'}" title="Duplicate">
-                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path stroke="none" d="M0 0h24v24H0z" />
-                            <path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
-                            <path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
-                            <path d="M11 14h6" />
-                            <path d="M14 11v6" />
-                        </svg>
-                    </button>
-                    <button class="delete-asset-btn" data-id="${asset.id}" title="Delete">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
+                    <button class="copy-link-btn" title="Copy Link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></button>
+                    <button class="edit-asset-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg></button>
+                    <button class="duplicate-asset-btn" title="Duplicate"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path stroke="none" d="M0 0h24v24H0z"/><path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"/><path d="M4.012 16.737a2 2 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"/><path d="M11 14h6"/><path d="M14 11v6"/></svg></button>
+                    <button class="delete-asset-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
                 </div>
             </div>
             <div class="asset-info">
                 ${generateAssetInfoHTML(asset)}
                 ${maintenanceScheduleHtml}
-                ${generateMaintenanceEventsHTML(asset.maintenanceEvents)}
             </div>
-            ${(asset.description || asset.notes) ? `
-            <div class="asset-description">
-                <strong>Description:</strong>
-                <p>${asset.description || asset.notes}</p>
-            </div>
-            ` : ''}
-            ${asset.tags && asset.tags.length > 0 ? `
-            <div class="info-item" style="margin-bottom: 1rem;">
-                <div class="info-label">Tags</div>
-                <div class="tag-list">
-                    ${asset.tags.map(tag => `<span class="tag" data-tag="${tag}" style="cursor: pointer;">${tag}</span>`).join('')}
-                </div>
-            </div>` : ''}
-            <div class="asset-files">
-                <div class="files-grid">
-                    ${generateFileGridHTML(asset)}
-                </div>
-            </div>
+            ${generateFileGridHTML(asset)}
+            ${asset.maintenanceEvents && asset.maintenanceEvents.length > 0 ? generateMaintenanceEventsHTML(asset.maintenanceEvents) : ''}
         </fieldset>
     `;
-    // Add event listeners
-    if (isSub) {
-        const backBtn = assetDetails.querySelector('.back-to-parent-btn');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                // If sub-sub-asset, go to parent sub-asset; else go to main asset
-                if (asset.parentSubId) {
-                    renderAssetDetails(asset.parentSubId, true);
-                } else {
-                    renderAssetDetails(asset.parentId);
-                }
-            });
-        }
-    }
-    
+
+    // Set up event listeners for asset actions
     const copyLinkBtn = assetDetails.querySelector('.copy-link-btn');
+    const editBtn = assetDetails.querySelector('.edit-asset-btn');
+    const duplicateBtn = assetDetails.querySelector('.duplicate-asset-btn');
+    const deleteBtn = assetDetails.querySelector('.delete-asset-btn');
+    const backBtn = assetDetails.querySelector('.back-to-parent-btn');
+
     if (copyLinkBtn) {
         copyLinkBtn.addEventListener('click', () => {
-            // Generate the same URL format used in notifications
-            const baseUrl = window.location.origin + window.location.pathname;
-            let assetUrl;
-            
-            if (isSub) {
-                // For sub-assets: baseUrl?ass=parentId&sub=subAssetId
-                const parentId = asset.parentId || copyLinkBtn.dataset.parentId;
-                assetUrl = `${baseUrl}?ass=${parentId}&sub=${asset.id}`;
-            } else {
-                // For main assets: baseUrl?ass=assetId
-                assetUrl = `${baseUrl}?ass=${asset.id}`;
-            }
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(assetUrl).then(() => {
-                // Show success toast using global toaster
-                if (globalThis.toaster) {
-                    globalThis.toaster.show('Asset link copied to clipboard!', 'success', false, 2000);
-                } else {
-                    // Fallback alert if toaster is not available
-                    alert('Asset link copied to clipboard!');
-                }
-            }).catch(err => {
-                console.error('Failed to copy link to clipboard:', err);
-                // Show error toast using global error handler
-                if (globalThis.logError) {
-                    globalThis.logError('Failed to copy link to clipboard', err, false, 3000);
-                } else {
-                    // Fallback alert if error handler is not available
-                    alert('Failed to copy link to clipboard. Please try again.');
-                }
+            const url = new URL(window.location);
+            url.searchParams.set('asset', asset.id);
+            if (isSub) url.searchParams.set('sub', 'true');
+            navigator.clipboard.writeText(url.toString()).then(() => {
+                globalThis.toaster?.show('Link copied to clipboard', 'success');
+            }).catch(() => {
+                globalThis.toaster?.show('Failed to copy link', 'error');
             });
         });
     }
-    
-    const editBtn = assetDetails.querySelector('.edit-asset-btn');
+
     if (editBtn) {
         editBtn.addEventListener('click', () => {
-            if (isSub) openSubAssetModal(asset);
-            else openAssetModal(asset);
-        });
-    }
-    
-    const duplicateBtn = assetDetails.querySelector('.duplicate-asset-btn');
-    if (duplicateBtn && openDuplicateModal) {
-        duplicateBtn.addEventListener('click', () => {
-            const type = duplicateBtn.dataset.type;
-            const assetId = duplicateBtn.dataset.id;
-            openDuplicateModal(type, assetId);
-        });
-    }
-    
-    const deleteBtn = assetDetails.querySelector('.delete-asset-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
-            if (isSub) await deleteSubAsset(asset.id);
-            else await deleteAsset(asset.id);
-        });
-    }
-    
-    // Add click event listeners to tags in the details view
-    const tagElements = assetDetails.querySelectorAll('.tag[data-tag]');
-    tagElements.forEach(tagElement => {
-        tagElement.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const tagName = tagElement.dataset.tag;
-            
-            // Set the search input value to the tag name
-            if (searchInput) {
-                searchInput.value = tagName;
-                
-                // Show the clear search button
-                const clearSearchBtn = document.getElementById('clearSearchBtn');
-                if (clearSearchBtn) {
-                    clearSearchBtn.style.display = 'flex';
-                }
-                
-                // Trigger the search by calling renderAssetList with the tag
-                if (renderAssetList) {
-                    renderAssetList(tagName);
-                }
-                
-                // Focus the search input
-                searchInput.focus();
+            if (isSub) {
+                openSubAssetModal(asset);
+            } else {
+                openAssetModal(asset);
             }
         });
-    });
-    
-    // Only render sub-assets if viewing a main asset
+    }
+
+    if (duplicateBtn) {
+        duplicateBtn.addEventListener('click', () => {
+            const type = isSub ? 'subAsset' : 'asset';
+            openDuplicateModal(type, asset.id);
+        });
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+            if (isSub) {
+                deleteSubAsset(asset.id);
+            } else {
+                deleteAsset(asset.id);
+            }
+        });
+    }
+
+    if (backBtn && isSub) {
+        backBtn.addEventListener('click', () => {
+            // Navigate back to parent asset
+            renderAssetDetails(asset.parentId, false);
+        });
+    }
+
+    // Show sub-assets container if this is a main asset
     if (!isSub) {
         renderSubAssets(assetId);
-    } else {
-        subAssetContainer.classList.add('hidden');
-        // If this is a first-level sub-asset (not a sub-sub-asset), show sub-sub-assets
-        if (!asset.parentSubId) {
-            // Get fresh list of sub-sub-assets after potential changes
-            const subSubAssets = subAssets.filter(sa => sa.parentSubId === asset.id);
-            // --- Modern legend/fieldset for sub-sub-assets ---
-            const fieldset = document.createElement('fieldset');
-            fieldset.className = 'dashboard-legend';
-            
-            const legend = document.createElement('legend');
-            legend.className = 'dashboard-legend-title';
-            legend.textContent = 'Components';
-            fieldset.appendChild(legend);
-            
-            const subAssetHeader = document.createElement('div');
-            subAssetHeader.className = 'sub-asset-header';
-            subAssetHeader.style.marginTop = '0.5rem';
-            
-            const addSubAssetBtn = document.createElement('button');
-            addSubAssetBtn.className = 'add-sub-asset-btn';
-            addSubAssetBtn.textContent = '+ Add Sub-Component';
-            addSubAssetBtn.onclick = () => openSubAssetModal(null, asset.parentId, asset.id);
-            subAssetHeader.appendChild(addSubAssetBtn);
-            fieldset.appendChild(subAssetHeader);
-            
-            const subAssetList = document.createElement('div');
-            subAssetList.className = 'sub-asset-list';
-            
-            if (subSubAssets.length === 0) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'empty-state';
-                emptyState.innerHTML = '<p>No components found. Add your first component.</p>';
-                subAssetList.appendChild(emptyState);
-            } else {
-                // Create DOM elements properly to maintain event listeners
-                subSubAssets.forEach(child => {
-                    const childElement = createSubAssetElement(child);
-                    subAssetList.appendChild(childElement);
-                });
-            }
-            
-            fieldset.appendChild(subAssetList);
-            assetDetails.appendChild(fieldset);
-        }
     }
-    handleSidebarNav();
 }
 
-// Export the module functions
+// Export functions for use by other modules
 export {
     initRenderer,
     updateState,

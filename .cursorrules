@@ -324,3 +324,57 @@ try {
 - Queue management to prevent notification spam
 - Timezone-aware scheduling with Luxon
 - Sanitized message formatting for security
+
+## Integration System
+
+### Adding New Integrations
+DumbAssets uses a schema-driven integration system that automatically generates UI and handles configuration management. The integration system is now managed centrally by the Integration Manager, which is responsible for importing, registering, and routing all integrations. Follow these steps to add a new integration:
+
+#### 1. Backend Integration Setup
+
+- **Create Integration File** (`/integrations/your-integration.js`):
+  - Export a class with a static `SCHEMA` property and a static `registerRoutes(app, getSettings)` method.
+  - The `SCHEMA` defines config fields, validation, endpoints, and metadata.
+  - The `registerRoutes` method should register all Express routes for the integration.
+
+- **Register Integration in Integration Manager** (`/integrations/integrationManager.js`):
+  - Import your integration at the top of the file.
+  - In `registerBuiltInIntegrations()`, call `this.registerIntegration('your-integration-id', YourIntegration.SCHEMA);`
+  - The Integration Manager is now responsible for calling each integration's `registerRoutes` method via its own `registerRoutes(app, getSettings)` function. This means only the Integration Manager imports integration files, and all route registration is centralized.
+
+- **Register All Integration Routes in server.js**:
+  - In `server.js`, after initializing the app and before starting the server, call `integrationManager.registerRoutes(app, getSettings)`.
+  - You do NOT need to import individual integrations in `server.js`.
+
+#### 2. Frontend Integration (Automatic)
+- The frontend dynamically loads all integrations and their schemas from the `/api/integrations` endpoint.
+- The UI is generated based on the schema, including validation, field types, and test connection functionality.
+- Add optional integration-specific styles in `/public/assets/css/your-integration-styles.css` if needed.
+
+#### 3. Integration Schema Reference
+- See the Paperless NGX integration for a full example of a schema and route registration.
+- Supported field types: text, password, url, number, select, checkbox, textarea, boolean.
+- Mark sensitive fields with `sensitive: true` (these are masked in the UI and handled securely).
+
+#### 4. Error Handling and Testing
+- Use consistent error response format: `{ success: false, message: 'Error description' }`
+- Implement proper timeout handling (default: 10000ms)
+- Provide meaningful error messages for users
+- Log detailed errors server-side for debugging
+- Implement a `testConnection` static method for connectivity validation
+
+#### 5. Integration Development Checklist
+- [ ] Create integration class in `/integrations/` with SCHEMA and registerRoutes
+- [ ] Register integration in `integrationManager.js` (import and add to `registerBuiltInIntegrations`)
+- [ ] Integration Manager will call your integration's `registerRoutes` automatically
+- [ ] Call `integrationManager.registerRoutes(app, getSettings)` in `server.js`
+- [ ] Test UI generation, validation, and connection from the frontend
+- [ ] Add custom styles if needed
+- [ ] Document any special configuration requirements
+
+#### 6. Key Conventions
+- All backend integration logic and route registration is managed by the Integration Manager
+- Only the Integration Manager imports integration files
+- All integrations must provide a static `registerRoutes(app, getSettings)` method
+- The frontend is schema-driven and requires no manual code changes for new integrations
+- Use the Paperless NGX integration as a reference for best practices

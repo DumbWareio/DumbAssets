@@ -12,6 +12,7 @@
   --secondary-color: #64748b;
   --background-color: #ffffff;
   --text-color: #1a1a1a;
+  --text-color-secondary: #64748b;
   --border-color: #e2e8f0;
   --hover-color: #f8fafc;
   --modal-overlay: rgba(0, 0, 0, 0.5);
@@ -35,6 +36,7 @@
   --secondary-color: #94a3b8;
   --background-color: #2d2d2d;
   --text-color: #ffffff;
+  --text-color-secondary: #94a3b8;
   --border-color: #334155;
   --hover-color: #1e293b;
   --link-color: #60a5fa;
@@ -729,7 +731,6 @@ input[type="date"][data-has-value="true"] {
   justify-content: flex-end;
 }
 
-/* Edit and Delete Icon Buttons */
 .asset-actions button,
 .sub-asset-actions button {
   padding: 0.3rem 0.5rem;
@@ -988,6 +989,15 @@ input[type="date"][data-has-value="true"] {
   letter-spacing: -0.5px;
 }
 
+.file-type-hint {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-color-secondary);
+  margin-top: 0.3rem;
+  font-style: italic;
+}
+
 .form-group {
   margin-bottom: 0.5rem;
 }
@@ -1009,7 +1019,7 @@ input[type="date"][data-has-value="true"] {
   min-height: 40px;
 }
 
-.preview-container img {
+.preview-container img:not(.integration-badge img) {
   max-width: 200px;
   max-height: 100px;
   border-radius: var(--app-border-radius);
@@ -1310,6 +1320,13 @@ input[type="date"][data-has-value="true"] {
   margin-bottom: 20px;
 }
 
+.file-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
 .file-input {
   display: none;
 }
@@ -1577,6 +1594,8 @@ input[type="date"][data-has-value="true"] {
   display: block;
 }
 
+
+
 .toast-container {
   position: fixed;
   top: 3rem;
@@ -1681,7 +1700,7 @@ input[type="date"][data-has-value="true"] {
   gap: 8px;
   position: relative;
 }
-.file-preview img {
+.file-preview img:not(.integration-badge img) {
   max-width: 200px;
   max-height: 200px;
   border-radius: var(--app-border-radius);
@@ -1784,9 +1803,10 @@ a:hover {
   grid-column: span 3;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  gap: 0.5rem;
   width: 100%;
+  margin-bottom: 1rem;
+  max-width: 100%; /* Ensure grid doesn't overflow */
 }
 .preview-grid .file-preview-item {
   position: relative;
@@ -1811,7 +1831,7 @@ a:hover {
   overflow: hidden;
   position: relative;
 }
-.preview-grid .file-preview-item img {
+.preview-grid .file-preview-item img:not(.integration-badge img) {
   max-width: 100%;
   max-height: 85px;
   object-fit: contain;
@@ -1932,7 +1952,7 @@ a:hover {
   flex-direction: column;
   align-items: center;
   transition: all 0.2s ease;
-  height: 250px;
+  /* height: 250px; */
   overflow: hidden;
 }
 
@@ -1962,13 +1982,13 @@ a:hover {
   stroke: var(--primary-color);
   margin: auto;
   transition: transform 0.2s ease;
-  flex: 1;
+  /* flex: 1; */
 }
 
-.file-item.photo img {
+.file-item.photo .asset-image {
   width: 100%;
-  height: 150px;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
   border-radius: var(--app-border-radius);
   border: none;
   flex: 1;
@@ -1977,9 +1997,9 @@ a:hover {
 .file-label {
   font-size: 0.8rem;
   text-align: center;
-  padding: 0.4rem 0.8rem;
-  min-width: 60%;
-  max-width: 85%;
+  padding: 0.4rem 0.5rem;
+  /* min-width: 60%; */
+  max-width: 100%;
   background-color: var(--primary-transparent);
   border-radius: 1rem;
   color: var(--primary-color);
@@ -2088,8 +2108,8 @@ a:hover {
   margin-top: 1rem;
 }
 
-#photoPreview img,
-#subPhotoPreview img {
+#photoPreview img:not(.integration-badge img),
+#subPhotoPreview img:not(.integration-badge img) {
   max-width: 220px;
   max-height: 140px;
   object-fit: contain;
@@ -2449,7 +2469,7 @@ a:hover {
 .compact-file-item.photo img.compact-asset-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* Tag styles */
@@ -3338,82 +3358,6 @@ a:hover {
   /* font-size: 12px; */
 }
 
-.events-date-input.show {
-  display: block;
-}
-
-/* DEMO MODE STYLES */
-.header-top {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  top: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  /* padding: 0.5rem; */
-  color: var(--text-color);
-  border-radius: 8px;
-  transition: var(--input-element-transition);
-  font-size: 1.5rem;
-}
-.demo-banner {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8383 100%);
-  color: white;
-  text-align: center;
-  padding: 0.5rem 1rem;
-  margin: 0 auto 1rem auto;
-  font-weight: 500;
-  font-size: 0.9rem;
-  animation: pulse 2s infinite;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
-  border-radius: 0 0 8px 8px;
-  position: relative;
-  z-index: 5;
-  width: fit-content;
-  max-width: 90%;
-  backdrop-filter: blur(8px);
-  /* border: 1px solid rgba(255, 255, 255, 0.1); */
-}
-
-.demo-banner span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-/* Utility classes */
-.hidden {
-  display: none !important;
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 0.2rem;
-  color: var(--secondary-color);
-  min-height: 10px;
-}
-
 /* Duplicate Modal Specific Styles */
 .duplicate-input {
   width: 100%;
@@ -3529,23 +3473,4 @@ a:hover {
 
 #duplicateModal input:checked + .slider:before {
   transform: translateX(18px);
-}
-
-/* Responsive adjustments for duplicate modal */
-@media (max-width: 768px) {
-  #duplicateModal .settings-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem 0.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  #duplicateModal .settings-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  #duplicateModal .toggle-row span {
-    font-size: 0.8em;
-  }
 }
