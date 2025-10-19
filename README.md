@@ -137,9 +137,9 @@ Open your browser to [http://localhost:3000](http://localhost:3000)
 > Apprise integration is built-in to DumbAssets, allowing you to simply add your Discord/ntfy/Telegram/etc link WITHOUT having to run Apprise as a separate service!
 
 <details>
-<summary><strong>💰 Currency Configuration</strong></summary>
+<summary><strong>💰 Localisation Configuration</strong></summary>
 
-DumbAssets supports multiple currencies via environment variables. The application uses the standard ISO 4217 currency codes and locale formatting.
+DumbAssets supports multiple currencies and date formats via environment variables. The application uses the standard ISO 4217 currency codes and locale formatting.
 
 #### Environment Variables
 
@@ -153,6 +153,11 @@ DumbAssets supports multiple currencies via environment variables. The applicati
 - **Description**: The locale for currency formatting (affects number formatting, decimal separators, etc.)
 - **Examples**: `en-US`, `en-GB`, `de-DE`, `fr-FR`, `ja-JP`
 
+**`DATE_LOCALE`**
+- **Default**: Currency Locale
+- **Description**: The locale for date formatting (affects Day, month, year ordering, separators, etc.)
+- **Examples**: `en-US`, `en-GB`, `de-DE`, `fr-FR`, `ja-JP`
+
 #### Usage Examples
 
 **US Dollar (Default)**
@@ -160,25 +165,32 @@ DumbAssets supports multiple currencies via environment variables. The applicati
 # No configuration needed - this is the default
 ```
 
-**Euro (Germany)**
+**Euro (Germany) and date formatting**
 ```bash
 export CURRENCY_CODE=EUR
 export CURRENCY_LOCALE=de-DE
 ```
 
-**British Pound**
+**British Pound and date formatting**
 ```bash
 export CURRENCY_CODE=GBP
 export CURRENCY_LOCALE=en-GB
 ```
 
-**Canadian Dollar**
+**British Pound with German date formatting**
+```bash
+export CURRENCY_CODE=GBP
+export CURRENCY_LOCALE=en-GB
+export DATE_LOCALE=de-DE
+```
+
+**Canadian Dollar and date formatting**
 ```bash
 export CURRENCY_CODE=CAD
 export CURRENCY_LOCALE=en-CA
 ```
 
-**Japanese Yen**
+**Japanese Yen and date formatting**
 ```bash
 export CURRENCY_CODE=JPY
 export CURRENCY_LOCALE=ja-JP

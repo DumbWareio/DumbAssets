@@ -66,6 +66,7 @@ const DEFAULT_SETTINGS = {
 // Currency configuration from environment variables
 const CURRENCY_CODE = process.env.CURRENCY_CODE || 'USD';
 const CURRENCY_LOCALE = process.env.CURRENCY_LOCALE || 'en-US';
+const DATE_LOCALE = process.env.DATE_LOCALE || CURRENCY_LOCALE || 'en-US';
 
 generatePWAManifest(SITE_TITLE);
 // Set timezone from environment variable or default to America/Chicago
@@ -260,6 +261,10 @@ app.get(BASE_PATH + '/config.js', async (req, res) => {
         locale: CURRENCY_LOCALE
     });
 
+    const date = JSON.stringify({
+        locale: DATE_LOCALE
+    });
+
     // First send the dynamic config
     res.write(`
         window.appConfig = {
@@ -270,6 +275,7 @@ app.get(BASE_PATH + '/config.js', async (req, res) => {
             defaultSettings: ${JSON.stringify(DEFAULT_SETTINGS)},
             demoMode: ${DEMO_MODE},
             currency: ${currency},
+            date: ${date},
         };
     `);
     

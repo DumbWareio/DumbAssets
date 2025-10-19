@@ -11,7 +11,8 @@ export function formatDate(dateString, forSearch = false) {
     else if (!dateString) return '';
     
     let date;
-    
+    const dateLocale = window.appConfig?.date?.locale || window.appConfig?.currency?.locale || 'en-US';
+
     // Handle ISO date format (YYYY-MM-DD) to prevent timezone shift
     if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         // Parse as local date by splitting components and creating date with local timezone
@@ -23,11 +24,12 @@ export function formatDate(dateString, forSearch = false) {
     }
     
     // Format as MM/dd/YYYY with leading zeros
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear();
+    // const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    // const day = date.getDate().toString().padStart(2, '0');
+    // const year = date.getFullYear();
     
-    return `${month}/${day}/${year}`;
+    // return `${month}/${day}/${year}`;
+    return date.toLocaleDateString(dateLocale);
 }
 
 export function formatCurrency(amount, forSearch = false) {
