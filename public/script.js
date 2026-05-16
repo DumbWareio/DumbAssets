@@ -13,6 +13,7 @@ new GlobalHandlers();
 // Import file upload module
 import { initializeFileUploads, handleFileUploads } from '/src/services/fileUpload/index.js';
 import { formatFileSize } from '/src/services/fileUpload/utils.js';
+import { escapeHtml } from '/src/services/render/escape.js';
 // Import asset renderer module
 import { 
     initRenderer, 
@@ -792,12 +793,12 @@ document.addEventListener('DOMContentLoaded', () => {
         details.className = 'sub-asset-details';
         details.innerHTML = `
             ${warrantyDot}
-            <div class="sub-asset-title">${subAsset.name}</div>
+            <div class="sub-asset-title">${escapeHtml(subAsset.name)}</div>
             <div class="sub-asset-actions">
-                <button class="edit-sub-btn" data-id="${subAsset.id}" title="Edit">
+                <button class="edit-sub-btn" data-id="${escapeHtml(subAsset.id)}" title="Edit">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
                 </button>
-                <button class="delete-sub-btn" data-id="${subAsset.id}" title="Delete">
+                <button class="delete-sub-btn" data-id="${escapeHtml(subAsset.id)}" title="Delete">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 </button>
             </div>
@@ -825,12 +826,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Create model/serial info and tags section
         info.innerHTML = `
             <div>
-                ${subAsset.modelNumber ? `<span>${subAsset.modelNumber}</span>` : ''}
-                ${subAsset.serialNumber ? `<span>#${subAsset.serialNumber}</span>` : ''}
+                ${subAsset.modelNumber ? `<span>${escapeHtml(subAsset.modelNumber)}</span>` : ''}
+                ${subAsset.serialNumber ? `<span>#${escapeHtml(subAsset.serialNumber)}</span>` : ''}
             </div>
             ${subAsset.tags && subAsset.tags.length > 0 ? `
             <div class="tag-list">
-                ${subAsset.tags.map(tag => `<span class="tag" data-tag="${tag}">${tag}</span>`).join('')}
+                ${subAsset.tags.map(tag => `<span class="tag" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')}
             </div>`: ''}
         `;
         
@@ -877,17 +878,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (subAsset.photoPath) {
                 files.innerHTML += `
                     <div class="compact-file-item photo">
-                        <a href="${formatFilePath(subAsset.photoPath)}" target="_blank">
-                            <img src="${formatFilePath(subAsset.photoPath)}" alt="${subAsset.name}" class="compact-asset-image">
+                        <a href="${escapeHtml(formatFilePath(subAsset.photoPath))}" target="_blank">
+                            <img src="${escapeHtml(formatFilePath(subAsset.photoPath))}" alt="${escapeHtml(subAsset.name)}" class="compact-asset-image">
                         </a>
                     </div>
                 `;
             }
-            
+
             if (subAsset.receiptPath) {
                 files.innerHTML += `
                     <div class="compact-file-item receipt">
-                        <a href="${formatFilePath(subAsset.receiptPath)}" target="_blank">
+                        <a href="${escapeHtml(formatFilePath(subAsset.receiptPath))}" target="_blank">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                 <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/>
@@ -899,11 +900,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             }
-            
+
             if (subAsset.manualPath) {
                 files.innerHTML += `
                     <div class="compact-file-item manual">
-                        <a href="${formatFilePath(subAsset.manualPath)}" target="_blank">
+                        <a href="${escapeHtml(formatFilePath(subAsset.manualPath))}" target="_blank">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                 <path d="M14 2v6h6"/>
@@ -961,12 +962,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     childDetails.className = 'sub-asset-details';
                     childDetails.innerHTML = `
                         ${childWarrantyDot}
-                        <div class="sub-asset-title">${child.name}</div>
+                        <div class="sub-asset-title">${escapeHtml(child.name)}</div>
                         <div class="sub-asset-actions">
-                            <button class="edit-sub-btn" data-id="${child.id}" title="Edit">
+                            <button class="edit-sub-btn" data-id="${escapeHtml(child.id)}" title="Edit">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
                             </button>
-                            <button class="delete-sub-btn" data-id="${child.id}" title="Delete">
+                            <button class="delete-sub-btn" data-id="${escapeHtml(child.id)}" title="Delete">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                             </button>
                         </div>
@@ -978,12 +979,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     childInfo.className = 'sub-asset-info';
                     childInfo.innerHTML = `
                         <div>
-                            ${child.modelNumber ? `<span>${child.modelNumber}</span>` : ''}
-                            ${child.serialNumber ? `<span>#${child.serialNumber}</span>` : ''}
+                            ${child.modelNumber ? `<span>${escapeHtml(child.modelNumber)}</span>` : ''}
+                            ${child.serialNumber ? `<span>#${escapeHtml(child.serialNumber)}</span>` : ''}
                         </div>
                         ${child.tags && child.tags.length > 0 ? `
                         <div class="tag-list">
-                            ${child.tags.map(tag => `<span class="tag" data-tag="${tag}">${tag}</span>`).join('')}
+                            ${child.tags.map(tag => `<span class="tag" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')}
                         </div>`: ''}
                     `;
                     childElement.appendChild(childInfo);
@@ -1028,17 +1029,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (child.photoPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item photo">
-                                    <a href="${formatFilePath(child.photoPath)}" target="_blank">
-                                        <img src="${formatFilePath(child.photoPath)}" alt="${child.name}" class="compact-asset-image">
+                                    <a href="${escapeHtml(formatFilePath(child.photoPath))}" target="_blank">
+                                        <img src="${escapeHtml(formatFilePath(child.photoPath))}" alt="${escapeHtml(child.name)}" class="compact-asset-image">
                                     </a>
                                 </div>
                             `;
                         }
-                        
+
                         if (child.receiptPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item receipt">
-                                    <a href="${formatFilePath(child.receiptPath)}" target="_blank">
+                                    <a href="${escapeHtml(formatFilePath(child.receiptPath))}" target="_blank">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                             <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/>
@@ -1050,11 +1051,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             `;
                         }
-                        
+
                         if (child.manualPath) {
                             childFiles.innerHTML += `
                                 <div class="compact-file-item manual">
-                                    <a href="${formatFilePath(child.manualPath)}" target="_blank">
+                                    <a href="${escapeHtml(formatFilePath(child.manualPath))}" target="_blank">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                             <path d="M14 2v6h6"/>
@@ -1223,8 +1224,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!container) return;
             container.innerHTML = Array.from(tags).map(tag => `
                 <span class="tag">
-                    ${tag}
-                    <button class="remove-tag" data-tag="${tag}" title="Remove tag">
+                    ${escapeHtml(tag)}
+                    <button class="remove-tag" data-tag="${escapeHtml(tag)}" title="Remove tag">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>

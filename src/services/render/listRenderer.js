@@ -3,6 +3,8 @@
  * Handles rendering of the asset list sidebar with search and filter functionality
  */
 
+import { escapeHtml } from './escape.js';
+
 // These functions from other modules will be injected
 let updateSelectedIds;
 let renderAssetDetails;
@@ -330,11 +332,11 @@ function renderAssetList(searchQuery = '') {
         
         // Format asset item with name, model, and tags
         assetItem.innerHTML += `
-            <div class="asset-item-name">${asset.name || 'Unnamed Asset'}</div>
-            ${asset.modelNumber ? `<div class="asset-item-model">${asset.modelNumber}</div>` : ''}
+            <div class="asset-item-name">${asset.name ? escapeHtml(asset.name) : 'Unnamed Asset'}</div>
+            ${asset.modelNumber ? `<div class="asset-item-model">${escapeHtml(asset.modelNumber)}</div>` : ''}
             ${asset.tags && asset.tags.length > 0 ? `
                 <div class="asset-item-tags">
-                    ${asset.tags.map(tag => `<span class="asset-tag" data-tag="${tag}">${tag}</span>`).join('')}
+                    ${asset.tags.map(tag => `<span class="asset-tag" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')}
                 </div>
             ` : ''}
         `;

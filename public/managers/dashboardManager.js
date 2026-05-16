@@ -3,6 +3,7 @@
  * Handles dashboard rendering, events collection, and events display functionality
  */
 import { formatDate } from '../helpers/utils.js';
+import { escapeHtml } from '/src/services/render/escape.js';
 
 export class DashboardManager {
     constructor({
@@ -1091,20 +1092,20 @@ export class DashboardManager {
                 </svg>`;
 
             return `
-                <div class="event-row ${urgencyClass}" data-type="${event.type}" data-id="${event.id}" data-is-sub-asset="${event.isSubAsset}" style="cursor: pointer;">
+                <div class="event-row ${urgencyClass}" data-type="${escapeHtml(event.type)}" data-id="${escapeHtml(event.id)}" data-is-sub-asset="${escapeHtml(event.isSubAsset)}" style="cursor: pointer;">
                     <div class="event-type">
                         ${typeIcon}
-                        <span class="event-type-pill ${event.type}">${event.type === 'warranty' ? 'Warranty' : 'Maintenance'}</span>
+                        <span class="event-type-pill ${escapeHtml(event.type)}">${event.type === 'warranty' ? 'Warranty' : 'Maintenance'}</span>
                     </div>
                     <div class="event-date">
                         <span class="event-date-text">${this.formatDate(event.date)}</span>
                         <span class="event-days-until">${isPast ? `${Math.abs(daysUntil)} days past` : `${daysUntil} days`}</span>
                     </div>
                     <div class="event-details">
-                        <div class="event-name">${event.name}</div>
-                        <div class="event-description">${event.details}</div>
-                        ${(event.assetType === 'Component' || event.assetType === 'Sub-Component') && event.parentAsset ? `<div class="event-parent">Parent: ${event.parentAsset}</div>` : ''}
-                        ${event.notes ? `<div class="event-notes">Notes: ${event.notes}</div>` : ''}
+                        <div class="event-name">${escapeHtml(event.name)}</div>
+                        <div class="event-description">${escapeHtml(event.details)}</div>
+                        ${(event.assetType === 'Component' || event.assetType === 'Sub-Component') && event.parentAsset ? `<div class="event-parent">Parent: ${escapeHtml(event.parentAsset)}</div>` : ''}
+                        ${event.notes ? `<div class="event-notes">Notes: ${escapeHtml(event.notes)}</div>` : ''}
                     </div>
                 </div>
             `;
