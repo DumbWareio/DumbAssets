@@ -3,6 +3,8 @@
  * Handles rendering of asset details, sub-assets, and related UI components
  */
 
+import { escapeHtml, safeUrl } from './escape.js';
+
 // Import utility functions if needed
 // These will be injected when we use the module
 let formatDate;
@@ -135,12 +137,12 @@ function generateMaintenanceEventsHTML(maintenanceEvents) {
         return `
             <div class="maintenance-event-item">
                 <div class="maintenance-event-line">
-                    <strong>Event: ${event.name}</strong>
-                    <span class="maintenance-schedule-inline">${typeText} - ${scheduleText}</span>
+                    <strong>Event: ${escapeHtml(event.name)}</strong>
+                    <span class="maintenance-schedule-inline">${typeText} - ${escapeHtml(scheduleText)}</span>
                 </div>
                 ${event.notes ? `
                 <div class="maintenance-notes-line">
-                    <strong>Notes:</strong> ${event.notes}
+                    <strong>Notes:</strong> ${escapeHtml(event.notes)}
                 </div>
                 ` : ''}
             </div>
@@ -166,15 +168,15 @@ function generateAssetInfoHTML(asset) {
     return `
         <div class="info-item">
             <div class="info-label">Manufacturer</div>
-            <div>${asset.manufacturer || 'N/A'}</div>
+            <div>${asset.manufacturer ? escapeHtml(asset.manufacturer) : 'N/A'}</div>
         </div>
         <div class="info-item">
             <div class="info-label">Model Number</div>
-            <div>${asset.modelNumber || 'N/A'}</div>
+            <div>${asset.modelNumber ? escapeHtml(asset.modelNumber) : 'N/A'}</div>
         </div>
         <div class="info-item">
             <div class="info-label">Serial Number</div>
-            <div>${asset.serialNumber || 'N/A'}</div>
+            <div>${asset.serialNumber ? escapeHtml(asset.serialNumber) : 'N/A'}</div>
         </div>
         <div class="info-item">
             <div class="info-label">Purchase Date</div>
@@ -197,21 +199,21 @@ function generateAssetInfoHTML(asset) {
         ${asset.warranty?.expirationDate || asset.warranty?.isLifetime ? `
         <div class="info-item">
             <div class="info-label">Warranty</div>
-            ${asset.warranty.scope ? `<div>${asset.warranty.scope}</div>` : ''}
+            ${asset.warranty.scope ? `<div>${escapeHtml(asset.warranty.scope)}</div>` : ''}
             <div>${asset.warranty.isLifetime ? 'Lifetime' : formatDate(asset.warranty.expirationDate)}</div>
         </div>
         ` : ''}
         ${asset.secondaryWarranty?.expirationDate || asset.secondaryWarranty?.isLifetime ? `
         <div class="info-item">
             <div class="info-label">Secondary Warranty</div>
-            ${asset.secondaryWarranty.scope ? `<div>${asset.secondaryWarranty.scope}</div>` : ''}
+            ${asset.secondaryWarranty.scope ? `<div>${escapeHtml(asset.secondaryWarranty.scope)}</div>` : ''}
             <div>${asset.secondaryWarranty.isLifetime ? 'Lifetime' : formatDate(asset.secondaryWarranty.expirationDate)}</div>
         </div>
         ` : ''}
         ${asset.link ? `
         <div class="info-item">
             <div class="info-label">Link</div>
-            <div><a href="${asset.link}" target="_blank" rel="noopener noreferrer">${asset.link}</a></div>
+            <div><a href="${escapeHtml(safeUrl(asset.link))}" target="_blank" rel="noopener noreferrer">${escapeHtml(asset.link)}</a></div>
         </div>` : ''}
     `;
 }
@@ -264,9 +266,9 @@ function generateFileGridHTML(asset) {
             const fileName = photoInfo.originalName || photoPath.split('/').pop();
             html += `
                 <div class="file-item photo">
-                    <a href="${formatFilePath(photoPath)}" target="_blank" class="file-preview">
-                        <img src="${formatFilePath(photoPath)}" alt="${asset.name}" class="asset-image">
-                        <div class="file-label">${formatDisplayFileName(fileName)}</div>
+                    <a href="${escapeHtml(formatFilePath(photoPath))}" target="_blank" class="file-preview">
+                        <img src="${escapeHtml(formatFilePath(photoPath))}" alt="${escapeHtml(asset.name)}" class="asset-image">
+                        <div class="file-label">${escapeHtml(formatDisplayFileName(fileName))}</div>
                     </a>
                 </div>
             `;
@@ -277,9 +279,9 @@ function generateFileGridHTML(asset) {
         const fileName = photoInfo.originalName || asset.photoPath.split('/').pop();
         html += `
             <div class="file-item photo">
-                <a href="${formatFilePath(asset.photoPath)}" target="_blank" class="file-preview">
-                    <img src="${formatFilePath(asset.photoPath)}" alt="${asset.name}" class="asset-image">
-                    <div class="file-label">${formatDisplayFileName(fileName)}</div>
+                <a href="${escapeHtml(formatFilePath(asset.photoPath))}" target="_blank" class="file-preview">
+                    <img src="${escapeHtml(formatFilePath(asset.photoPath))}" alt="${escapeHtml(asset.name)}" class="asset-image">
+                    <div class="file-label">${escapeHtml(formatDisplayFileName(fileName))}</div>
                 </a>
             </div>
         `;
@@ -292,12 +294,12 @@ function generateFileGridHTML(asset) {
             const fileName = receiptInfo.originalName || receiptPath.split('/').pop();
             html += `
                 <div class="file-item receipt">
-                    <a href="${formatFilePath(receiptPath)}" target="_blank" class="file-preview">
+                    <a href="${escapeHtml(formatFilePath(receiptPath))}" target="_blank" class="file-preview">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                             <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
                         </svg>
-                        <div class="file-label">${formatDisplayFileName(fileName)}</div>
+                        <div class="file-label">${escapeHtml(formatDisplayFileName(fileName))}</div>
                     </a>
                 </div>
             `;
@@ -308,12 +310,12 @@ function generateFileGridHTML(asset) {
         const fileName = receiptInfo.originalName || asset.receiptPath.split('/').pop();
         html += `
             <div class="file-item receipt">
-                <a href="${formatFilePath(asset.receiptPath)}" target="_blank" class="file-preview">
+                <a href="${escapeHtml(formatFilePath(asset.receiptPath))}" target="_blank" class="file-preview">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                         <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2m4 -14h6m-6 4h6m-2 4h2" />
                     </svg>
-                    <div class="file-label">${formatDisplayFileName(fileName)}</div>
+                    <div class="file-label">${escapeHtml(formatDisplayFileName(fileName))}</div>
                 </a>
             </div>
         `;
@@ -326,7 +328,7 @@ function generateFileGridHTML(asset) {
             const fileName = manualInfo.originalName || manualPath.split('/').pop();
             html += `
                 <div class="file-item manual">
-                    <a href="${formatFilePath(manualPath)}" target="_blank" class="file-preview">
+                    <a href="${escapeHtml(formatFilePath(manualPath))}" target="_blank" class="file-preview">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
@@ -334,7 +336,7 @@ function generateFileGridHTML(asset) {
                             <line x1="16" y1="17" x2="8" y2="17"></line>
                             <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
-                        <div class="file-label">${formatDisplayFileName(fileName)}</div>
+                        <div class="file-label">${escapeHtml(formatDisplayFileName(fileName))}</div>
                     </a>
                 </div>
             `;
@@ -345,7 +347,7 @@ function generateFileGridHTML(asset) {
         const fileName = manualInfo.originalName || asset.manualPath.split('/').pop();
         html += `
             <div class="file-item manual">
-                <a href="${formatFilePath(asset.manualPath)}" target="_blank" class="file-preview">
+                <a href="${escapeHtml(formatFilePath(asset.manualPath))}" target="_blank" class="file-preview">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
@@ -353,7 +355,7 @@ function generateFileGridHTML(asset) {
                         <line x1="16" y1="17" x2="8" y2="17"></line>
                         <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
-                    <div class="file-label">${formatDisplayFileName(fileName)}</div>
+                    <div class="file-label">${escapeHtml(formatDisplayFileName(fileName))}</div>
                 </a>
             </div>
         `;
@@ -445,17 +447,17 @@ function renderAssetDetails(assetId, isSubAsset = false) {
             maintenanceScheduleHtml = `
                 <div class="info-item">
                     <div class="info-label">Maintenance Schedule</div>
-                    <div>${scheduleText}</div>
+                    <div>${escapeHtml(scheduleText)}</div>
                 </div>
             `;
         }
     }
     assetDetails.innerHTML = `
         <fieldset class="dashboard-legend">
-            <legend class="dashboard-legend-title">${legendTitle}</legend>
+            <legend class="dashboard-legend-title">${escapeHtml(legendTitle)}</legend>
             <div class="asset-header">
                 <div class="asset-title">
-                    <h2>${asset.name}</h2>
+                    <h2>${escapeHtml(asset.name)}</h2>
                     <div class="asset-meta">
                         Added: ${formatDate(asset.createdAt)}
                         ${asset.updatedAt !== asset.createdAt ? ` • Updated: ${formatDate(asset.updatedAt)}` : ''}
@@ -463,13 +465,13 @@ function renderAssetDetails(assetId, isSubAsset = false) {
                 </div>
                 <div class="asset-actions">
                     ${isSub ? `<button class="back-to-parent-btn" title="Back to Parent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>` : ''}
-                    <button class="copy-link-btn" data-id="${asset.id}" data-parent-id="${asset.parentId || ''}" title="Copy Link">
+                    <button class="copy-link-btn" data-id="${escapeHtml(asset.id)}" data-parent-id="${escapeHtml(asset.parentId || '')}" title="Copy Link">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     </button>
-                    <button class="edit-asset-btn" data-id="${asset.id}" title="Edit">
+                    <button class="edit-asset-btn" data-id="${escapeHtml(asset.id)}" title="Edit">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z"/></svg>
                     </button>
-                    <button class="delete-asset-btn" data-id="${asset.id}" title="Delete">
+                    <button class="delete-asset-btn" data-id="${escapeHtml(asset.id)}" title="Delete">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     </button>
                 </div>
@@ -482,14 +484,14 @@ function renderAssetDetails(assetId, isSubAsset = false) {
             ${(asset.description || asset.notes) ? `
             <div class="asset-description">
                 <strong>Description:</strong>
-                <p>${asset.description || asset.notes}</p>
+                <p>${escapeHtml(asset.description || asset.notes)}</p>
             </div>
             ` : ''}
             ${asset.tags && asset.tags.length > 0 ? `
             <div class="info-item" style="margin-bottom: 1rem;">
                 <div class="info-label">Tags</div>
                 <div class="tag-list">
-                    ${asset.tags.map(tag => `<span class="tag" data-tag="${tag}" style="cursor: pointer;">${tag}</span>`).join('')}
+                    ${asset.tags.map(tag => `<span class="tag" data-tag="${escapeHtml(tag)}" style="cursor: pointer;">${escapeHtml(tag)}</span>`).join('')}
                 </div>
             </div>` : ''}
             <div class="asset-files">

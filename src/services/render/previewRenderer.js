@@ -3,6 +3,8 @@
  * Provides centralized functions for rendering file previews consistently across the application
  */
 
+import { escapeHtml } from './escape.js';
+
 /**
  * Create a photo preview element
  * 
@@ -22,7 +24,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
     previewItem.innerHTML = `
         <div class="file-preview">
             <div class="preview-content">
-                <img src="${filePath}" alt="Photo Preview">
+                <img src="${escapeHtml(filePath)}" alt="Photo Preview">
             </div>
         </div>
         <button type="button" class="delete-preview-btn" title="Delete Image">
@@ -34,7 +36,7 @@ export function createPhotoPreview(filePath, onDeleteCallback, fileName = null, 
             </svg>
         </button>
         <div class="file-info-pill">
-            <span class="file-name">${fileName}</span>
+            <span class="file-name">${escapeHtml(fileName)}</span>
         </div>
     `;
     
@@ -108,7 +110,7 @@ export function createDocumentPreview(type, filePath, onDeleteCallback, fileName
             </svg>
         </button>
         <div class="file-info-pill">
-            <span class="file-name">${fileName || 'Document'}</span>
+            <span class="file-name">${fileName ? escapeHtml(fileName) : 'Document'}</span>
         </div>
     `;
     
