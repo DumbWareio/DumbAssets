@@ -494,16 +494,36 @@ function generateId() {
     return Math.floor(1000000000 + Math.random() * 9000000000).toString();
 }
 
+// Subdirectories under DATA_DIR that legitimately hold uploaded asset files.
+// Any path resolved outside one of these is rejected to prevent path traversal.
+const ALLOWED_ASSET_FILE_SUBDIRS = ['Images', 'Receipts', 'Manuals'];
+
+function resolveDataFilePath(filePath) {
+    if (typeof filePath !== 'string') return null;
+    const cleanPath = filePath.replace(/^\/+/, '');
+    if (!cleanPath) return null;
+    const resolved = path.resolve(DATA_DIR, cleanPath);
+    const dataDirPrefix = DATA_DIR + path.sep;
+    if (resolved !== DATA_DIR && !resolved.startsWith(dataDirPrefix)) return null;
+    const relative = path.relative(DATA_DIR, resolved);
+    const topDir = relative.split(path.sep)[0];
+    if (!ALLOWED_ASSET_FILE_SUBDIRS.includes(topDir)) return null;
+    return resolved;
+}
+
 function deleteAssetFileAsync(filePath) {
     return new Promise((resolve, reject) => {
         if (!filePath) {
             console.log('[DEBUG] Skipping empty filePath');
             return resolve();
         }
-        // File paths are stored as '/Images/filename.jpg', so we need to join with DATA_DIR
-        // and remove the leading slash to avoid double slashes
-        const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
-        const fullPath = path.join(DATA_DIR, cleanPath);
+        // File paths are stored as '/Images/filename.jpg' and must resolve
+        // inside DATA_DIR/{Images,Receipts,Manuals} — reject any traversal.
+        const fullPath = resolveDataFilePath(filePath);
+        if (!fullPath) {
+            console.warn(`[SECURITY] Path traversal blocked in deleteAssetFileAsync: ${filePath}`);
+            return resolve();
+        }
         console.log(`[DEBUG] Attempting to delete file: ${fullPath}`);
         fs.unlink(fullPath, (err) => {
             if (err && err.code !== 'ENOENT') {
@@ -1210,7 +1230,11 @@ app.post('/api/upload/manual', uploadManual.array('manual', 10), (req, res) => {
 app.post('/api/delete-file', (req, res) => {
     const { path: filePath } = req.body;
     if (!filePath) return res.status(400).json({ error: 'No file path provided' });
-    const absPath = path.join(__dirname, filePath.startsWith('/') ? filePath.substring(1) : filePath);
+    const absPath = resolveDataFilePath(filePath);
+    if (!absPath) {
+        console.warn(`[SECURITY] Path traversal blocked in /api/delete-file: ${filePath}`);
+        return res.status(400).json({ error: 'Invalid file path' });
+    }
     fs.unlink(absPath, (err) => {
         if (err) {
             // If file doesn't exist, treat as success
