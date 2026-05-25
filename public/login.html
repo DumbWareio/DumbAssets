@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">DumbAssets</title>
+    <script src="i18n/translations.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/svg+xml" href="assets/dumbassets.svg">
@@ -32,185 +33,259 @@
                     </svg>
                 </button>
             </div>
-            <h2>Enter PIN</h2>
-            <div class="pin-input-container"></div>
-            <div class="pin-error" role="alert" aria-hidden="true">Incorrect PIN. Please try again.</div>
+
+            <!-- Single-user PIN form -->
+            <div id="singleUserSection">
+                <h2 id="enterPinLabel" data-i18n="login.enterPin">Enter PIN</h2>
+                <div class="pin-input-container"></div>
+                <div class="pin-error" role="alert" aria-hidden="true" data-i18n="login.incorrectPin">Incorrect PIN. Please try again.</div>
+            </div>
+
+            <!-- Multi-user: step 1 — choose user -->
+            <div id="multiUserSection" style="display:none;">
+                <h2 id="chooseUserLabel" data-i18n="login.chooseUser">Choose User</h2>
+                <div id="userList" class="user-list"></div>
+                <div class="pin-error" id="multiUserError" role="alert" aria-hidden="true"></div>
+            </div>
+
+            <!-- Multi-user: step 2 — enter PIN for selected user -->
+            <div id="multiPinSection" style="display:none;">
+                <button type="button" id="backToUsers" class="back-btn" data-i18n="login.back">&#8592; Back</button>
+                <h2 id="multiPinLabel"></h2>
+                <div class="pin-input-container" id="multiPinContainer"></div>
+                <div class="pin-error" id="multiPinError" role="alert" aria-hidden="true" data-i18n="login.incorrectPin">Incorrect PIN. Please try again.</div>
+            </div>
         </form>
     </main>
     <div class="dumbware-credit">
-        Built by <a href="https://dumbware.io" target="_blank" rel="noopener noreferrer">DumbWare</a>
+        <span data-i18n="app.builtBy">Built by</span> <a href="https://dumbware.io" target="_blank" rel="noopener noreferrer">DumbWare</a>
     </div>
     
     <script>
-        // PIN input functionality
         document.addEventListener('DOMContentLoaded', async function() {
-            // Get PIN length from server
+            // Apply i18n translations
+            if (window.i18n && window.i18n.applyTranslations) {
+                window.i18n.applyTranslations();
+            }
+
+            const t = window.t || (k => k);
             const pinContainer = document.querySelector('.pin-input-container');
             const pinForm = document.getElementById('pinForm');
             const errorDisplay = document.querySelector('.pin-error');
-            let pinLength = 4; // Default
-
-            const submitPin = async () => {
-                // Collect PIN from inputs
-                const inputs = Array.from(pinContainer.querySelectorAll('input'));
-                const pin = inputs.map(input => input.value).join('').trim();
-                
-                try {
-                    const response = await fetch('verify-pin', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ pin }),
-                        credentials: 'same-origin', // Ensure cookies are sent
-                        redirect: 'follow' // Follow server redirects
-                    });
-                    
-                    // If redirected, the response will be a redirect status (3xx)
-                    if (response.redirected) {
-                        window.location.replace(response.url);
-                        return;
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (response.status === 429) {
-                        // Handle lockout
-                        errorDisplay.textContent = data.error;
-                        errorDisplay.setAttribute('aria-hidden', 'false');
-                        inputs.forEach(input => {
-                            input.value = '';
-                            input.classList.remove('has-value');
-                            input.disabled = true;
-                        });
-                    } else {
-                        // Handle invalid PIN
-                        const message = data.attemptsLeft > 0 
-                            ? `Incorrect PIN. ${data.attemptsLeft} attempts remaining.` 
-                            : 'Incorrect PIN. Last attempt before lockout.';
-                        
-                        errorDisplay.textContent = message;
-                        errorDisplay.setAttribute('aria-hidden', 'false');
-                        inputs.forEach(input => {
-                            input.value = '';
-                            input.classList.remove('has-value');
-                        });
-                        inputs[0].focus();
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    errorDisplay.textContent = 'An error occurred. Please try again.';
-                    errorDisplay.setAttribute('aria-hidden', 'false');
-                }
-            }
-
-            // Handle form submission
-            pinForm.addEventListener('submit', async function(e) {
-                // Prevent the default form submission
-                e.preventDefault();
-                try {
-                    await submitPin();                
-                }
-                catch (error) {
-                    console.error('Error:', error);
-                }
-            });
-            
-            // Fetch PIN length from server
-            fetch('pin-length')
-                .then(response => response.json())
-                .then(data => {
-                    const pinLength = data.length;
-                    const container = document.querySelector('.pin-input-container');
-                    
-                    // Create PIN input fields
-                    for (let i = 0; i < pinLength; i++) {
-                        const input = document.createElement('input');
-                        input.type = 'password';
-                        input.maxLength = 1;
-                        input.className = 'pin-input';
-                        input.setAttribute('inputmode', 'numeric');
-                        input.pattern = '[0-9]*';
-                        input.setAttribute('autocomplete', 'off');
-                        container.appendChild(input);
-                    }
-
-                    // Handle input behavior
-                    const inputs = container.querySelectorAll('.pin-input');
-                    
-                    // Focus first input immediately
-                    if (inputs.length > 0) {
-                        inputs[0].focus();
-                    }
-
-                    inputs.forEach((input, index) => {
-                        input.addEventListener('input', (e) => {
-                            // Only allow numbers
-                            e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                            
-                            if (e.target.value) {
-                                e.target.classList.add('has-value');
-                                if (index < inputs.length - 1) {
-                                    inputs[index + 1].focus();
-                                } else {
-                                    // Last digit entered, submit the form
-                                    const pin = Array.from(inputs).map(input => input.value).join('');
-                                    submitPin(pin, inputs);
-                                }
-                            } else {
-                                e.target.classList.remove('has-value');
-                            }
-                        });
-
-                        input.addEventListener('keydown', (e) => {
-                            if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                                inputs[index - 1].focus();
-                            }
-                        });
-
-                        // Prevent paste of multiple characters
-                        input.addEventListener('paste', (e) => {
-                            e.preventDefault();
-                            const pastedData = e.clipboardData.getData('text');
-                            const numbers = pastedData.match(/\d/g);
-                            
-                            if (numbers) {
-                                numbers.forEach((num, i) => {
-                                    if (inputs[index + i]) {
-                                        inputs[index + i].value = num;
-                                        inputs[index + i].classList.add('has-value');
-                                        if (index + i + 1 < inputs.length) {
-                                            inputs[index + i + 1].focus();
-                                        } else {
-                                            // If paste fills all inputs, submit the form
-                                            const pin = Array.from(inputs).map(input => input.value).join('');
-                                            submitPin(pin, inputs);
-                                        }
-                                    }
-                                });
-                            }
-                        });
-                    });
-                });
-            
-            // Focus first input on page load
-            setTimeout(() => {
-                const firstInput = pinContainer.querySelector('input');
-                if (firstInput) firstInput.focus();
-            }, 100);
 
             // Set the page and site title from config if available
             if (window.appConfig && window.appConfig.siteTitle) {
                 const siteTitleElem = document.getElementById('siteTitle');
-                if (siteTitleElem) {
-                    siteTitleElem.textContent = window.appConfig.siteTitle || 'DumbAssets';
-                }
+                if (siteTitleElem) siteTitleElem.textContent = window.appConfig.siteTitle || 'DumbAssets';
                 const pageTitleElem = document.getElementById('pageTitle');
-                if (pageTitleElem) {
-                    pageTitleElem.textContent = window.appConfig.siteTitle || 'DumbAssets';
-                }
+                if (pageTitleElem) pageTitleElem.textContent = window.appConfig.siteTitle || 'DumbAssets';
             }
+
+            // --- Helper: build PIN inputs in a container ---
+            function buildPinInputs(container, length, onComplete) {
+                container.innerHTML = '';
+                for (let i = 0; i < length; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'password';
+                    input.maxLength = 1;
+                    input.className = 'pin-input';
+                    input.setAttribute('inputmode', 'numeric');
+                    input.pattern = '[0-9]*';
+                    input.setAttribute('autocomplete', 'off');
+                    container.appendChild(input);
+                }
+                const inputs = container.querySelectorAll('.pin-input');
+                if (inputs.length > 0) inputs[0].focus();
+
+                inputs.forEach((input, index) => {
+                    input.addEventListener('input', (e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                        if (e.target.value) {
+                            e.target.classList.add('has-value');
+                            if (index < inputs.length - 1) {
+                                inputs[index + 1].focus();
+                            } else {
+                                const pin = Array.from(inputs).map(i => i.value).join('');
+                                onComplete(pin, inputs);
+                            }
+                        } else {
+                            e.target.classList.remove('has-value');
+                        }
+                    });
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                            inputs[index - 1].focus();
+                        }
+                    });
+                    input.addEventListener('paste', (e) => {
+                        e.preventDefault();
+                        const numbers = (e.clipboardData.getData('text').match(/\d/g) || []);
+                        numbers.forEach((num, i) => {
+                            if (inputs[index + i]) {
+                                inputs[index + i].value = num;
+                                inputs[index + i].classList.add('has-value');
+                            }
+                        });
+                        const last = index + numbers.length - 1;
+                        if (last >= inputs.length - 1) {
+                            const pin = Array.from(inputs).map(i => i.value).join('');
+                            onComplete(pin, inputs);
+                        } else if (inputs[last + 1]) {
+                            inputs[last + 1].focus();
+                        }
+                    });
+                });
+            }
+
+            // --- Fetch pin-length / multi-user info ---
+            let pinLengthData = { length: 4, multiUser: false };
+            try {
+                const resp = await fetch('pin-length');
+                pinLengthData = await resp.json();
+            } catch (e) { console.error('Could not fetch pin-length', e); }
+
+            // --- MULTI-USER MODE ---
+            if (pinLengthData.multiUser) {
+                document.getElementById('singleUserSection').style.display = 'none';
+                document.getElementById('multiUserSection').style.display = '';
+
+                // Fetch user list
+                let users = [];
+                try {
+                    const resp = await fetch('api/users');
+                    const data = await resp.json();
+                    users = data.users || [];
+                } catch (e) { console.error('Could not fetch users', e); }
+
+                const userList = document.getElementById('userList');
+                users.forEach(u => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'user-btn';
+                    btn.textContent = u.name;
+                    btn.addEventListener('click', () => selectUser(u.name));
+                    userList.appendChild(btn);
+                });
+
+                let selectedUsername = null;
+
+                function selectUser(name) {
+                    selectedUsername = name;
+                    document.getElementById('multiUserSection').style.display = 'none';
+                    const pinSection = document.getElementById('multiPinSection');
+                    pinSection.style.display = '';
+                    const label = document.getElementById('multiPinLabel');
+                    const enterPinFor = t('login.enterPinFor') || 'Enter PIN for';
+                    label.textContent = `${enterPinFor} ${name}`;
+
+                    const multiPinContainer = document.getElementById('multiPinContainer');
+                    const multiPinError = document.getElementById('multiPinError');
+
+                    // Fetch this user's pin length
+                    fetch('api/users').then(r => r.json()).then(data => {
+                        const userInfo = (data.users || []).find(u => u.name === name);
+                        // We don't expose individual pin lengths, use default 4
+                        buildPinInputs(multiPinContainer, 4, async (pin, inputs) => {
+                            await submitMultiPin(name, pin, inputs, multiPinError);
+                        });
+                    }).catch(() => {
+                        buildPinInputs(multiPinContainer, 4, async (pin, inputs) => {
+                            await submitMultiPin(name, pin, inputs, multiPinError);
+                        });
+                    });
+
+                    // Back button
+                    document.getElementById('backToUsers').addEventListener('click', () => {
+                        pinSection.style.display = 'none';
+                        document.getElementById('multiUserSection').style.display = '';
+                        multiPinError.setAttribute('aria-hidden', 'true');
+                        multiPinContainer.innerHTML = '';
+                    }, { once: true });
+                }
+
+                async function submitMultiPin(username, pin, inputs, errEl) {
+                    try {
+                        const response = await fetch('verify-pin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, pin }),
+                            credentials: 'same-origin',
+                            redirect: 'follow'
+                        });
+                        if (response.redirected) {
+                            window.location.replace(response.url);
+                            return;
+                        }
+                        const data = await response.json();
+                        if (response.status === 429) {
+                            errEl.textContent = data.error;
+                            errEl.setAttribute('aria-hidden', 'false');
+                            inputs.forEach(i => { i.value = ''; i.classList.remove('has-value'); i.disabled = true; });
+                        } else {
+                            const msg = data.attemptsLeft > 0
+                                ? `${t('login.incorrectPin')} ${data.attemptsLeft} ${t('login.attemptsRemaining') || 'attempts remaining.'}`
+                                : t('login.incorrectPin');
+                            errEl.textContent = msg;
+                            errEl.setAttribute('aria-hidden', 'false');
+                            inputs.forEach(i => { i.value = ''; i.classList.remove('has-value'); });
+                            inputs[0].focus();
+                        }
+                    } catch (err) {
+                        console.error('Error:', err);
+                        errEl.textContent = t('login.error') || 'An error occurred. Please try again.';
+                        errEl.setAttribute('aria-hidden', 'false');
+                    }
+                }
+
+                return; // done for multi-user
+            }
+
+            // --- SINGLE-USER MODE ---
+            const submitPin = async () => {
+                const inputs = Array.from(pinContainer.querySelectorAll('input'));
+                const pin = inputs.map(input => input.value).join('').trim();
+                try {
+                    const response = await fetch('verify-pin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pin }),
+                        credentials: 'same-origin',
+                        redirect: 'follow'
+                    });
+                    if (response.redirected) {
+                        window.location.replace(response.url);
+                        return;
+                    }
+                    const data = await response.json();
+                    if (response.status === 429) {
+                        errorDisplay.textContent = data.error;
+                        errorDisplay.setAttribute('aria-hidden', 'false');
+                        inputs.forEach(input => { input.value = ''; input.classList.remove('has-value'); input.disabled = true; });
+                    } else {
+                        const message = data.attemptsLeft > 0 
+                            ? `${t('login.incorrectPin')} ${data.attemptsLeft} ${t('login.attemptsRemaining') || 'attempts remaining.'}`
+                            : t('login.incorrectPin');
+                        errorDisplay.textContent = message;
+                        errorDisplay.setAttribute('aria-hidden', 'false');
+                        inputs.forEach(input => { input.value = ''; input.classList.remove('has-value'); });
+                        inputs[0].focus();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorDisplay.textContent = t('login.error') || 'An error occurred. Please try again.';
+                    errorDisplay.setAttribute('aria-hidden', 'false');
+                }
+            };
+
+            pinForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                try { await submitPin(); } catch (error) { console.error('Error:', error); }
+            });
+
+            buildPinInputs(pinContainer, pinLengthData.length || 4, async (pin, inputs) => {
+                await submitPin();
+            });
         });
     </script>
 </body>
-</html> 
+</html>

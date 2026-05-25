@@ -101,11 +101,23 @@ const BASE_PATH = (() => {
 })();
 const projectName = packageJson.name.toUpperCase().replace(/-/g, '_');
 const PIN = process.env.DUMBASSETS_PIN;
-console.log('PIN:', PIN);
 if (!PIN || PIN.trim() === '') {
     debugLog('PIN protection is disabled');
 } else {
     debugLog('PIN protection is enabled, PIN length:', PIN.length);
+}
+
+// --- MULTI-USER CONFIG ---
+// Format: DUMBASSETS_USERS=alice:1234,bob:5678
+const USERS_RAW = process.env.DUMBASSETS_USERS;
+const MULTI_USER_MODE = !!USERS_RAW && USERS_RAW.trim() !== '';
+let USERS = [];
+if (MULTI_USER_MODE) {
+    USERS = USERS_RAW.split(',').map(entry => {
+        const parts = entry.trim().split(':');
+        return { name: parts[0].trim(), pin: parts.slice(1).join(':').trim() };
+    }).filter(u => u.name && u.pin);
+    console.log(`Multi-user mode: ${USERS.length} users configured`);
 }
 
 // --- BRUTE FORCE PROTECTION ---
@@ -190,7 +202,9 @@ app.use(BASE_PATH, (req, res, next) => {
         '/login',
         '/pin-length',
         '/verify-pin',
+        '/api/users',
         '/config.js',
+        '/i18n/',
         '/assets/',
         '/styles.css',
         '/manifest.json',
@@ -222,6 +236,19 @@ function verifyPin(storedPin, providedPin) {
 // --- AUTH MIDDLEWARE ---
 function authMiddleware(req, res, next) {
     debugLog('Auth check for path:', req.path, 'Method:', req.method);
+
+    // Multi-user mode
+    if (MULTI_USER_MODE) {
+        if (req.session.authenticated && req.session.username) return next();
+        if (req.path.startsWith('/api/') || req.xhr) {
+            return res.status(401).json({ error: 'Authentication required', redirectTo: BASE_PATH + '/login' });
+        }
+        const originalUrl = req.originalUrl;
+        const loginUrl = `${BASE_PATH}/login${originalUrl ? `?returnTo=${encodeURIComponent(originalUrl)}` : ''}`;
+        return res.redirect(loginUrl);
+    }
+
+    // Single-user mode
     if (!PIN || PIN.trim() === '') return next();
 
     const pinCookie = req.cookies[`${projectName}_PIN`];
@@ -233,14 +260,12 @@ function authMiddleware(req, res, next) {
 
     if (req.path.startsWith('/api/') || req.xhr) {
         req.session.authenticated = false;
-        // Return JSON error for API requests
         return res.status(401).json({ 
             error: 'Authentication required', 
             redirectTo: BASE_PATH + '/login'
         });
     } else {
         req.session.authenticated = false;
-        // Preserve the original URL with query parameters for post-login redirect
         const originalUrl = req.originalUrl;
         const loginUrl = `${BASE_PATH}/login${originalUrl ? `?returnTo=${encodeURIComponent(originalUrl)}` : ''}`;
         debugLog('Redirecting to login with return URL:', loginUrl);
@@ -345,14 +370,56 @@ app.get(BASE_PATH + '/login', (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
 });
 
+// API: list users for multi-user mode (public, no auth needed)
+app.get(BASE_PATH + '/api/users', (req, res) => {
+    if (!MULTI_USER_MODE) return res.json({ multiUser: false, users: [] });
+    res.json({ multiUser: true, users: USERS.map(u => ({ name: u.name })) });
+});
+
+// API: who am I (requires auth)
+app.get('/api/whoami', (req, res) => {
+    if (!req.session.authenticated) return res.status(401).json({ error: 'Not authenticated' });
+    res.json({ username: req.session.username || null, multiUser: MULTI_USER_MODE });
+});
+
 app.get(BASE_PATH + '/pin-length', (req, res) => {
+    if (MULTI_USER_MODE) return res.json({ length: 0, multiUser: true });
     if (!PIN || PIN.trim() === '') return res.json({ length: 0 });
     res.json({ length: PIN.length });
 });
 
 app.post(BASE_PATH + '/verify-pin', (req, res) => {
     debugLog('PIN verification attempt from IP:', req.ip);
-    
+
+    // --- MULTI-USER MODE ---
+    if (MULTI_USER_MODE) {
+        const ip = req.ip;
+        if (isLockedOut(ip)) {
+            const attempts = loginAttempts.get(ip);
+            const timeLeft = Math.ceil((LOCKOUT_TIME - (Date.now() - attempts.lastAttempt)) / 1000 / 60);
+            return res.status(429).json({ error: `Too many attempts. Please try again in ${timeLeft} minutes.` });
+        }
+        const { username, pin } = req.body;
+        if (!username || !pin || typeof username !== 'string' || typeof pin !== 'string') {
+            return res.status(400).json({ error: 'Invalid username or PIN format' });
+        }
+        const user = USERS.find(u => u.name.toLowerCase() === username.toLowerCase());
+        if (user && verifyPin(user.pin, pin)) {
+            resetAttempts(ip);
+            req.session.authenticated = true;
+            req.session.username = user.name;
+            const returnTo = req.session.returnTo || (BASE_PATH + '/');
+            delete req.session.returnTo;
+            return res.redirect(returnTo);
+        } else {
+            recordAttempt(ip);
+            const attempts = loginAttempts.get(ip);
+            const attemptsLeft = Math.max(0, MAX_ATTEMPTS - (attempts ? attempts.count : 0));
+            return res.status(401).json({ error: 'Invalid username or PIN', attemptsLeft });
+        }
+    }
+
+    // --- SINGLE-USER MODE ---
     // If no PIN is set, authentication is successful
     if (!PIN || PIN.trim() === '') {
         debugLog('PIN verification bypassed - No PIN configured');
@@ -504,6 +571,13 @@ function deleteAssetFileAsync(filePath) {
         // and remove the leading slash to avoid double slashes
         const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
         const fullPath = path.join(DATA_DIR, cleanPath);
+        // Security: prevent path traversal (CVE-2026-45230)
+        const resolvedPath = path.resolve(fullPath);
+        const resolvedDataDir = path.resolve(DATA_DIR);
+        if (!resolvedPath.startsWith(resolvedDataDir + path.sep)) {
+            console.warn(`[SECURITY] Path traversal attempt blocked: ${filePath}`);
+            return reject(new Error('Invalid file path'));
+        }
         console.log(`[DEBUG] Attempting to delete file: ${fullPath}`);
         fs.unlink(fullPath, (err) => {
             if (err && err.code !== 'ENOENT') {
@@ -1211,6 +1285,13 @@ app.post('/api/delete-file', (req, res) => {
     const { path: filePath } = req.body;
     if (!filePath) return res.status(400).json({ error: 'No file path provided' });
     const absPath = path.join(__dirname, filePath.startsWith('/') ? filePath.substring(1) : filePath);
+    // Security: prevent path traversal (CVE-2026-45230)
+    const resolvedPath = path.resolve(absPath);
+    const resolvedDataDir = path.resolve(DATA_DIR);
+    if (!resolvedPath.startsWith(resolvedDataDir + path.sep)) {
+        console.warn(`[SECURITY] Path traversal attempt blocked in delete-file: ${filePath}`);
+        return res.status(403).json({ error: 'Invalid file path' });
+    }
     fs.unlink(absPath, (err) => {
         if (err) {
             // If file doesn't exist, treat as success

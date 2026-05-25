@@ -580,6 +580,7 @@ export class SettingsManager {
             'Serial Number',
             'Purchase Date',
             'Purchase Price',
+            'Quantity',
             'Currency',
             'Location',
             'URL',
@@ -644,6 +645,7 @@ export class SettingsManager {
                 asset.serialNumber || '',
                 asset.purchaseDate || '',
                 asset.price || '',
+                asset.quantity || 1,
                 asset.currency || '',
                 asset.location || '',
                 asset.url || '',
@@ -678,6 +680,7 @@ export class SettingsManager {
                 subAsset.serialNumber || '',
                 subAsset.purchaseDate || '',
                 subAsset.purchasePrice || '',
+                subAsset.quantity || 1,
                 subAsset.currency || '',
                 subAsset.location || '',
                 subAsset.url || '',
@@ -769,6 +772,7 @@ export class SettingsManager {
             'Serial',
             'Purchase Date',
             'Purchase Price',
+            'Quantity',
             'Notes',
             'URL'
         ];
@@ -794,6 +798,7 @@ export class SettingsManager {
                 asset.serialNumber || '',
                 asset.purchaseDate || '',
                 asset.price || '',
+                asset.quantity || 1,
                 asset.description || asset.notes || '',
                 asset.url || ''
             ];
@@ -809,6 +814,7 @@ export class SettingsManager {
                 subAsset.serialNumber || '',
                 subAsset.purchaseDate || '',
                 subAsset.purchasePrice || '',
+                subAsset.quantity || 1,
                 subAsset.notes || subAsset.description || '',
                 subAsset.url || ''
             ];

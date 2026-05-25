@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">DumbAssets</title>
+    <script src="i18n/translations.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/svg+xml" href="assets/dumbassets.svg">
@@ -77,10 +78,10 @@
                 <!-- Left panel: Asset list with search -->
                 <div class="sidebar">
                     <div class="search-bar">
-                        <input type="text" id="searchInput" placeholder="Search assets...">
+                        <input type="text" id="searchInput" data-i18n-placeholder="sidebar.search" placeholder="Search assets...">
                     </div>
                     <div class="button-container">
-                        <button id="addAssetBtn" class="action-button">Add Asset</button>
+                        <button id="addAssetBtn" class="action-button" data-i18n="sidebar.addAsset">Add Asset</button>
                         <button id="importAssetsBtn" class="action-button">Import Assets</button>
                     </div>
                     <div class="sort-container">
@@ -604,10 +605,10 @@
                     <div class="modal-body">
                         <div class="settings-tabs">
                             <div class="tab-nav">
-                                <button class="tab-btn active" data-tab="notifications">Notifications</button>
-                                <button class="tab-btn" data-tab="interface">Interface</button>
-                                <button class="tab-btn" data-tab="system">System</button>
-                                <!-- Add more tab buttons here in the future -->
+                                <button class="tab-btn active" data-tab="notifications" data-i18n="settings.tab.notifications">Notifications</button>
+                                <button class="tab-btn" data-tab="interface" data-i18n="settings.tab.interface">Interface</button>
+                                <button class="tab-btn" data-tab="system" data-i18n="settings.tab.system">System</button>
+                                <button class="tab-btn" data-tab="language" data-i18n="settings.tab.language">Language</button>
                             </div>
                             <div class="tab-content">
                                 <!-- Notifications Settings Tab -->
@@ -834,13 +835,30 @@
                                         </fieldset>
                                     </form>
                                 </div>
+
+                                <!-- Language Settings Tab -->
+                                <div class="tab-pane" id="language-tab">
+                                    <fieldset>
+                                        <legend data-i18n="settings.language.title">Language / Lingua</legend>
+                                        <p class="settings-hint" data-i18n="settings.language.hint">Select your preferred language:</p>
+                                        <div class="language-options">
+                                            <button type="button" class="lang-btn" data-lang="en">
+                                                🇬🇧 <span data-i18n="settings.language.en">English</span>
+                                            </button>
+                                            <button type="button" class="lang-btn" data-lang="it">
+                                                🇮🇹 <span data-i18n="settings.language.it">Italiano</span>
+                                            </button>
+                                        </div>
+                                        <p id="langCurrentInfo" style="margin-top:1rem; font-size:0.85rem; opacity:0.7;"></p>
+                                    </fieldset>
+                                </div>
                             </div>
-                            
+
                             <!-- Settings modal actions - now outside of individual forms -->
                             <div class="modal-actions">
-                                <button type="button" id="saveSettings" class="action-button">Save<div class="spinner"></div></button>
-                                <button type="button" id="cancelSettings" class="action-button" style="background: var(--secondary-color);">Cancel</button>
-                                <button type="button" id="testNotificationSettings" class="action-button" style="background: var(--success-color);">Test<div class="spinner"></div></button>
+                                <button type="button" id="saveSettings" class="action-button" data-i18n="settings.save">Save<div class="spinner"></div></button>
+                                <button type="button" id="cancelSettings" class="action-button" style="background: var(--secondary-color);" data-i18n="settings.cancel">Cancel</button>
+                                <button type="button" id="testNotificationSettings" class="action-button" style="background: var(--success-color);" data-i18n="settings.test">Test<div class="spinner"></div></button>
                             </div>
                             </div>
                         </div>
@@ -850,10 +868,51 @@
         </div>
     </main>
     <div class="dumbware-credit">
-        Built by <a href="https://dumbware.io" target="_blank" rel="noopener noreferrer">DumbWare</a>
+        <span data-i18n="app.builtBy">Built by</span> <a href="https://dumbware.io" target="_blank" rel="noopener noreferrer">DumbWare</a>
+        <span id="userInfoBadge" style="display:none; margin-left:1rem; opacity:0.7; font-size:0.8rem;"></span>
     </div>
     <div id="toast-container" class="toast-container"></div>
     <script src="script.js" type="module"></script>
     <script src="js/datepicker-enhancement.js"></script>
+    <script>
+        // Language button click handlers + user badge
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wire up language buttons
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const lang = btn.getAttribute('data-lang');
+                    if (window.i18n) window.i18n.setLanguage(lang);
+                });
+            });
+
+            // Mark active language button
+            const syncLangBtns = (lang) => {
+                document.querySelectorAll('.lang-btn').forEach(b => {
+                    b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+                });
+                const info = document.getElementById('langCurrentInfo');
+                if (info) {
+                    const langNames = { en: 'English', it: 'Italiano' };
+                    info.textContent = langNames[lang] || lang;
+                }
+            };
+            syncLangBtns(window.i18n ? window.i18n.getLanguage() : 'en');
+
+            // Update buttons when language changes
+            window.addEventListener('languageChanged', e => syncLangBtns(e.detail.lang));
+
+            // Fetch user info for multi-user badge
+            fetch('/api/whoami', { credentials: 'include' }).then(r => r.json()).then(data => {
+                if (data.username) {
+                    const badge = document.getElementById('userInfoBadge');
+                    if (badge) {
+                        const label = window.t ? window.t('user.loggedInAs') : 'Logged in as';
+                        badge.textContent = `${label}: ${data.username}`;
+                        badge.style.display = 'inline';
+                    }
+                }
+            }).catch(() => {});
+        });
+    </script>
 </body>
 </html>

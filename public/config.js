@@ -173,4 +173,11 @@ window.addEventListener('load', () => {
 });
 
 // Make theme functions globally available
-window.toggleTheme = toggleTheme; 
+window.toggleTheme = toggleTheme;
+
+// Apply i18n translations after DOM load if i18n module is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.i18n && window.i18n.applyTranslations) {
+        window.i18n.applyTranslations();
+    }
+});

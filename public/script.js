@@ -351,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Data Functions
     async function loadAssets() {
+        const currentSearch = searchInput ? searchInput.value : '';
         try {
             const apiBaseUrl = globalThis.getApiBaseUrl();
             const response = await fetch(`${apiBaseUrl}/api/assets`, {
@@ -362,13 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update asset list in the modules
             updateState(assets, subAssets);
             updateListState(assets, subAssets, selectedAssetId);
-            renderAssetList();
+            renderAssetList(currentSearch);
         } catch (error) {
             globalThis.logError('Error loading assets:', error.message);
             assets = [];
             updateState(assets, subAssets);
             updateListState(assets, subAssets, selectedAssetId);
-            renderAssetList();
+            renderAssetList(currentSearch);
         }
     }
 
