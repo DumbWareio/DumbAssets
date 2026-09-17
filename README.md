@@ -100,6 +100,16 @@ Open your browser to [http://localhost:3000](http://localhost:3000)
 
 ---
 
+
+## Easypanel
+
+DumbAssets has a one-click deployment template on [Easypanel](https://easypanel.io), a self-hosted Docker deployment platform.
+
+[![Deploy on Easypanel][easypanel-btn]][easypanel-deploy]
+
+[easypanel-btn]: https://easypanel.io/img/deploy-on-easypanel-40.svg
+[easypanel-deploy]: https://easypanel.io/templates/dumbassets
+
 ## Features
 
 - 🚀 Track assets with detailed info (model, serial, warranty, etc.)
