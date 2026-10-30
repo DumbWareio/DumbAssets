@@ -1229,6 +1229,26 @@ const upload = multer({
     }
 });
 
+// A workbook may declare a range it does not hold: the <dimension> element is
+// attacker-controlled metadata, so the parse has to be bounded at read time.
+const MAX_IMPORT_ROWS = 10000;
+
+// Read an uploaded workbook with SheetJS bounded to MAX_IMPORT_ROWS rows.
+// Returns { json } on success or { tooLarge, declaredRows } when the declared
+// sheet range exceeds the cap and must be refused instead of walked.
+function readImportWorkbook(buffer) {
+    const workbook = XLSX.read(buffer, { type: 'buffer', sheetRows: MAX_IMPORT_ROWS + 1 });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    // sheetRows makes SheetJS clip !ref to the rows it actually parsed and keep
+    // the declared range in !fullref; a workbook longer than the cap is refused
+    // here rather than silently truncated or fully materialised.
+    if (sheet && sheet['!fullref'] && sheet['!fullref'] !== sheet['!ref']) {
+        const declaredRows = XLSX.utils.decode_range(sheet['!fullref']).e.r + 1;
+        return { tooLarge: true, declaredRows };
+    }
+    return { json: XLSX.utils.sheet_to_json(sheet, { header: 1 }) };
+}
+
 // Helper function to parse Excel dates
 function parseExcelDate(value) {
     if (!value) return '';
@@ -1285,19 +1305,20 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
+        const parsed = readImportWorkbook(file.buffer);
+        if (parsed.tooLarge) {
+            return res.status(413).json({
+                error: `Workbook declares ${parsed.declaredRows} rows; the import limit is ${MAX_IMPORT_ROWS}.`
+            });
+        }
+        const json = parsed.json;
         // If only headers are requested (first step), return headers
         if (!req.body.mappings) {
-            let workbook = XLSX.read(file.buffer, { type: 'buffer' });
-            let sheet = workbook.Sheets[workbook.SheetNames[0]];
-            let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
             const headers = json[0] || [];
             return res.json({ headers });
         }
         // Parse mappings
         const mappings = JSON.parse(req.body.mappings);
-        let workbook = XLSX.read(file.buffer, { type: 'buffer' });
-        let sheet = workbook.Sheets[workbook.SheetNames[0]];
-        let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const headers = json[0] || [];
         const rows = json.slice(1);
         let importedCount = 0;
