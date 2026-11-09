@@ -1232,11 +1232,16 @@ const upload = multer({
 // A workbook may declare a range it does not hold: the <dimension> element is
 // attacker-controlled metadata, so the parse has to be bounded at read time.
 const MAX_IMPORT_ROWS = 10000;
+// sheet_to_json walks every position of !ref, so a declared A1:XFD10002 range
+// with two cells in it still costs 163 million visits. The import maps a fixed
+// set of asset columns, so a range beyond this many cells is refused rather
+// than converted.
+const MAX_IMPORT_CELLS = 500000;
 
-// Read an uploaded workbook with SheetJS bounded to MAX_IMPORT_ROWS data rows.
-// Returns { json } on success or { tooLarge, declaredRows? } when the sheet is
-// longer than the cap, so a partial import is refused instead of reported as a
-// successful one.
+// Read an uploaded workbook with SheetJS bounded to MAX_IMPORT_ROWS data rows
+// and MAX_IMPORT_CELLS positions. Returns { json } on success, or
+// { tooLarge, reason } when the sheet exceeds a cap and must be refused instead
+// of silently truncated or walked.
 function readImportWorkbook(buffer) {
     // sheetRows counts the header row too, so ask for the header plus one row
     // past the cap: a sheet that fits the cap is read whole, while a sheet that
@@ -1252,13 +1257,18 @@ function readImportWorkbook(buffer) {
     // declared range past the cap is refused even if its rows are absent.
     if (sheet['!fullref'] && sheet['!fullref'] !== sheet['!ref']) {
         const declaredRows = XLSX.utils.decode_range(sheet['!fullref']).e.r + 1;
-        return { tooLarge: true, declaredRows };
+        return { tooLarge: true, reason: `the workbook declares ${declaredRows} rows` };
     }
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    const parsedRows = range.e.r - range.s.r + 1;
     // CSV has no declared range and never sets !fullref, so a parse that filled
     // the whole window is the only sign that rows past the cap were dropped.
-    const parsedRows = XLSX.utils.decode_range(sheet['!ref']).e.r + 1;
     if (parsedRows >= maxParsedRows) {
-        return { tooLarge: true };
+        return { tooLarge: true, reason: `the workbook has more than ${MAX_IMPORT_ROWS} rows of data` };
+    }
+    const parsedCells = parsedRows * (range.e.c - range.s.c + 1);
+    if (parsedCells > MAX_IMPORT_CELLS) {
+        return { tooLarge: true, reason: `the workbook's ${parsedCells} cells exceed the cell cap` };
     }
     return { json: XLSX.utils.sheet_to_json(sheet, { header: 1 }) };
 }
@@ -1321,11 +1331,8 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
         }
         const parsed = readImportWorkbook(file.buffer);
         if (parsed.tooLarge) {
-            const detail = parsed.declaredRows
-                ? `Workbook declares ${parsed.declaredRows} rows`
-                : `Workbook has more than ${MAX_IMPORT_ROWS} rows of data`;
             return res.status(413).json({
-                error: `${detail}; the import limit is ${MAX_IMPORT_ROWS} rows of data.`
+                error: `Import refused: ${parsed.reason}; the import limit is ${MAX_IMPORT_ROWS} rows of data and ${MAX_IMPORT_CELLS} cells.`
             });
         }
         const json = parsed.json;
