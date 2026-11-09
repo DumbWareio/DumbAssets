@@ -1229,6 +1229,43 @@ const upload = multer({
     }
 });
 
+// A workbook may declare a range it does not hold: the <dimension> element is
+// attacker-controlled metadata, so it reaches the row and cell caps below
+// rather than the conversion.
+const MAX_IMPORT_ROWS = 10000;
+// sheet_to_json walks every position of !ref, so a declared A1:XFD10002 range
+// with two cells in it still costs 163 million visits. The import maps a fixed
+// set of asset columns, so a range beyond this many cells is refused rather
+// than converted.
+const MAX_IMPORT_CELLS = 500000;
+
+// Read an uploaded workbook and apply the row and cell caps to its real range.
+// Returns { json } on success, or { tooLarge, reason } when the sheet exceeds a
+// cap and must be refused instead of silently truncated or walked.
+function readImportWorkbook(buffer) {
+    // Read the whole sheet. With sheetRows, SheetJS skips rows past the window
+    // and infers !ref from the rows it read, so a dimensionless XLSX holding an
+    // asset at row 20000 would report a short range and the import would drop
+    // that row while reporting success. The 5 MB upload limit bounds this read;
+    // the caps below bound the conversion that follows.
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet || !sheet['!ref']) {
+        return { json: [] };
+    }
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    const parsedRows = range.e.r - range.s.r + 1;
+    // The header is row 0 of the mapped import, so the cap is data rows + 1.
+    if (parsedRows > MAX_IMPORT_ROWS + 1) {
+        return { tooLarge: true, reason: `the workbook has ${parsedRows} rows including the header` };
+    }
+    const parsedCells = parsedRows * (range.e.c - range.s.c + 1);
+    if (parsedCells > MAX_IMPORT_CELLS) {
+        return { tooLarge: true, reason: `the workbook's ${parsedCells} cells exceed the cell cap` };
+    }
+    return { json: XLSX.utils.sheet_to_json(sheet, { header: 1 }) };
+}
+
 // Helper function to parse Excel dates
 function parseExcelDate(value) {
     if (!value) return '';
@@ -1285,19 +1322,20 @@ app.post('/api/import-assets', upload.single('file'), (req, res) => {
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
+        const parsed = readImportWorkbook(file.buffer);
+        if (parsed.tooLarge) {
+            return res.status(413).json({
+                error: `Import refused: ${parsed.reason}; the import limit is ${MAX_IMPORT_ROWS} rows of data and ${MAX_IMPORT_CELLS} cells.`
+            });
+        }
+        const json = parsed.json;
         // If only headers are requested (first step), return headers
         if (!req.body.mappings) {
-            let workbook = XLSX.read(file.buffer, { type: 'buffer' });
-            let sheet = workbook.Sheets[workbook.SheetNames[0]];
-            let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
             const headers = json[0] || [];
             return res.json({ headers });
         }
         // Parse mappings
         const mappings = JSON.parse(req.body.mappings);
-        let workbook = XLSX.read(file.buffer, { type: 'buffer' });
-        let sheet = workbook.Sheets[workbook.SheetNames[0]];
-        let json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const headers = json[0] || [];
         const rows = json.slice(1);
         let importedCount = 0;
