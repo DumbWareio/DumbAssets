@@ -1230,7 +1230,8 @@ const upload = multer({
 });
 
 // A workbook may declare a range it does not hold: the <dimension> element is
-// attacker-controlled metadata, so the parse has to be bounded at read time.
+// attacker-controlled metadata, so it reaches the row and cell caps below
+// rather than the conversion.
 const MAX_IMPORT_ROWS = 10000;
 // sheet_to_json walks every position of !ref, so a declared A1:XFD10002 range
 // with two cells in it still costs 163 million visits. The import maps a fixed
@@ -1238,33 +1239,25 @@ const MAX_IMPORT_ROWS = 10000;
 // than converted.
 const MAX_IMPORT_CELLS = 500000;
 
-// Read an uploaded workbook with SheetJS bounded to MAX_IMPORT_ROWS data rows
-// and MAX_IMPORT_CELLS positions. Returns { json } on success, or
-// { tooLarge, reason } when the sheet exceeds a cap and must be refused instead
-// of silently truncated or walked.
+// Read an uploaded workbook and apply the row and cell caps to its real range.
+// Returns { json } on success, or { tooLarge, reason } when the sheet exceeds a
+// cap and must be refused instead of silently truncated or walked.
 function readImportWorkbook(buffer) {
-    // sheetRows counts the header row too, so ask for the header plus one row
-    // past the cap: a sheet that fits the cap is read whole, while a sheet that
-    // fills this window is the only kind that can have rows left behind it.
-    const maxParsedRows = MAX_IMPORT_ROWS + 2;
-    const workbook = XLSX.read(buffer, { type: 'buffer', sheetRows: maxParsedRows });
+    // Read the whole sheet. With sheetRows, SheetJS skips rows past the window
+    // and infers !ref from the rows it read, so a dimensionless XLSX holding an
+    // asset at row 20000 would report a short range and the import would drop
+    // that row while reporting success. The 5 MB upload limit bounds this read;
+    // the caps below bound the conversion that follows.
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     if (!sheet || !sheet['!ref']) {
         return { json: [] };
     }
-    // An XLSX parse clipped at sheetRows keeps the workbook's declared range in
-    // !fullref. The <dimension> element is attacker-controlled metadata, so a
-    // declared range past the cap is refused even if its rows are absent.
-    if (sheet['!fullref'] && sheet['!fullref'] !== sheet['!ref']) {
-        const declaredRows = XLSX.utils.decode_range(sheet['!fullref']).e.r + 1;
-        return { tooLarge: true, reason: `the workbook declares ${declaredRows} rows` };
-    }
     const range = XLSX.utils.decode_range(sheet['!ref']);
     const parsedRows = range.e.r - range.s.r + 1;
-    // CSV has no declared range and never sets !fullref, so a parse that filled
-    // the whole window is the only sign that rows past the cap were dropped.
-    if (parsedRows >= maxParsedRows) {
-        return { tooLarge: true, reason: `the workbook has more than ${MAX_IMPORT_ROWS} rows of data` };
+    // The header is row 0 of the mapped import, so the cap is data rows + 1.
+    if (parsedRows > MAX_IMPORT_ROWS + 1) {
+        return { tooLarge: true, reason: `the workbook has ${parsedRows} rows including the header` };
     }
     const parsedCells = parsedRows * (range.e.c - range.s.c + 1);
     if (parsedCells > MAX_IMPORT_CELLS) {
